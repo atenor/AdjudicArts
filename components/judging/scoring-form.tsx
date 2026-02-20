@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -31,6 +30,7 @@ export default function ScoringForm({
   existingScores: ExistingScore[];
   existingFinalComment?: string | null;
 }) {
+  const SCORE_OPTIONS = Array.from({ length: 11 }, (_, value) => value);
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -119,22 +119,29 @@ export default function ScoringForm({
 
           <div className="grid gap-3 md:grid-cols-3">
             <div className="space-y-1 md:col-span-1">
-              <Label htmlFor={`score-${criterion.id}`}>Score (0-10)</Label>
-              <Input
-                id={`score-${criterion.id}`}
-                type="number"
-                min={0}
-                max={10}
-                step={0.1}
-                value={values[criterion.id]}
-                onChange={(e) =>
-                  setValues((current) => ({
-                    ...current,
-                    [criterion.id]: e.target.value,
-                  }))
-                }
-                required
-              />
+              <Label>Score (tap 0-10)</Label>
+              <div className="flex gap-1 overflow-x-auto pb-1">
+                {SCORE_OPTIONS.map((score) => {
+                  const selected = values[criterion.id] === String(score);
+                  return (
+                    <Button
+                      key={`${criterion.id}-${score}`}
+                      type="button"
+                      size="sm"
+                      variant={selected ? "default" : "outline"}
+                      className="h-8 min-w-8 px-2 text-xs shrink-0"
+                      onClick={() =>
+                        setValues((current) => ({
+                          ...current,
+                          [criterion.id]: String(score),
+                        }))
+                      }
+                    >
+                      {score}
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
             <div className="space-y-1 md:col-span-2">
               <Label htmlFor={`comment-${criterion.id}`}>Comment (optional)</Label>
@@ -147,7 +154,7 @@ export default function ScoringForm({
                     [criterion.id]: e.target.value,
                   }))
                 }
-                rows={3}
+                rows={2}
               />
             </div>
           </div>
