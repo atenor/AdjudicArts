@@ -35,7 +35,7 @@ export default async function ScoringQueuePage() {
   const totalScored = queue.reduce((sum, round) => sum + round.scoredCount, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Scoring Queue</h1>
         <p className="text-sm text-muted-foreground">
@@ -51,12 +51,12 @@ export default async function ScoringQueuePage() {
         <div className="space-y-6">
           {queue.map((roundQueue) => (
             <section key={roundQueue.round.id} className="space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-medium">{roundQueue.round.name}</h2>
                 <Badge variant="outline">
                   {roundQueue.round.type.toLowerCase()} round
                 </Badge>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground sm:ml-1">
                   {roundQueue.event.name}
                 </span>
                 <span className="text-sm text-muted-foreground">
@@ -69,47 +69,76 @@ export default async function ScoringQueuePage() {
                   No applications are currently in this scoring stage.
                 </p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Applicant</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Voice Part</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Progress</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  <div className="space-y-2 sm:hidden">
                     {roundQueue.applications.map((application) => (
-                      <TableRow key={application.id}>
-                        <TableCell>
-                          <Link
-                            href={`/dashboard/scoring/${application.id}`}
-                            className="font-medium hover:underline"
-                          >
-                            {application.applicant.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                      <article key={application.id} className="rounded-lg border p-3 space-y-2">
+                        <Link
+                          href={`/dashboard/scoring/${application.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {application.applicant.name}
+                        </Link>
+                        <p className="break-all text-xs text-muted-foreground">
                           {application.applicant.email}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatVoicePart(application.voicePart)}
-                        </TableCell>
-                        <TableCell>
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{formatVoicePart(application.voicePart)}</Badge>
                           <ApplicationStatusBadge status={application.status} />
-                        </TableCell>
-                        <TableCell>
                           {application.isScored ? (
                             <Badge variant="default">Scored</Badge>
                           ) : (
                             <Badge variant="secondary">Pending</Badge>
                           )}
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                      </article>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Applicant</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Voice Part</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Progress</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {roundQueue.applications.map((application) => (
+                          <TableRow key={application.id}>
+                            <TableCell>
+                              <Link
+                                href={`/dashboard/scoring/${application.id}`}
+                                className="font-medium hover:underline"
+                              >
+                                {application.applicant.name}
+                              </Link>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {application.applicant.email}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatVoicePart(application.voicePart)}
+                            </TableCell>
+                            <TableCell>
+                              <ApplicationStatusBadge status={application.status} />
+                            </TableCell>
+                            <TableCell>
+                              {application.isScored ? (
+                                <Badge variant="default">Scored</Badge>
+                              ) : (
+                                <Badge variant="secondary">Pending</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </section>
           ))}

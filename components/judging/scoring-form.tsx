@@ -117,8 +117,8 @@ export default function ScoringForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div className="rounded-lg border p-3 bg-muted/40">
+    <form onSubmit={onSubmit} className="min-w-0 space-y-5">
+      <div className="rounded-lg border bg-muted/40 p-3">
         <p className="text-sm font-medium">Live Score Summary</p>
         <p className="text-sm text-muted-foreground">
           Total: <span className="font-semibold text-foreground">{scoreSummary.total.toFixed(1)}</span> /{" "}
@@ -129,7 +129,7 @@ export default function ScoringForm({
       </div>
 
       {criteria.map((criterion) => (
-        <div key={criterion.id} className="rounded-lg border p-4 space-y-2">
+        <div key={criterion.id} className="min-w-0 space-y-2 rounded-lg border p-4">
           <div className="space-y-1">
             <p className="font-medium">
               {criterion.order}. {criterion.name}
@@ -142,7 +142,7 @@ export default function ScoringForm({
           <div className="grid gap-3 md:grid-cols-3">
             <div className="space-y-1 md:col-span-1">
               <Label>Score (tap 0-10)</Label>
-              <div className="flex gap-1 overflow-x-auto pb-1">
+              <div className="grid grid-cols-6 gap-1 sm:grid-cols-11 sm:gap-1.5">
                 {SCORE_OPTIONS.map((score) => {
                   const selected = values[criterion.id] === String(score);
                   return (
@@ -151,7 +151,7 @@ export default function ScoringForm({
                       type="button"
                       size="sm"
                       variant={selected ? "default" : "outline"}
-                      className="h-8 min-w-8 px-2 text-xs shrink-0"
+                      className="h-9 w-full px-0 text-sm"
                       onClick={() =>
                         setValues((current) => ({
                           ...current,
@@ -176,7 +176,10 @@ export default function ScoringForm({
                     [criterion.id]: e.target.value,
                   }))
                 }
-                rows={2}
+                rows={3}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
               />
             </div>
           </div>
@@ -193,11 +196,14 @@ export default function ScoringForm({
           placeholder="Overall adjudication comments for this applicant..."
           value={finalComment}
           onChange={(event) => setFinalComment(event.target.value)}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
         />
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button className="w-full sm:w-auto" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : "Save Scores"}
         </Button>
       </div>

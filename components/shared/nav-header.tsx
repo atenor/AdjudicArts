@@ -19,13 +19,13 @@ export default async function NavHeader() {
 
   return (
     <header className="border-b bg-background">
-      <div className="flex h-14 items-center justify-between px-6">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:h-14 sm:flex-nowrap sm:justify-between sm:px-6 sm:py-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 sm:gap-6">
           <span className="font-semibold text-lg tracking-tight">AdjudicArts</span>
           {canViewEvents && (
             <Link
               href="/dashboard/events"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Events
             </Link>
@@ -33,7 +33,7 @@ export default async function NavHeader() {
           {canViewApplications && (
             <Link
               href="/dashboard/applications"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Applications
             </Link>
@@ -41,16 +41,18 @@ export default async function NavHeader() {
           {canViewScoring && (
             <Link
               href="/dashboard/scoring"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Scoring
             </Link>
           )}
         </div>
         {session?.user && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">{session.user.name}</span>
-            <Badge variant={ROLE_BADGE_VARIANTS[session.user.role]}>
+          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+            <span className="max-w-[7.5rem] truncate text-xs text-muted-foreground sm:max-w-none sm:text-sm">
+              {session.user.name}
+            </span>
+            <Badge className="text-xs sm:text-sm" variant={ROLE_BADGE_VARIANTS[session.user.role]}>
               {ROLE_LABELS[session.user.role]}
             </Badge>
             <SignOutButton />
