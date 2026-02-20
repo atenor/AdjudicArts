@@ -54,7 +54,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
         </div>
       </div>
 
-      <div className="h-[180px] sm:h-[220px] md:h-[260px] overflow-hidden rounded-md border">
+      <div className="w-full max-w-[640px] mx-auto aspect-video overflow-hidden rounded-md border bg-black">
         <iframe
           src={current.embed}
           title={`Audition video ${currentIndex + 1}`}

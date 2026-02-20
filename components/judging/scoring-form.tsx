@@ -59,6 +59,18 @@ export default function ScoringForm({
       }, {})
   );
 
+  const scoreSummary = useMemo(() => {
+    const numericScores = criteria
+      .map((criterion) => Number(values[criterion.id]))
+      .filter((value) => !Number.isNaN(value));
+    const total = numericScores.reduce((sum, value) => sum + value, 0);
+    const filled = numericScores.length;
+    const max = criteria.length * 10;
+    const average = filled > 0 ? total / filled : 0;
+
+    return { total, filled, max, average };
+  }, [criteria, values]);
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setServerError(null);
@@ -106,6 +118,16 @@ export default function ScoringForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
+      <div className="rounded-lg border p-3 bg-muted/40">
+        <p className="text-sm font-medium">Live Score Summary</p>
+        <p className="text-sm text-muted-foreground">
+          Total: <span className="font-semibold text-foreground">{scoreSummary.total.toFixed(1)}</span> /{" "}
+          {scoreSummary.max} | Filled:{" "}
+          <span className="font-semibold text-foreground">{scoreSummary.filled}</span> / {criteria.length} | Avg:{" "}
+          <span className="font-semibold text-foreground">{scoreSummary.average.toFixed(2)}</span>
+        </p>
+      </div>
+
       {criteria.map((criterion) => (
         <div key={criterion.id} className="rounded-lg border p-4 space-y-2">
           <div className="space-y-1">
