@@ -11,6 +11,34 @@ import ApplicationStatusBadge from "@/components/applications/application-status
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
 
+function parseRepertoire(repertoire: string | null) {
+  if (!repertoire) return [];
+
+  const normalized = repertoire.replace(/\r/g, "").trim();
+  if (!normalized) return [];
+
+  if (normalized.includes("\n")) {
+    return normalized
+      .split("\n")
+      .map((piece) => piece.trim())
+      .filter(Boolean);
+  }
+
+  const byComposer = normalized
+    .split(/\),\s*/)
+    .map((piece, index, pieces) =>
+      index < pieces.length - 1 ? `${piece})` : piece
+    )
+    .map((piece) => piece.trim())
+    .filter(Boolean);
+  if (byComposer.length > 1) return byComposer;
+
+  return normalized
+    .split(/\s*;\s*/)
+    .map((piece) => piece.trim())
+    .filter(Boolean);
+}
+
 export default async function ScoreApplicationPage({
   params,
 }: {
@@ -33,6 +61,7 @@ export default async function ScoreApplicationPage({
 
   const { application, criteria, existingScores, finalComment, videoUrls } =
     scoringContext;
+  const repertoirePieces = parseRepertoire(application.repertoire);
 
   return (
     <div className="space-y-6">
@@ -60,9 +89,15 @@ export default async function ScoreApplicationPage({
         </section>
         <section className="rounded-lg border p-4 space-y-2">
           <h2 className="font-medium">Repertoire</h2>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {application.repertoire || "No repertoire provided."}
-          </p>
+          {repertoirePieces.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No repertoire provided.</p>
+          ) : (
+            <ol className="list-decimal pl-5 space-y-1 text-sm text-muted-foreground">
+              {repertoirePieces.map((piece, index) => (
+                <li key={`${piece}-${index}`}>{piece}</li>
+              ))}
+            </ol>
+          )}
         </section>
       </div>
 

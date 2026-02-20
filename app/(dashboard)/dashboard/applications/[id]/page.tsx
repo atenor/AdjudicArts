@@ -20,6 +20,34 @@ const STATUS_FLOW: ApplicationStatus[] = [
   "DECIDED",
 ];
 
+function parseRepertoire(repertoire: string | null) {
+  if (!repertoire) return [];
+
+  const normalized = repertoire.replace(/\r/g, "").trim();
+  if (!normalized) return [];
+
+  if (normalized.includes("\n")) {
+    return normalized
+      .split("\n")
+      .map((piece) => piece.trim())
+      .filter(Boolean);
+  }
+
+  const byComposer = normalized
+    .split(/\),\s*/)
+    .map((piece, index, pieces) =>
+      index < pieces.length - 1 ? `${piece})` : piece
+    )
+    .map((piece) => piece.trim())
+    .filter(Boolean);
+  if (byComposer.length > 1) return byComposer;
+
+  return normalized
+    .split(/\s*;\s*/)
+    .map((piece) => piece.trim())
+    .filter(Boolean);
+}
+
 function deriveStatusTimeline(status: ApplicationStatus): ApplicationStatus[] {
   if (status === "CHAPTER_REJECTED") {
     return ["SUBMITTED", "CHAPTER_REVIEW", "CHAPTER_REJECTED"];
@@ -51,6 +79,7 @@ export default async function ApplicationDetailPage({
   const application = await getApplicationById(params.id, session.user.organizationId);
   if (!application) notFound();
   const timeline = deriveStatusTimeline(application.status);
+  const repertoirePieces = parseRepertoire(application.repertoire);
 
   return (
     <div className="space-y-8">
@@ -75,8 +104,16 @@ export default async function ApplicationDetailPage({
             </p>
             <p>
               <span className="text-muted-foreground">Repertoire:</span>{" "}
-              {application.repertoire || "—"}
             </p>
+            {repertoirePieces.length === 0 ? (
+              <p className="text-sm text-muted-foreground">—</p>
+            ) : (
+              <ol className="list-decimal pl-5 space-y-1 text-sm">
+                {repertoirePieces.map((piece, index) => (
+                  <li key={`${piece}-${index}`}>{piece}</li>
+                ))}
+              </ol>
+            )}
             <p>
               <span className="text-muted-foreground">Submitted:</span>{" "}
               {application.submittedAt.toLocaleString("en-US")}
