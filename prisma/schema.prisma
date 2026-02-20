@@ -151,6 +151,33 @@ model Application {
   status         ApplicationStatus @default(SUBMITTED)
   repertoire     String?
   notes          String?
+  chapter        String?
+  dateOfBirth    DateTime?
+  gender         String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  zip            String?
+  schoolName     String?
+  schoolCity     String?
+  schoolState    String?
+  highSchoolName String?
+  collegeName    String?
+  major          String?
+  careerPlans    String?
+  scholarshipUse String?
+  video1Title    String?
+  video2Title    String?
+  video3Title    String?
+  video1Url      String?
+  video2Url      String?
+  video3Url      String?
+  youtubePlaylist String?
+  headshot       String?
+  bio            String?
+  parentName     String?
+  parentEmail    String?
   submittedAt    DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
