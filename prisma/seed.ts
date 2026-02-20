@@ -5,7 +5,7 @@
  *  - 1 Organization
  *  - 1 Admin, 1 National Chair, 1 Chapter Chair
  *  - 2 Chapter Judges, 2 National Judges
- *  - 3 Applicants
+ *  - 8 Applicants
  *  - 1 Event (OPEN) with 1 chapter round + 1 national round
  *  - Full 10-criterion rubric
  *  - JudgeAssignments for both round types
@@ -72,8 +72,13 @@ async function main() {
   const applicant1 = await upsertUser("user-applicant-001", "applicant1@adjudicarts.dev", "Alice Soprano", Role.APPLICANT);
   const applicant2 = await upsertUser("user-applicant-002", "applicant2@adjudicarts.dev", "Ben Tenor", Role.APPLICANT);
   const applicant3 = await upsertUser("user-applicant-003", "applicant3@adjudicarts.dev", "Carmen Mezzo", Role.APPLICANT);
+  const applicant4 = await upsertUser("user-applicant-004", "applicant4@adjudicarts.dev", "Diego Baritone", Role.APPLICANT);
+  const applicant5 = await upsertUser("user-applicant-005", "applicant5@adjudicarts.dev", "Elena Soprano", Role.APPLICANT);
+  const applicant6 = await upsertUser("user-applicant-006", "applicant6@adjudicarts.dev", "Felix Bass", Role.APPLICANT);
+  const applicant7 = await upsertUser("user-applicant-007", "applicant7@adjudicarts.dev", "Gia Mezzo", Role.APPLICANT);
+  const applicant8 = await upsertUser("user-applicant-008", "applicant8@adjudicarts.dev", "Hugo Tenor", Role.APPLICANT);
 
-  console.log(`✓ Users created (10 total)`);
+  console.log(`✓ Users created (15 total)`);
 
   // ── Event ───────────────────────────────────────────────────────────────────
   const event = await prisma.event.upsert({
@@ -144,17 +149,31 @@ async function main() {
   console.log(`✓ Rubric: "${rubric.name}" with ${CRITERIA.length} criteria`);
 
   // ── Applications ─────────────────────────────────────────────────────────────
-  async function upsertApplication(id: string, applicantId: string, repertoire: string) {
+  async function upsertApplication(
+    id: string,
+    applicantId: string,
+    repertoire: string,
+    voicePart: string,
+    status: ApplicationStatus = ApplicationStatus.SUBMITTED
+  ) {
     return prisma.application.upsert({
       where: { id },
-      update: {},
+      update: {
+        organizationId: org.id,
+        eventId: event.id,
+        applicantId,
+        status,
+        repertoire,
+        notes: voicePart,
+      },
       create: {
         id,
         organizationId: org.id,
         eventId: event.id,
         applicantId,
-        status: ApplicationStatus.SUBMITTED,
+        status,
         repertoire,
+        notes: voicePart,
       },
     });
   }
@@ -162,19 +181,60 @@ async function main() {
   await upsertApplication(
     "app-seed-001",
     applicant1.id,
-    "Caro mio ben (Giordani), Vissi d'arte (Puccini)"
+    "Caro mio ben (Giordani), Vissi d'arte (Puccini)",
+    "soprano",
+    ApplicationStatus.NATIONAL_APPROVED
   );
   await upsertApplication(
     "app-seed-002",
     applicant2.id,
-    "La fleur que tu m'avais jetée (Bizet), Nessun dorma (Puccini)"
+    "La fleur que tu m'avais jetée (Bizet), Nessun dorma (Puccini)",
+    "tenor",
+    ApplicationStatus.NATIONAL_REVIEW
   );
   await upsertApplication(
     "app-seed-003",
     applicant3.id,
-    "O mio Fernando (Donizetti), Habanera (Bizet)"
+    "O mio Fernando (Donizetti), Habanera (Bizet)",
+    "mezzo",
+    ApplicationStatus.CHAPTER_REVIEW
   );
-  console.log(`✓ Applications: 3 submitted`);
+  await upsertApplication(
+    "app-seed-004",
+    applicant4.id,
+    "Di Provenza il mar (Verdi), Hai gia vinta la causa (Mozart)",
+    "baritone",
+    ApplicationStatus.SUBMITTED
+  );
+  await upsertApplication(
+    "app-seed-005",
+    applicant5.id,
+    "Sempre libera (Verdi), Je veux vivre (Gounod)",
+    "soprano",
+    ApplicationStatus.CHAPTER_APPROVED
+  );
+  await upsertApplication(
+    "app-seed-006",
+    applicant6.id,
+    "O Isis und Osiris (Mozart), Old Man River (Kern)",
+    "bass",
+    ApplicationStatus.CHAPTER_REJECTED
+  );
+  await upsertApplication(
+    "app-seed-007",
+    applicant7.id,
+    "Mon coeur s'ouvre a ta voix (Saint-Saens), Must the winter come so soon? (Barber)",
+    "mezzo",
+    ApplicationStatus.NATIONAL_REJECTED
+  );
+  await upsertApplication(
+    "app-seed-008",
+    applicant8.id,
+    "Che gelida manina (Puccini), Una furtiva lagrima (Donizetti)",
+    "tenor",
+    ApplicationStatus.SUBMITTED
+  );
+  console.log(`✓ Applications: 8 seeded across workflow statuses`);
 
   // ── Judge Assignments ────────────────────────────────────────────────────────
   const judgeAssignments = [
@@ -211,6 +271,11 @@ async function main() {
   console.log(`  Applicant 1:     applicant1@adjudicarts.dev`);
   console.log(`  Applicant 2:     applicant2@adjudicarts.dev`);
   console.log(`  Applicant 3:     applicant3@adjudicarts.dev`);
+  console.log(`  Applicant 4:     applicant4@adjudicarts.dev`);
+  console.log(`  Applicant 5:     applicant5@adjudicarts.dev`);
+  console.log(`  Applicant 6:     applicant6@adjudicarts.dev`);
+  console.log(`  Applicant 7:     applicant7@adjudicarts.dev`);
+  console.log(`  Applicant 8:     applicant8@adjudicarts.dev`);
 }
 
 main()
