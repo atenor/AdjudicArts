@@ -28,7 +28,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
   const current = embeds[currentIndex];
 
   return (
-    <div className="sticky top-2 z-20 space-y-2 bg-background py-1">
+    <div className="sticky top-1 z-40 space-y-2 bg-background/95 py-1 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
         Video Review
       </div>
