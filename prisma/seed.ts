@@ -15,7 +15,7 @@
 
 import { PrismaClient, Role, EventStatus, RoundType, ApplicationStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { buildApplicationMetadata } from "@/lib/application-metadata";
+import { buildApplicationMetadata } from "../lib/application-metadata";
 
 const prisma = new PrismaClient();
 
@@ -32,7 +32,7 @@ const CRITERIA = [
   { order: 10, name: "Artistic Potential / X-Factor", description: "Overall impression, uniqueness, potential for growth" },
 ];
 
-async function main() {
+export async function seedDevelopment() {
   console.log("🌱 Seeding AdjudicArts...");
 
   const passwordHash = await bcrypt.hash("password123", 12);
@@ -304,11 +304,150 @@ async function main() {
   console.log(`  Applicant 9:     isabelladoriano@icloud.com`);
 }
 
-main()
-  .catch((e) => {
-    console.error("❌ Seed failed:", e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
+export async function seedProduction() {
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    throw new Error("SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required for production seed");
+  }
+
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+
+  const organization = await prisma.organization.upsert({
+    where: { id: "org-prod-001" },
+    update: { name: "Winston Voice" },
+    create: {
+      id: "org-prod-001",
+      name: "Winston Voice",
+    },
   });
+
+  await prisma.user.upsert({
+    where: { email: adminEmail.toLowerCase() },
+    update: {
+      name: "Winston Voice Admin",
+      role: Role.ADMIN,
+      organizationId: organization.id,
+      passwordHash,
+    },
+    create: {
+      id: "user-prod-admin-001",
+      organizationId: organization.id,
+      email: adminEmail.toLowerCase(),
+      name: "Winston Voice Admin",
+      role: Role.ADMIN,
+      passwordHash,
+    },
+  });
+
+  const event = await prisma.event.upsert({
+    where: { id: "event-prod-001" },
+    update: {
+      organizationId: organization.id,
+      name: "2026 Shirley Rabb Winston Scholarship Competition in Classical Voice",
+      description: "Official Winston Voice scholarship adjudication event.",
+      status: EventStatus.OPEN,
+      openAt: new Date("2025-09-01T00:00:00Z"),
+      closeAt: new Date("2026-04-30T23:59:59Z"),
+    },
+    create: {
+      id: "event-prod-001",
+      organizationId: organization.id,
+      name: "2026 Shirley Rabb Winston Scholarship Competition in Classical Voice",
+      description: "Official Winston Voice scholarship adjudication event.",
+      status: EventStatus.OPEN,
+      openAt: new Date("2025-09-01T00:00:00Z"),
+      closeAt: new Date("2026-04-30T23:59:59Z"),
+    },
+  });
+
+  await prisma.round.upsert({
+    where: { id: "round-prod-chapter-001" },
+    update: {
+      organizationId: organization.id,
+      eventId: event.id,
+      name: "Chapter Round",
+      type: RoundType.CHAPTER,
+    },
+    create: {
+      id: "round-prod-chapter-001",
+      organizationId: organization.id,
+      eventId: event.id,
+      name: "Chapter Round",
+      type: RoundType.CHAPTER,
+    },
+  });
+
+  await prisma.round.upsert({
+    where: { id: "round-prod-national-001" },
+    update: {
+      organizationId: organization.id,
+      eventId: event.id,
+      name: "National Round",
+      type: RoundType.NATIONAL,
+    },
+    create: {
+      id: "round-prod-national-001",
+      organizationId: organization.id,
+      eventId: event.id,
+      name: "National Round",
+      type: RoundType.NATIONAL,
+    },
+  });
+
+  const rubric = await prisma.rubric.upsert({
+    where: { eventId: event.id },
+    update: {
+      organizationId: organization.id,
+      name: "Winston Voice Rubric",
+      description: "10 criteria scored 0–10 each.",
+    },
+    create: {
+      id: "rubric-prod-001",
+      organizationId: organization.id,
+      eventId: event.id,
+      name: "Winston Voice Rubric",
+      description: "10 criteria scored 0–10 each.",
+    },
+  });
+
+  const criteriaCount = await prisma.rubricCriteria.count({
+    where: { rubricId: rubric.id },
+  });
+  if (criteriaCount === 0) {
+    await prisma.rubricCriteria.createMany({
+      data: CRITERIA.map((criterion) => ({
+        rubricId: rubric.id,
+        name: criterion.name,
+        description: criterion.description,
+        order: criterion.order,
+        weight: 1.0,
+      })),
+    });
+  }
+
+  console.log("✅ Production seed complete.");
+  console.log(`Organization: ${organization.name}`);
+  console.log(`Event: ${event.name}`);
+  console.log(`Admin: ${adminEmail.toLowerCase()}`);
+}
+
+async function runSeed(seedFn: () => Promise<void>) {
+  try {
+    await seedFn();
+  } catch (error) {
+    console.error("❌ Seed failed:", error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+const isDirectSeedExecution =
+  process.argv[1]?.endsWith("/prisma/seed.ts") ||
+  process.argv[1]?.endsWith("\\prisma\\seed.ts");
+
+if (isDirectSeedExecution) {
+  runSeed(seedDevelopment);
+}
