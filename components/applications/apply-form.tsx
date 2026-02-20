@@ -28,6 +28,9 @@ const applySchema = z.object({
   email: z.string().email("Enter a valid email address"),
   voicePart: z.enum(["soprano", "mezzo", "tenor", "baritone", "bass"]),
   repertoire: z.string().min(1, "Please describe your repertoire"),
+  videoUrl1: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  videoUrl2: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  videoUrl3: z.string().url("Enter a valid URL").optional().or(z.literal("")),
 });
 
 type ApplyFormValues = z.infer<typeof applySchema>;
@@ -138,6 +141,42 @@ export default function ApplyForm({ eventId }: { eventId: string }) {
               <p className="text-xs text-destructive">
                 {errors.repertoire.message}
               </p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="videoUrl1">YouTube Video 1</Label>
+            <Input
+              id="videoUrl1"
+              placeholder="https://www.youtube.com/watch?v=..."
+              {...register("videoUrl1")}
+            />
+            {errors.videoUrl1 && (
+              <p className="text-xs text-destructive">{errors.videoUrl1.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="videoUrl2">YouTube Video 2</Label>
+            <Input
+              id="videoUrl2"
+              placeholder="https://www.youtube.com/watch?v=..."
+              {...register("videoUrl2")}
+            />
+            {errors.videoUrl2 && (
+              <p className="text-xs text-destructive">{errors.videoUrl2.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="videoUrl3">YouTube Video 3</Label>
+            <Input
+              id="videoUrl3"
+              placeholder="https://www.youtube.com/watch?v=..."
+              {...register("videoUrl3")}
+            />
+            {errors.videoUrl3 && (
+              <p className="text-xs text-destructive">{errors.videoUrl3.message}</p>
             )}
           </div>
 

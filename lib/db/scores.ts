@@ -5,6 +5,60 @@ import {
   Role,
   RoundType,
 } from "@prisma/client";
+import { parseApplicationMetadata } from "@/lib/application-metadata";
+import { getYouTubeVideoId } from "@/lib/youtube";
+
+const FINAL_COMMENT_PREFIX = "__ADJUDICARTS_FINAL_COMMENT__:";
+
+function unpackScoreComment(stored: string | null) {
+  if (!stored) {
+    return { criterionComment: null as string | null, finalComment: null as string | null };
+  }
+
+  if (!stored.startsWith(FINAL_COMMENT_PREFIX)) {
+    return { criterionComment: stored, finalComment: null as string | null };
+  }
+
+  try {
+    const json = JSON.parse(
+      stored.slice(FINAL_COMMENT_PREFIX.length)
+    ) as { criterionComment?: string | null; finalComment?: string | null };
+    return {
+      criterionComment: json.criterionComment ?? null,
+      finalComment: json.finalComment ?? null,
+    };
+  } catch {
+    return { criterionComment: stored, finalComment: null as string | null };
+  }
+}
+
+function extractYouTubeUrlsFromText(text: string | null | undefined) {
+  if (!text) return [] as string[];
+  const urls = text.match(/https?:\/\/[^\s)]+/g) ?? [];
+  return urls
+    .filter((url) => Boolean(getYouTubeVideoId(url)))
+    .slice(0, 3);
+}
+
+export function packScoreComment(
+  criterionComment: string | null | undefined,
+  finalComment: string | null | undefined
+) {
+  const normalizedCriterionComment = criterionComment?.trim() || null;
+  const normalizedFinalComment = finalComment?.trim() || null;
+
+  if (!normalizedFinalComment) {
+    return normalizedCriterionComment;
+  }
+
+  return (
+    FINAL_COMMENT_PREFIX +
+    JSON.stringify({
+      criterionComment: normalizedCriterionComment,
+      finalComment: normalizedFinalComment,
+    })
+  );
+}
 
 function isRoleRoundMatch(role: Role, roundType: RoundType): boolean {
   if (role === "CHAPTER_JUDGE") return roundType === "CHAPTER";
@@ -210,11 +264,33 @@ export async function getScoringApplicationForJudge(
     judgeId,
     organizationId
   );
+  const firstCriterionId = application.event.rubric.criteria[0]?.id;
+  let finalComment: string | null = null;
+  if (firstCriterionId) {
+    const firstScore = await prisma.score.findFirst({
+      where: {
+        applicationId,
+        organizationId,
+        judgeId,
+        criteriaId: firstCriterionId,
+      },
+      select: { comment: true },
+    });
+    finalComment = unpackScoreComment(firstScore?.comment ?? null).finalComment;
+  }
+
+  const metadata = parseApplicationMetadata(application.notes);
+  const videoUrls =
+    metadata.videoUrls.length > 0
+      ? metadata.videoUrls
+      : extractYouTubeUrlsFromText(application.repertoire);
 
   return {
     application,
     criteria: application.event.rubric.criteria,
     existingScores,
+    finalComment,
+    videoUrls,
   };
 }
 
@@ -223,7 +299,7 @@ export async function getScoresForApplication(
   judgeId: string,
   organizationId: string
 ) {
-  return prisma.score.findMany({
+  const scores = await prisma.score.findMany({
     where: {
       applicationId,
       judgeId,
@@ -240,6 +316,11 @@ export async function getScoresForApplication(
     },
     orderBy: { criteria: { order: "asc" } },
   });
+
+  return scores.map((score) => ({
+    ...score,
+    comment: unpackScoreComment(score.comment).criterionComment,
+  }));
 }
 
 export async function upsertScore(input: {

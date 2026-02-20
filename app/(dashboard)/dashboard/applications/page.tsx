@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
 import { listApplicationsByOrg } from "@/lib/db/applications";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
+import { formatVoicePart } from "@/lib/application-metadata";
 import {
   Table,
   TableBody,
@@ -34,11 +35,6 @@ function formatDate(date: Date) {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function formatVoicePart(raw: string | null) {
-  if (!raw) return "—";
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
 export default async function ApplicationsPage({

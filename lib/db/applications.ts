@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ApplicationStatus, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
+import { buildApplicationMetadata } from "@/lib/application-metadata";
 
 export async function getPublicEventForApply(eventId: string) {
   return prisma.event.findUnique({
@@ -23,6 +24,7 @@ export async function createPublicApplication(data: {
   email: string;
   voicePart: string;
   repertoire: string;
+  videoUrls?: string[];
 }) {
   // Find or create applicant user by email
   let user = await prisma.user.findUnique({
@@ -51,7 +53,10 @@ export async function createPublicApplication(data: {
       applicantId: user.id,
       status: ApplicationStatus.SUBMITTED,
       repertoire: data.repertoire,
-      notes: data.voicePart,
+      notes: buildApplicationMetadata({
+        voicePart: data.voicePart,
+        videoUrls: data.videoUrls ?? [],
+      }),
     },
   });
 }

@@ -4,7 +4,11 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/auth-guards";
-import { getScoringApplicationForJudge, upsertScore } from "@/lib/db/scores";
+import {
+  getScoringApplicationForJudge,
+  packScoreComment,
+  upsertScore,
+} from "@/lib/db/scores";
 
 const scoreSchema = z.object({
   criteriaId: z.string().min(1),
@@ -14,6 +18,7 @@ const scoreSchema = z.object({
 
 const requestSchema = z.object({
   scores: z.array(scoreSchema).min(1),
+  finalComment: z.string().optional().nullable(),
 });
 
 export async function POST(
@@ -55,6 +60,7 @@ export async function POST(
   }
 
   const criteriaIds = scoringContext.criteria.map((criterion) => criterion.id);
+  const firstCriteriaId = criteriaIds[0];
   const receivedCriteriaIds = parsed.data.scores.map((score) => score.criteriaId);
 
   const allIncluded =
@@ -76,7 +82,10 @@ export async function POST(
         criteriaId: score.criteriaId,
         judgeId: session.user.id,
         value: score.value,
-        comment: score.comment ?? null,
+        comment:
+          score.criteriaId === firstCriteriaId
+            ? packScoreComment(score.comment ?? null, parsed.data.finalComment ?? null)
+            : score.comment ?? null,
       })
     )
   );

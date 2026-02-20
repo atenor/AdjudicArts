@@ -9,6 +9,7 @@ import { hasRole } from "@/lib/auth-guards";
 import { getApplicationById } from "@/lib/db/applications";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import AdvanceApplicationStatusButtons from "@/components/applications/advance-application-status-buttons";
+import { formatVoicePart } from "@/lib/application-metadata";
 
 const STATUS_FLOW: ApplicationStatus[] = [
   "SUBMITTED",
@@ -18,11 +19,6 @@ const STATUS_FLOW: ApplicationStatus[] = [
   "NATIONAL_APPROVED",
   "DECIDED",
 ];
-
-function formatVoicePart(raw: string | null) {
-  if (!raw) return "—";
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
 
 function deriveStatusTimeline(status: ApplicationStatus): ApplicationStatus[] {
   if (status === "CHAPTER_REJECTED") {

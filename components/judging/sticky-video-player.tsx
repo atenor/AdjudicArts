@@ -1,0 +1,83 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { toYouTubeEmbedUrl } from "@/lib/youtube";
+
+export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }) {
+  const embeds = useMemo(
+    () =>
+      videoUrls
+        .map((url) => ({ original: url, embed: toYouTubeEmbedUrl(url) }))
+        .filter((video): video is { original: string; embed: string } => Boolean(video.embed)),
+    [videoUrls]
+  );
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (embeds.length === 0) {
+    return (
+      <div className="sticky top-4 z-20 rounded-lg border bg-background p-4">
+        <p className="text-sm text-muted-foreground">
+          No YouTube videos provided for this application.
+        </p>
+      </div>
+    );
+  }
+
+  const current = embeds[currentIndex];
+
+  return (
+    <div className="sticky top-4 z-20 rounded-lg border bg-background p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium">
+          Audition Video {currentIndex + 1} of {embeds.length}
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              setCurrentIndex((index) => (index - 1 + embeds.length) % embeds.length)
+            }
+          >
+            Prev
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setCurrentIndex((index) => (index + 1) % embeds.length)}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+
+      <div className="aspect-video overflow-hidden rounded-md border">
+        <iframe
+          src={current.embed}
+          title={`Audition video ${currentIndex + 1}`}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {embeds.map((video, index) => (
+          <Button
+            key={video.original}
+            type="button"
+            size="sm"
+            variant={index === currentIndex ? "default" : "outline"}
+            onClick={() => setCurrentIndex(index)}
+          >
+            Video {index + 1}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}

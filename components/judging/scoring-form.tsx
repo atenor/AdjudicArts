@@ -24,14 +24,17 @@ export default function ScoringForm({
   applicationId,
   criteria,
   existingScores,
+  existingFinalComment,
 }: {
   applicationId: string;
   criteria: Criterion[];
   existingScores: ExistingScore[];
+  existingFinalComment?: string | null;
 }) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [finalComment, setFinalComment] = useState(existingFinalComment ?? "");
 
   const initialByCriterion = useMemo(
     () => new Map(existingScores.map((score) => [score.criteriaId, score])),
@@ -86,7 +89,7 @@ export default function ScoringForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scores }),
+        body: JSON.stringify({ scores, finalComment }),
       });
 
       if (!response.ok) {
@@ -152,6 +155,17 @@ export default function ScoringForm({
       ))}
 
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+
+      <div className="rounded-lg border p-4 space-y-2">
+        <Label htmlFor="final-comment">Final Comments</Label>
+        <Textarea
+          id="final-comment"
+          rows={5}
+          placeholder="Overall adjudication comments for this applicant..."
+          value={finalComment}
+          onChange={(event) => setFinalComment(event.target.value)}
+        />
+      </div>
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isSubmitting}>
