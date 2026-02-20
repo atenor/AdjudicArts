@@ -90,7 +90,9 @@ export default async function ApplicationsPage({
 
       {applications.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No applications found for the selected filter.
+          {statusFilter
+            ? "No applications found for the selected filter."
+            : "No applications have been submitted yet."}
         </p>
       ) : (
         <Table>
