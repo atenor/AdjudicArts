@@ -17,7 +17,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
 
   if (embeds.length === 0) {
     return (
-      <div className="sticky top-2 z-20 rounded-lg border-2 border-primary/40 bg-primary/5 p-3 shadow-sm">
+      <div className="sticky top-2 z-20">
         <p className="text-sm text-muted-foreground">
           No YouTube videos provided for this application.
         </p>
@@ -28,7 +28,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
   const current = embeds[currentIndex];
 
   return (
-    <div className="sticky top-2 z-20 rounded-lg border-2 border-primary/40 bg-primary/5 p-2.5 space-y-2 shadow-sm">
+    <div className="sticky top-2 z-20 space-y-2 bg-background py-1">
       <div className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
         Video Review
       </div>
@@ -70,7 +70,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
       </div>
 
       {expanded && (
-        <div className="w-full max-w-[360px] mx-auto aspect-video overflow-hidden rounded-md border bg-black">
+        <div className="mx-auto aspect-video w-full max-w-[300px] overflow-hidden rounded-md border bg-black sm:max-w-[320px]">
           <iframe
             src={current.embed}
             title={`Audition video ${currentIndex + 1}`}
