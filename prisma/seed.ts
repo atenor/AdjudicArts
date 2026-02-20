@@ -199,9 +199,9 @@ async function main() {
     "tenor",
     ApplicationStatus.NATIONAL_REVIEW,
     [
-      "https://www.youtube.com/watch?v=M7lc1UVf-VE",
-      "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "https://www.youtube.com/watch?v=jw61ZbebNQs&list=PLDS3fWB5tvXq3aHlVyS92qvmCdEPwdjhJ&index=1",
+      "https://www.youtube.com/watch?v=viwqIWQkltc&list=PLDS3fWB5tvXq3aHlVyS92qvmCdEPwdjhJ&index=2",
+      "https://www.youtube.com/watch?v=utG_JuIUuoI&list=PLDS3fWB5tvXq3aHlVyS92qvmCdEPwdjhJ&index=3",
     ]
   );
   await upsertApplication(
