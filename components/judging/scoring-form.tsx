@@ -94,6 +94,7 @@ export default function ScoringForm({
         return;
       }
 
+      router.push("/dashboard/scoring");
       router.refresh();
     } finally {
       setIsSubmitting(false);
