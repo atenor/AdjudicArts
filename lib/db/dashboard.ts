@@ -117,7 +117,7 @@ export async function getJudgeDashboardStats(
   }
 
   // All applications in the relevant events at the right status
-  const eventIds = [...new Set(assignments.map((a) => a.round.eventId))];
+  const eventIds = Array.from(new Set(assignments.map((a) => a.round.eventId)));
 
   const applications = await prisma.application.findMany({
     where: { organizationId, eventId: { in: eventIds }, status: appStatus },
