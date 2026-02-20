@@ -13,6 +13,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
     [videoUrls]
   );
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [expanded, setExpanded] = useState(false);
 
   if (embeds.length === 0) {
     return (
@@ -27,12 +28,12 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
   const current = embeds[currentIndex];
 
   return (
-    <div className="sticky top-2 z-20 rounded-lg border bg-background p-3 space-y-2">
+    <div className="sticky top-2 z-20 rounded-lg border bg-background p-2.5 space-y-2">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs sm:text-sm font-medium">
           Audition Video {currentIndex + 1} of {embeds.length}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <Button
             type="button"
             size="sm"
@@ -40,6 +41,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
             onClick={() =>
               setCurrentIndex((index) => (index - 1 + embeds.length) % embeds.length)
             }
+            className="h-7 px-2 text-xs"
           >
             Prev
           </Button>
@@ -48,24 +50,36 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
             size="sm"
             variant="outline"
             onClick={() => setCurrentIndex((index) => (index + 1) % embeds.length)}
+            className="h-7 px-2 text-xs"
           >
             Next
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={expanded ? "default" : "outline"}
+            className="h-7 px-2 text-xs"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "Hide" : "Show"}
           </Button>
         </div>
       </div>
 
-      <div className="w-full max-w-[640px] mx-auto aspect-video overflow-hidden rounded-md border bg-black">
-        <iframe
-          src={current.embed}
-          title={`Audition video ${currentIndex + 1}`}
-          className="h-full w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
-      </div>
+      {expanded && (
+        <div className="w-full max-w-[360px] mx-auto aspect-video overflow-hidden rounded-md border bg-black">
+          <iframe
+            src={current.embed}
+            title={`Audition video ${currentIndex + 1}`}
+            className="h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        </div>
+      )}
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1">
         {embeds.map((video, index) => (
           <Button
             key={video.original}
@@ -73,7 +87,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
             size="sm"
             variant={index === currentIndex ? "default" : "outline"}
             onClick={() => setCurrentIndex(index)}
-            className="h-8 px-2 text-xs"
+            className="h-7 px-2 text-xs"
           >
             Video {index + 1}
           </Button>
