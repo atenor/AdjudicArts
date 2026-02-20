@@ -15,7 +15,10 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "AdjudicArts",
+  title: {
+    default: "AdjudicArts",
+    template: "%s — AdjudicArts",
+  },
   description: "Arts adjudication platform",
 };
 

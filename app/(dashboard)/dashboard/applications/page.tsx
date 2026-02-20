@@ -1,6 +1,9 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
+
+export const metadata: Metadata = { title: "Applications" };
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ApplicationStatus } from "@prisma/client";
@@ -90,7 +93,9 @@ export default async function ApplicationsPage({
 
       {applications.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No applications found for the selected filter.
+          {statusFilter
+            ? "No applications found for the selected filter."
+            : "No applications have been submitted yet."}
         </p>
       ) : (
         <Table>

@@ -146,6 +146,7 @@ components live in `components/<feature>/`.
 - `DATABASE_URL` — in `.env` (read by Prisma CLI and Next.js runtime)
 - `NEXTAUTH_SECRET` — in `.env.local` (Next.js only)
 - `NEXTAUTH_URL` — in `.env.local` (Next.js only)
+- `RESEND_API_KEY` — must be added to Vercel environment variables before emails will send; get key at resend.com
 - Production values set in Vercel dashboard; never committed to git
 
 ### 9. Strict TypeScript
