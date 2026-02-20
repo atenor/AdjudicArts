@@ -1,7 +1,10 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicApplicationById } from "@/lib/db/applications";
+
+export const metadata: Metadata = { title: "Application Status" };
 import { parseApplicationMetadata } from "@/lib/application-metadata";
 import { ApplicationStatus } from "@prisma/client";
 

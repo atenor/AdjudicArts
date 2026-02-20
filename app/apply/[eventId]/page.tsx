@@ -1,6 +1,9 @@
 export const dynamic = 'force-dynamic';
 
+import type { Metadata } from "next";
 import { getPublicEventForApply } from "@/lib/db/applications";
+
+export const metadata: Metadata = { title: "Apply" };
 import { EventStatus } from "@prisma/client";
 import ApplyForm from "@/components/applications/apply-form";
 

@@ -1,6 +1,9 @@
 export const dynamic = 'force-dynamic';
 
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
+
+export const metadata: Metadata = { title: "Dashboard" };
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";

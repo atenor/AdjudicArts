@@ -1,7 +1,10 @@
 import { Resend } from "resend";
 import { ApplicationStatus } from "@prisma/client";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-initialize so the missing key in build/dev doesn't throw at module load time
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 const FROM_ADDRESS = "AdjudicArts <noreply@adjudicarts.dev>";
 
@@ -62,7 +65,7 @@ export async function sendApplicationConfirmation(
     <a class="button" href="${statusUrl}">Check application status</a>
   `);
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_ADDRESS,
     to,
     subject: `Application Received — ${eventName}`,
@@ -86,7 +89,7 @@ export async function sendStatusUpdate(
     <a class="button" href="${statusUrl}">View application status</a>
   `);
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_ADDRESS,
     to,
     subject: `Application Update — ${eventName}`,
