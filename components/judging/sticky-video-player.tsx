@@ -27,7 +27,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
   const current = embeds[currentIndex];
 
   return (
-    <div className="sticky top-4 z-20 rounded-lg border bg-background p-4 space-y-3">
+    <div className="sticky top-2 z-20 rounded-lg border bg-background p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium">
           Audition Video {currentIndex + 1} of {embeds.length}
@@ -78,6 +78,15 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
           </Button>
         ))}
       </div>
+
+      <a
+        href={current.original}
+        target="_blank"
+        rel="noreferrer"
+        className="text-xs text-muted-foreground underline"
+      >
+        Open current video on YouTube
+      </a>
     </div>
   );
 }
