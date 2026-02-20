@@ -13,6 +13,7 @@ export default async function NavHeader() {
   const canViewApplications =
     session?.user.role === "ADMIN" ||
     session?.user.role === "NATIONAL_CHAIR";
+  const canImportApplications = session?.user.role === "ADMIN";
   const canViewScoring =
     session?.user.role === "CHAPTER_JUDGE" ||
     session?.user.role === "NATIONAL_JUDGE";
@@ -36,6 +37,14 @@ export default async function NavHeader() {
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Applications
+            </Link>
+          )}
+          {canImportApplications && (
+            <Link
+              href="/dashboard/import"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Import Applications
             </Link>
           )}
           {canViewScoring && (
