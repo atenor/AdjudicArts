@@ -71,3 +71,108 @@ export async function hasExistingApplication(
   });
   return count > 0;
 }
+
+export async function listApplicationsByOrg(
+  organizationId: string,
+  status?: ApplicationStatus
+) {
+  return prisma.application.findMany({
+    where: {
+      organizationId,
+      ...(status ? { status } : {}),
+    },
+    include: {
+      applicant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      submittedAt: "desc",
+    },
+  });
+}
+
+export async function getApplicationById(id: string, organizationId: string) {
+  return prisma.application.findFirst({
+    where: { id, organizationId },
+    include: {
+      applicant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+        },
+      },
+      scores: {
+        include: {
+          criteria: {
+            select: {
+              id: true,
+              name: true,
+              order: true,
+              rubric: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          judge: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: [{ criteria: { order: "asc" } }, { judge: { name: "asc" } }],
+      },
+    },
+  });
+}
+
+export async function advanceApplicationStatus(
+  id: string,
+  nextStatus: ApplicationStatus,
+  organizationId: string
+) {
+  const existing = await prisma.application.findFirst({
+    where: { id, organizationId },
+    select: { id: true },
+  });
+
+  if (!existing) return null;
+
+  return prisma.application.update({
+    where: { id: existing.id },
+    data: { status: nextStatus },
+    include: {
+      applicant: {
+        select: { id: true, name: true, email: true },
+      },
+      event: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+}
