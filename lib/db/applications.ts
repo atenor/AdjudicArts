@@ -156,6 +156,24 @@ export async function getApplicationById(id: string, organizationId: string) {
   });
 }
 
+export async function getPublicApplicationById(id: string) {
+  return prisma.application.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      status: true,
+      submittedAt: true,
+      notes: true,
+      applicant: {
+        select: { name: true, email: true },
+      },
+      event: {
+        select: { name: true },
+      },
+    },
+  });
+}
+
 export async function advanceApplicationStatus(
   id: string,
   nextStatus: ApplicationStatus,

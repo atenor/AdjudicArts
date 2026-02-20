@@ -58,7 +58,7 @@ export async function POST(
     );
   }
 
-  await createPublicApplication({
+  const application = await createPublicApplication({
     eventId: event.id,
     organizationId: event.organizationId,
     name,
@@ -70,5 +70,5 @@ export async function POST(
     ),
   });
 
-  return Response.json({ success: true }, { status: 201 });
+  return Response.json({ success: true, applicationId: application.id }, { status: 201 });
 }

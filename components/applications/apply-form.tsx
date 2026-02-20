@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,6 +38,7 @@ type ApplyFormValues = z.infer<typeof applySchema>;
 
 export default function ApplyForm({ eventId }: { eventId: string }) {
   const [submitted, setSubmitted] = useState(false);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -56,6 +58,8 @@ export default function ApplyForm({ eventId }: { eventId: string }) {
     });
 
     if (res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setApplicationId((body as { applicationId?: string }).applicationId ?? null);
       setSubmitted(true);
     } else {
       const body = await res.json().catch(() => ({}));
@@ -69,12 +73,20 @@ export default function ApplyForm({ eventId }: { eventId: string }) {
   if (submitted) {
     return (
       <Card>
-        <CardContent className="pt-6 text-center space-y-2">
+        <CardContent className="pt-6 text-center space-y-3">
           <p className="text-lg font-medium">Application submitted!</p>
           <p className="text-muted-foreground">
-            Your application has been submitted. You will be contacted with next
-            steps.
+            Your application has been submitted. You&apos;ll hear from us with
+            updates as your application is reviewed.
           </p>
+          {applicationId && (
+            <Link
+              href={`/status/${applicationId}`}
+              className="inline-block text-sm text-primary underline underline-offset-4"
+            >
+              Check your application status
+            </Link>
+          )}
         </CardContent>
       </Card>
     );
