@@ -6,7 +6,7 @@ import { hasRole } from "@/lib/auth-guards";
 import { getEventById } from "@/lib/db/events";
 import EventStatusBadge from "@/components/events/event-status-badge";
 import AdvanceStatusButton from "@/components/events/advance-status-button";
-import { Button } from "@/components/ui/button";
+import AddRoundDialog from "@/components/events/add-round-dialog";
 import {
   Table,
   TableBody,
@@ -58,9 +58,7 @@ export default async function EventDetailPage({
             eventId={event.id}
             currentStatus={event.status}
           />
-          <Button variant="outline" disabled>
-            Add Round
-          </Button>
+          <AddRoundDialog eventId={event.id} />
         </div>
       </div>
 
