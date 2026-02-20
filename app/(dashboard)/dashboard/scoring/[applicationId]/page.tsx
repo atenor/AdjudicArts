@@ -59,17 +59,57 @@ export default async function ScoreApplicationPage({
 
   if (!scoringContext) notFound();
 
-  const { application, criteria, existingScores, finalComment, videoUrls } =
+  const {
+    application,
+    criteria,
+    existingScores,
+    finalComment,
+    videoUrls,
+    videoTitles,
+  } =
     scoringContext;
   const repertoirePieces = parseRepertoire(application.repertoire);
+  const visibleVideoTitles = videoTitles
+    .map((title, index) => ({
+      label: `Video ${index + 1}`,
+      title: title?.trim() || `Audition Video ${index + 1}`,
+    }))
+    .slice(0, videoUrls.length);
 
   return (
     <div className="space-y-6">
       <StickyVideoPlayer videoUrls={videoUrls} />
+      {visibleVideoTitles.length > 0 ? (
+        <div className="rounded-md border p-3">
+          <p className="text-sm font-medium">Video Titles</p>
+          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+            {visibleVideoTitles.map((video) => (
+              <li key={`${video.label}-${video.title}`}>
+                <span className="font-medium text-foreground">{video.label}:</span>{" "}
+                {video.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">{application.applicant.name}</h1>
-        <p className="text-sm text-muted-foreground">{application.applicant.email}</p>
+      <div className="flex items-center gap-3">
+        {application.headshot ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={application.headshot}
+            alt={`${application.applicant.name} headshot`}
+            className="h-16 w-16 rounded-full border object-cover"
+          />
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border bg-muted text-sm font-medium text-muted-foreground">
+            N/A
+          </div>
+        )}
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">{application.applicant.name}</h1>
+          <p className="text-sm text-muted-foreground">{application.applicant.email}</p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

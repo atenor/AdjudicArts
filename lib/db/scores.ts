@@ -280,10 +280,24 @@ export async function getScoringApplicationForJudge(
   }
 
   const metadata = parseApplicationMetadata(application.notes);
+  const importedVideoUrls = [
+    application.video1Url,
+    application.video2Url,
+    application.video3Url,
+  ].filter((url): url is string => Boolean(url));
+
   const videoUrls =
-    metadata.videoUrls.length > 0
-      ? metadata.videoUrls
-      : extractYouTubeUrlsFromText(application.repertoire);
+    importedVideoUrls.length > 0
+      ? importedVideoUrls
+      : metadata.videoUrls.length > 0
+        ? metadata.videoUrls
+        : extractYouTubeUrlsFromText(application.repertoire);
+
+  const videoTitles = [
+    application.video1Title,
+    application.video2Title,
+    application.video3Title,
+  ].map((title) => title?.trim() || null);
 
   return {
     application,
@@ -291,6 +305,7 @@ export async function getScoringApplicationForJudge(
     existingScores,
     finalComment,
     videoUrls,
+    videoTitles,
   };
 }
 
