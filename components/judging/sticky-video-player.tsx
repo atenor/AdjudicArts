@@ -16,7 +16,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
 
   if (embeds.length === 0) {
     return (
-      <div className="sticky top-4 z-20 rounded-lg border bg-background p-4">
+      <div className="sticky top-2 z-20 rounded-lg border bg-background p-3">
         <p className="text-sm text-muted-foreground">
           No YouTube videos provided for this application.
         </p>
@@ -27,9 +27,9 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
   const current = embeds[currentIndex];
 
   return (
-    <div className="sticky top-2 z-20 rounded-lg border bg-background p-4 space-y-3">
+    <div className="sticky top-2 z-20 rounded-lg border bg-background p-3 space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">
+        <p className="text-xs sm:text-sm font-medium">
           Audition Video {currentIndex + 1} of {embeds.length}
         </p>
         <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
         </div>
       </div>
 
-      <div className="aspect-video overflow-hidden rounded-md border">
+      <div className="h-[180px] sm:h-[220px] md:h-[260px] overflow-hidden rounded-md border">
         <iframe
           src={current.embed}
           title={`Audition video ${currentIndex + 1}`}
@@ -65,7 +65,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {embeds.map((video, index) => (
           <Button
             key={video.original}
@@ -73,6 +73,7 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
             size="sm"
             variant={index === currentIndex ? "default" : "outline"}
             onClick={() => setCurrentIndex(index)}
+            className="h-8 px-2 text-xs"
           >
             Video {index + 1}
           </Button>
