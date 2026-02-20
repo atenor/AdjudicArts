@@ -13,11 +13,11 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
     [videoUrls]
   );
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   if (embeds.length === 0) {
     return (
-      <div className="sticky top-2 z-20 rounded-lg border bg-background p-3">
+      <div className="sticky top-2 z-20 rounded-lg border-2 border-primary/40 bg-primary/5 p-3 shadow-sm">
         <p className="text-sm text-muted-foreground">
           No YouTube videos provided for this application.
         </p>
@@ -28,7 +28,10 @@ export default function StickyVideoPlayer({ videoUrls }: { videoUrls: string[] }
   const current = embeds[currentIndex];
 
   return (
-    <div className="sticky top-2 z-20 rounded-lg border bg-background p-2.5 space-y-2">
+    <div className="sticky top-2 z-20 rounded-lg border-2 border-primary/40 bg-primary/5 p-2.5 space-y-2 shadow-sm">
+      <div className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
+        Video Review
+      </div>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs sm:text-sm font-medium">
           Audition Video {currentIndex + 1} of {embeds.length}
