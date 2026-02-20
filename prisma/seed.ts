@@ -200,7 +200,7 @@ async function main() {
     ApplicationStatus.NATIONAL_REVIEW,
     [
       "https://www.youtube.com/watch?v=M7lc1UVf-VE",
-      "https://youtu.be/ysz5S6PUM-U",
+      "https://www.youtube.com/watch?v=jNQXAC9IVRw",
       "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     ]
   );
