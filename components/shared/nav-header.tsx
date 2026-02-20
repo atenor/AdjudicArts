@@ -13,6 +13,9 @@ export default async function NavHeader() {
   const canViewApplications =
     session?.user.role === "ADMIN" ||
     session?.user.role === "NATIONAL_CHAIR";
+  const canViewScoring =
+    session?.user.role === "CHAPTER_JUDGE" ||
+    session?.user.role === "NATIONAL_JUDGE";
 
   return (
     <header className="border-b bg-background">
@@ -33,6 +36,14 @@ export default async function NavHeader() {
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Applications
+            </Link>
+          )}
+          {canViewScoring && (
+            <Link
+              href="/dashboard/scoring"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Scoring
             </Link>
           )}
         </div>
