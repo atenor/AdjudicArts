@@ -199,3 +199,51 @@ export async function advanceApplicationStatus(
     },
   });
 }
+
+export async function deleteApplicationById(id: string, organizationId: string) {
+  const application = await prisma.application.findFirst({
+    where: { id, organizationId },
+    select: { id: true, applicantId: true },
+  });
+
+  if (!application) return null;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const deletedScores = await tx.score.deleteMany({
+      where: { applicationId: application.id, organizationId },
+    });
+
+    await tx.application.delete({
+      where: { id: application.id },
+    });
+
+    const remainingApplications = await tx.application.count({
+      where: { applicantId: application.applicantId, organizationId },
+    });
+
+    let deletedApplicant = false;
+    if (remainingApplications === 0) {
+      const applicant = await tx.user.findFirst({
+        where: {
+          id: application.applicantId,
+          organizationId,
+          role: Role.APPLICANT,
+        },
+        select: { id: true },
+      });
+
+      if (applicant) {
+        await tx.user.delete({ where: { id: applicant.id } });
+        deletedApplicant = true;
+      }
+    }
+
+    return {
+      id: application.id,
+      deletedScores: deletedScores.count,
+      deletedApplicant,
+    };
+  });
+
+  return result;
+}

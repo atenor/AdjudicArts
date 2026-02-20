@@ -37,6 +37,12 @@ type ImportResult = {
   errors: Array<{ row: number; email?: string; message: string }>;
 };
 
+type PurgeResult = {
+  deletedApplications: number;
+  deletedScores: number;
+  deletedApplicants: number;
+};
+
 export default function ImportApplicationsForm({
   events,
 }: {
@@ -51,6 +57,7 @@ export default function ImportApplicationsForm({
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [previewTotal, setPreviewTotal] = useState<number | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [purgeResult, setPurgeResult] = useState<PurgeResult | null>(null);
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === selectedEventId) ?? null,
@@ -60,6 +67,7 @@ export default function ImportApplicationsForm({
   async function onPickFile(event: React.ChangeEvent<HTMLInputElement>) {
     setError(null);
     setResult(null);
+    setPurgeResult(null);
     setPreviewRows([]);
     setPreviewTotal(null);
 
@@ -80,6 +88,7 @@ export default function ImportApplicationsForm({
 
     setError(null);
     setResult(null);
+    setPurgeResult(null);
     setIsPreviewLoading(true);
 
     try {
@@ -113,6 +122,7 @@ export default function ImportApplicationsForm({
 
     setError(null);
     setResult(null);
+    setPurgeResult(null);
     setIsImporting(true);
 
     try {
@@ -135,6 +145,45 @@ export default function ImportApplicationsForm({
       setResult(data);
     } catch {
       setError("Unable to import CSV.");
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  async function purgeEvent() {
+    if (!selectedEventId) return;
+    const ok = window.confirm(
+      "Delete ALL applications for this event? This also removes related scores and orphan applicant accounts."
+    );
+    if (!ok) return;
+
+    setError(null);
+    setResult(null);
+    setPurgeResult(null);
+    setIsImporting(true);
+
+    try {
+      const response = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "purge",
+          eventId: selectedEventId,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data?.error ?? "Unable to purge event applications.");
+        return;
+      }
+      setPurgeResult(data);
+      setPreviewRows([]);
+      setPreviewTotal(null);
+      setCsvData("");
+      setFileName("");
+    } catch {
+      setError("Unable to purge event applications.");
     } finally {
       setIsImporting(false);
     }
@@ -180,6 +229,16 @@ export default function ImportApplicationsForm({
           {fileName ? (
             <span className="text-muted-foreground">Selected: {fileName}</span>
           ) : null}
+        </div>
+        <div>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={purgeEvent}
+            disabled={!selectedEventId || isImporting}
+          >
+            {isImporting ? "Working..." : "Delete All Participants For This Event"}
+          </Button>
         </div>
 
         {selectedEvent ? (
@@ -245,6 +304,18 @@ export default function ImportApplicationsForm({
               </ul>
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {purgeResult ? (
+        <div className="space-y-2 rounded-lg border p-4">
+          <h3 className="font-medium">Purge Results</h3>
+          <p className="text-sm">
+            Deleted applications: {purgeResult.deletedApplications}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Deleted scores: {purgeResult.deletedScores} | Deleted applicants: {purgeResult.deletedApplicants}
+          </p>
         </div>
       ) : null}
     </div>

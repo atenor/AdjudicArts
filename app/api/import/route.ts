@@ -9,13 +9,25 @@ import {
   getImportableEvents,
   importApplicantsFromRows,
   parseApplicantCsv,
+  purgeEventApplications,
 } from "@/lib/db/import";
 
-const bodySchema = z.object({
-  mode: z.enum(["preview", "import"]),
-  csvData: z.string().min(1, "CSV data is required"),
-  eventId: z.string().min(1, "Event is required"),
-});
+const bodySchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("preview"),
+    csvData: z.string().min(1, "CSV data is required"),
+    eventId: z.string().min(1, "Event is required"),
+  }),
+  z.object({
+    mode: z.literal("import"),
+    csvData: z.string().min(1, "CSV data is required"),
+    eventId: z.string().min(1, "Event is required"),
+  }),
+  z.object({
+    mode: z.literal("purge"),
+    eventId: z.string().min(1, "Event is required"),
+  }),
+]);
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -41,17 +53,25 @@ export async function POST(request: Request) {
     return Response.json({ error: parsedBody.error.flatten() }, { status: 422 });
   }
 
-  const { csvData, eventId, mode } = parsedBody.data;
-  const rows = parseApplicantCsv(csvData);
-
-  if (rows.length === 0) {
-    return Response.json({ error: "CSV has no data rows" }, { status: 422 });
-  }
+  const { eventId, mode } = parsedBody.data;
 
   const events = await getImportableEvents(session.user.organizationId);
   const targetEvent = events.find((event) => event.id === eventId);
   if (!targetEvent) {
     return Response.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  if (mode === "purge") {
+    const result = await purgeEventApplications(
+      eventId,
+      session.user.organizationId
+    );
+    return Response.json(result);
+  }
+
+  const rows = parseApplicantCsv(parsedBody.data.csvData);
+  if (rows.length === 0) {
+    return Response.json({ error: "CSV has no data rows" }, { status: 422 });
   }
 
   if (mode === "preview") {
