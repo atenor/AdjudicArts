@@ -5,7 +5,7 @@
  *  - 1 Organization
  *  - 1 Admin, 1 National Chair, 1 Chapter Chair
  *  - 2 Chapter Judges, 2 National Judges
- *  - 8 Applicants
+ *  - 9 Applicants
  *  - 1 Event (OPEN) with 1 chapter round + 1 national round
  *  - Full 10-criterion rubric
  *  - JudgeAssignments for both round types
@@ -78,8 +78,9 @@ async function main() {
   const applicant6 = await upsertUser("user-applicant-006", "applicant6@adjudicarts.dev", "Felix Bass", Role.APPLICANT);
   const applicant7 = await upsertUser("user-applicant-007", "applicant7@adjudicarts.dev", "Gia Mezzo", Role.APPLICANT);
   const applicant8 = await upsertUser("user-applicant-008", "applicant8@adjudicarts.dev", "Hugo Tenor", Role.APPLICANT);
+  const applicant9 = await upsertUser("user-applicant-009", "isabelladoriano@icloud.com", "Isabella D’Oriano", Role.APPLICANT);
 
-  console.log(`✓ Users created (15 total)`);
+  console.log(`✓ Users created (16 total)`);
 
   // ── Event ───────────────────────────────────────────────────────────────────
   const event = await prisma.event.upsert({
@@ -246,7 +247,19 @@ async function main() {
     "tenor",
     ApplicationStatus.SUBMITTED
   );
-  console.log(`✓ Applications: 8 seeded across workflow statuses`);
+  await upsertApplication(
+    "app-seed-009",
+    applicant9.id,
+    "Malinconia, ninfa gentile (Bellini), Hark! The Echoing Air (Purcell), Après un rêve (Fauré)",
+    "soprano",
+    ApplicationStatus.NATIONAL_REVIEW,
+    [
+      "https://www.youtube.com/watch?v=jw61ZbebNQs&list=PLDS3fWB5tvXq3aHlVyS92qvmCdEPwdjhJ&index=1",
+      "https://www.youtube.com/watch?v=viwqIWQkltc&list=PLDS3fWB5tvXq3aHlVyS92qvmCdEPwdjhJ&index=2",
+      "https://www.youtube.com/watch?v=utG_JuIUuoI&list=PLDS3fWB5tvXq3aHlVyS92qvmCdEPwdjhJ&index=3",
+    ]
+  );
+  console.log(`✓ Applications: 9 seeded across workflow statuses`);
 
   // ── Judge Assignments ────────────────────────────────────────────────────────
   const judgeAssignments = [
@@ -288,6 +301,7 @@ async function main() {
   console.log(`  Applicant 6:     applicant6@adjudicarts.dev`);
   console.log(`  Applicant 7:     applicant7@adjudicarts.dev`);
   console.log(`  Applicant 8:     applicant8@adjudicarts.dev`);
+  console.log(`  Applicant 9:     isabelladoriano@icloud.com`);
 }
 
 main()
