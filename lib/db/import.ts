@@ -177,6 +177,64 @@ export async function getImportEventById(eventId: string) {
   });
 }
 
+export async function purgeEventApplications(eventId: string, organizationId: string) {
+  const applications = await prisma.application.findMany({
+    where: { eventId, organizationId },
+    select: { id: true, applicantId: true },
+  });
+
+  const applicationIds = applications.map((application) => application.id);
+  if (applicationIds.length === 0) {
+    return { deletedApplications: 0, deletedScores: 0, deletedApplicants: 0 };
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const deletedScores = await tx.score.deleteMany({
+      where: {
+        organizationId,
+        applicationId: { in: applicationIds },
+      },
+    });
+
+    const deletedApplications = await tx.application.deleteMany({
+      where: {
+        organizationId,
+        id: { in: applicationIds },
+      },
+    });
+
+    const applicantIds = Array.from(
+      new Set(applications.map((application) => application.applicantId))
+    );
+
+    let deletedApplicants = 0;
+    for (const applicantId of applicantIds) {
+      const remainingCount = await tx.application.count({
+        where: { organizationId, applicantId },
+      });
+
+      if (remainingCount > 0) continue;
+
+      const deleted = await tx.user.deleteMany({
+        where: {
+          id: applicantId,
+          organizationId,
+          role: Role.APPLICANT,
+        },
+      });
+      deletedApplicants += deleted.count;
+    }
+
+    return {
+      deletedApplications: deletedApplications.count,
+      deletedScores: deletedScores.count,
+      deletedApplicants,
+    };
+  });
+
+  return result;
+}
+
 export async function importApplicantFromRow(
   row: CsvRow,
   eventId: string,

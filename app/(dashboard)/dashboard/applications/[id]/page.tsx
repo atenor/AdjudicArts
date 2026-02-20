@@ -9,6 +9,7 @@ import { hasRole } from "@/lib/auth-guards";
 import { getApplicationById } from "@/lib/db/applications";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import AdvanceApplicationStatusButtons from "@/components/applications/advance-application-status-buttons";
+import DeleteApplicationButton from "@/components/applications/delete-application-button";
 import { formatVoicePart } from "@/lib/application-metadata";
 
 const STATUS_FLOW: ApplicationStatus[] = [
@@ -128,6 +129,9 @@ export default async function ApplicationDetailPage({
             applicationId={application.id}
             currentStatus={application.status}
           />
+          <div className="pt-1">
+            <DeleteApplicationButton applicationId={application.id} />
+          </div>
         </section>
       </div>
 
