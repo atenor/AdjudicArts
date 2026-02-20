@@ -8,6 +8,7 @@ import { hasRole } from "@/lib/auth-guards";
 import { getJudgeScoringQueue } from "@/lib/db/scores";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import { Badge } from "@/components/ui/badge";
+import { formatVoicePart } from "@/lib/application-metadata";
 import {
   Table,
   TableBody,
@@ -16,11 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-function formatVoicePart(raw: string | null) {
-  if (!raw) return "—";
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
 
 export default async function ScoringQueuePage() {
   const session = await getServerSession(authOptions);

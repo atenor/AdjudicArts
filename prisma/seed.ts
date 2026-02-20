@@ -15,6 +15,7 @@
 
 import { PrismaClient, Role, EventStatus, RoundType, ApplicationStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { buildApplicationMetadata } from "@/lib/application-metadata";
 
 const prisma = new PrismaClient();
 
@@ -154,7 +155,8 @@ async function main() {
     applicantId: string,
     repertoire: string,
     voicePart: string,
-    status: ApplicationStatus = ApplicationStatus.SUBMITTED
+    status: ApplicationStatus = ApplicationStatus.SUBMITTED,
+    videoUrls: string[] = []
   ) {
     return prisma.application.upsert({
       where: { id },
@@ -164,7 +166,7 @@ async function main() {
         applicantId,
         status,
         repertoire,
-        notes: voicePart,
+        notes: buildApplicationMetadata({ voicePart, videoUrls }),
       },
       create: {
         id,
@@ -173,7 +175,7 @@ async function main() {
         applicantId,
         status,
         repertoire,
-        notes: voicePart,
+        notes: buildApplicationMetadata({ voicePart, videoUrls }),
       },
     });
   }
@@ -183,14 +185,24 @@ async function main() {
     applicant1.id,
     "Caro mio ben (Giordani), Vissi d'arte (Puccini)",
     "soprano",
-    ApplicationStatus.NATIONAL_APPROVED
+    ApplicationStatus.NATIONAL_APPROVED,
+    [
+      "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "https://youtu.be/ysz5S6PUM-U",
+    ]
   );
   await upsertApplication(
     "app-seed-002",
     applicant2.id,
     "La fleur que tu m'avais jetée (Bizet), Nessun dorma (Puccini)",
     "tenor",
-    ApplicationStatus.NATIONAL_REVIEW
+    ApplicationStatus.NATIONAL_REVIEW,
+    [
+      "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+      "https://youtu.be/ysz5S6PUM-U",
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ]
   );
   await upsertApplication(
     "app-seed-003",
