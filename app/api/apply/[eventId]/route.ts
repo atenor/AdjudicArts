@@ -7,6 +7,7 @@ import {
   hasExistingApplication,
 } from "@/lib/db/applications";
 import { EventStatus } from "@prisma/client";
+import { sendApplicationConfirmation } from "@/lib/email";
 
 const applySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -69,6 +70,13 @@ export async function POST(
       (url): url is string => Boolean(url && url.length > 0)
     ),
   });
+
+  const statusUrl = `${process.env.NEXTAUTH_URL ?? ""}/status/${application.id}`;
+  try {
+    await sendApplicationConfirmation(email, name, event.name, application.id, statusUrl);
+  } catch {
+    // Email failure must never break the submission flow
+  }
 
   return Response.json({ success: true, applicationId: application.id }, { status: 201 });
 }

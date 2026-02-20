@@ -6,6 +6,7 @@ import { ApplicationStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/auth-guards";
 import { advanceApplicationStatus } from "@/lib/db/applications";
+import { sendStatusUpdate } from "@/lib/email";
 
 const bodySchema = z.object({
   status: z.nativeEnum(ApplicationStatus),
@@ -46,6 +47,19 @@ export async function POST(
 
   if (!updated) {
     return Response.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const statusUrl = `${process.env.NEXTAUTH_URL ?? ""}/status/${updated.id}`;
+  try {
+    await sendStatusUpdate(
+      updated.applicant.email,
+      updated.applicant.name,
+      updated.event.name,
+      updated.status,
+      statusUrl
+    );
+  } catch {
+    // Email failure must never break the main flow
   }
 
   return Response.json(updated);
