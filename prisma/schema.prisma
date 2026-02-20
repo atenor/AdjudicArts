@@ -1,0 +1,249 @@
+// AdjudicArts — Prisma Schema (Prisma 5)
+// All entities carry organizationId for future multi-tenancy.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  NATIONAL_CHAIR
+  CHAPTER_CHAIR
+  CHAPTER_JUDGE
+  NATIONAL_JUDGE
+  APPLICANT
+}
+
+enum EventStatus {
+  DRAFT
+  OPEN
+  CHAPTER_REVIEW
+  JUDGING
+  NATIONAL_REVIEW
+  DECIDED
+  CLOSED
+}
+
+enum RoundType {
+  CHAPTER
+  NATIONAL
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  CHAPTER_REVIEW
+  CHAPTER_APPROVED
+  CHAPTER_REJECTED
+  NATIONAL_REVIEW
+  NATIONAL_APPROVED
+  NATIONAL_REJECTED
+  DECIDED
+}
+
+// ---------------------------------------------------------------------------
+// Organization
+// Single-tenant for now; organizationId on all entities enables future multi-tenancy.
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  events       Event[]
+  rubrics      Rubric[]
+  applications Application[]
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+
+model User {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String   @unique
+  passwordHash   String
+  name           String
+  role           Role
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+  applications     Application[]
+  scores           Score[]
+  judgeAssignments JudgeAssignment[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([role])
+}
+
+// ---------------------------------------------------------------------------
+// Event
+// Status lifecycle: DRAFT → OPEN → CHAPTER_REVIEW → JUDGING → NATIONAL_REVIEW → DECIDED → CLOSED
+// ---------------------------------------------------------------------------
+
+model Event {
+  id             String      @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  status         EventStatus @default(DRAFT)
+  openAt         DateTime?
+  closeAt        DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  rounds       Round[]
+  applications Application[]
+  rubric       Rubric?
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Round
+// A chapter or national judging round that belongs to an Event.
+// ---------------------------------------------------------------------------
+
+model Round {
+  id             String    @id @default(cuid())
+  organizationId String
+  eventId        String
+  name           String
+  type           RoundType
+  startAt        DateTime?
+  endAt          DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  event            Event             @relation(fields: [eventId], references: [id])
+  judgeAssignments JudgeAssignment[]
+
+  @@index([organizationId])
+  @@index([eventId])
+}
+
+// ---------------------------------------------------------------------------
+// Application
+// An Applicant's submission for an Event.
+// ---------------------------------------------------------------------------
+
+model Application {
+  id             String            @id @default(cuid())
+  organizationId String
+  eventId        String
+  applicantId    String
+  status         ApplicationStatus @default(SUBMITTED)
+  repertoire     String?
+  notes          String?
+  submittedAt    DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  applicant    User         @relation(fields: [applicantId], references: [id])
+  scores       Score[]
+
+  @@index([organizationId])
+  @@index([eventId])
+  @@index([applicantId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Rubric & RubricCriteria
+// One Rubric per Event; each criterion scored 0–10.
+// ---------------------------------------------------------------------------
+
+model Rubric {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String   @unique
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  event        Event           @relation(fields: [eventId], references: [id])
+  criteria     RubricCriteria[]
+
+  @@index([organizationId])
+}
+
+model RubricCriteria {
+  id          String   @id @default(cuid())
+  rubricId    String
+  name        String
+  description String?
+  weight      Float    @default(1.0)
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rubric Rubric  @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  scores Score[]
+
+  @@index([rubricId])
+}
+
+// ---------------------------------------------------------------------------
+// Score
+// A judge's score for one Application against one RubricCriteria (0–10).
+// ---------------------------------------------------------------------------
+
+model Score {
+  id             String   @id @default(cuid())
+  organizationId String
+  applicationId  String
+  criteriaId     String
+  judgeId        String
+  value          Float
+  comment        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  application Application    @relation(fields: [applicationId], references: [id])
+  criteria    RubricCriteria @relation(fields: [criteriaId], references: [id])
+  judge       User           @relation(fields: [judgeId], references: [id])
+
+  @@unique([applicationId, criteriaId, judgeId])
+  @@index([organizationId])
+  @@index([applicationId])
+  @@index([judgeId])
+}
+
+// ---------------------------------------------------------------------------
+// JudgeAssignment
+// Links a Judge to a Round.
+// ---------------------------------------------------------------------------
+
+model JudgeAssignment {
+  id             String   @id @default(cuid())
+  organizationId String
+  judgeId        String
+  roundId        String
+  createdAt      DateTime @default(now())
+
+  judge User  @relation(fields: [judgeId], references: [id])
+  round Round @relation(fields: [roundId], references: [id])
+
+  @@unique([judgeId, roundId])
+  @@index([organizationId])
+  @@index([roundId])
+}
