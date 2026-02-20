@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getPublicEventForApply } from "@/lib/db/applications";
 import { EventStatus } from "@prisma/client";
 import ApplyForm from "@/components/applications/apply-form";
