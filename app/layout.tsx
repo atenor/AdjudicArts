@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Cormorant_Garamond } from "next/font/google";
+import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "@/app/providers";
 
@@ -17,9 +17,16 @@ const geistMono = localFont({
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["300", "700"],
+  weight: ["300", "600", "700"],
   style: ["normal", "italic"],
   variable: "--font-cormorant",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -36,10 +43,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} antialiased`}
-      >
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} ${inter.variable}`}
+    >
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
