@@ -14,6 +14,7 @@ import EventStatusBadge from "@/components/events/event-status-badge";
 import AdvanceStatusButton from "@/components/events/advance-status-button";
 import AddRoundDialog from "@/components/events/add-round-dialog";
 import AssignJudgeDialog from "@/components/events/assign-judge-dialog";
+import DeleteEventButton from "@/components/events/delete-event-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -70,6 +71,12 @@ export default async function EventDetailPage({
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
+          <Link
+            href={`/dashboard/events/${event.id}/edit`}
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Edit Event
+          </Link>
           <Link
             href={`/dashboard/events/${event.id}/results`}
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
@@ -150,6 +157,8 @@ export default async function EventDetailPage({
       </div>
 
       {/* Back link */}
+      <DeleteEventButton eventId={event.id} />
+
       <Link
         href="/dashboard/events"
         className="text-sm text-muted-foreground hover:underline"
