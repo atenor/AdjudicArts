@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
+import { Cormorant_Garamond } from "next/font/google";
 import { authOptions } from "@/lib/auth";
-import { Badge } from "@/components/ui/badge";
-import { ROLE_LABELS, ROLE_BADGE_VARIANTS } from "@/lib/roles";
+import { ROLE_LABELS } from "@/lib/roles";
 import SignOutButton from "@/components/shared/sign-out-button";
+import styles from "./nav-header.module.css";
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "700"],
+  style: ["normal", "italic"],
+});
 
 export default async function NavHeader() {
   const session = await getServerSession(authOptions);
@@ -19,52 +26,39 @@ export default async function NavHeader() {
     session?.user.role === "NATIONAL_JUDGE";
 
   return (
-    <header className="border-b bg-background">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:h-14 sm:flex-nowrap sm:justify-between sm:px-6 sm:py-0">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 sm:gap-6">
-          <span className="font-semibold text-lg tracking-tight">AdjudicArts</span>
+    <header className={styles.header}>
+      <div className={styles.inner}>
+        <div className={styles.left}>
+          <Link href="/dashboard" className={`${styles.wordmark} ${cormorant.className}`}>
+            <span className={styles.wordmarkStrong}>Adjudic</span>
+            <span className={styles.wordmarkLight}>arts</span>
+          </Link>
           {canViewEvents && (
-            <Link
-              href="/dashboard/events"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
+            <Link href="/dashboard/events" className={styles.link}>
               Events
             </Link>
           )}
           {canViewApplications && (
-            <Link
-              href="/dashboard/applications"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
+            <Link href="/dashboard/applications" className={styles.link}>
               Applications
             </Link>
           )}
           {canImportApplications && (
-            <Link
-              href="/dashboard/import"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
+            <Link href="/dashboard/import" className={styles.link}>
               Import Applications
             </Link>
           )}
           {canViewScoring && (
-            <Link
-              href="/dashboard/scoring"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
+            <Link href="/dashboard/scoring" className={styles.link}>
               Scoring
             </Link>
           )}
         </div>
         {session?.user && (
-          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
-            <span className="max-w-[7.5rem] truncate text-xs text-muted-foreground sm:max-w-none sm:text-sm">
-              {session.user.name}
-            </span>
-            <Badge className="text-xs sm:text-sm" variant={ROLE_BADGE_VARIANTS[session.user.role]}>
-              {ROLE_LABELS[session.user.role]}
-            </Badge>
-            <SignOutButton />
+          <div className={styles.right}>
+            <span className={styles.userName}>{session.user.name}</span>
+            <span className={styles.roleBadge}>{ROLE_LABELS[session.user.role]}</span>
+            <SignOutButton className={styles.signOut} />
           </div>
         )}
       </div>

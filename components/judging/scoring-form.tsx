@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import styles from "./scoring-form.module.css";
 
 type Criterion = {
   id: string;
@@ -117,41 +115,44 @@ export default function ScoringForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="min-w-0 space-y-5">
-      <div className="rounded-lg border bg-muted/40 p-3">
-        <p className="text-sm font-medium">Live Score Summary</p>
-        <p className="text-sm text-muted-foreground">
-          Total: <span className="font-semibold text-foreground">{scoreSummary.total.toFixed(1)}</span> /{" "}
-          {scoreSummary.max} | Filled:{" "}
-          <span className="font-semibold text-foreground">{scoreSummary.filled}</span> / {criteria.length} | Avg:{" "}
-          <span className="font-semibold text-foreground">{scoreSummary.average.toFixed(2)}</span>
-        </p>
+    <form onSubmit={onSubmit} className={styles.form}>
+      <div className={styles.summaryBand}>
+        <div>
+          <p className={styles.summaryLabel}>Running Total</p>
+          <p className={styles.summaryValue}>
+            Filled {scoreSummary.filled}/{criteria.length} · Avg {scoreSummary.average.toFixed(2)}
+          </p>
+        </div>
+        <p className={styles.summaryTotal}>{scoreSummary.total.toFixed(1)}</p>
       </div>
 
-      {criteria.map((criterion) => (
-        <div key={criterion.id} className="min-w-0 space-y-2 rounded-lg border p-4">
-          <div className="space-y-1">
-            <p className="font-medium">
-              {criterion.order}. {criterion.name}
-            </p>
-            {criterion.description && (
-              <p className="text-sm text-muted-foreground">{criterion.description}</p>
-            )}
-          </div>
+      {criteria.map((criterion) => {
+        const selectedValue = values[criterion.id] === "" ? null : Number(values[criterion.id]);
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="space-y-1 md:col-span-1">
-              <Label>Score (tap 0-10)</Label>
-              <div className="grid grid-cols-6 gap-1 sm:grid-cols-11 sm:gap-1.5">
+        return (
+          <section key={criterion.id} className={styles.criterion}>
+            <div>
+              <p className={styles.criterionTitle}>
+                {criterion.order}. {criterion.name}
+              </p>
+              {criterion.description ? (
+                <p className={styles.criterionDescription}>{criterion.description}</p>
+              ) : null}
+            </div>
+
+            <div className={styles.stack}>
+              <p className={styles.label}>Score (tap 0-10)</p>
+              <div className={styles.scoreGrid}>
                 {SCORE_OPTIONS.map((score) => {
-                  const selected = values[criterion.id] === String(score);
+                  const isSelected = selectedValue === score;
+                  const isFilled = selectedValue !== null && score <= selectedValue;
                   return (
-                    <Button
+                    <button
                       key={`${criterion.id}-${score}`}
                       type="button"
-                      size="sm"
-                      variant={selected ? "default" : "outline"}
-                      className="h-9 w-full px-0 text-sm"
+                      className={`${styles.scoreChip} ${isFilled ? styles.scoreChipFilled : ""} ${
+                        isSelected ? styles.scoreChipSelected : ""
+                      }`}
                       onClick={() =>
                         setValues((current) => ({
                           ...current,
@@ -160,15 +161,17 @@ export default function ScoringForm({
                       }
                     >
                       {score}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
             </div>
-            <div className="space-y-1 md:col-span-2">
-              <Label htmlFor={`comment-${criterion.id}`}>Comment (optional)</Label>
-              <Textarea
+
+            <div className={styles.stack}>
+              <p className={styles.label}>Comment (optional)</p>
+              <textarea
                 id={`comment-${criterion.id}`}
+                className={styles.comment}
                 value={comments[criterion.id]}
                 onChange={(e) =>
                   setComments((current) => ({
@@ -182,16 +185,15 @@ export default function ScoringForm({
                 spellCheck={false}
               />
             </div>
-          </div>
-        </div>
-      ))}
+          </section>
+        );
+      })}
 
-      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-
-      <div className="rounded-lg border p-4 space-y-2">
-        <Label htmlFor="final-comment">Final Comments</Label>
-        <Textarea
+      <section className={styles.finalWrap}>
+        <p className={styles.label}>Final Comments</p>
+        <textarea
           id="final-comment"
+          className={styles.comment}
           rows={5}
           placeholder="Overall adjudication comments for this applicant..."
           value={finalComment}
@@ -200,13 +202,13 @@ export default function ScoringForm({
           autoCorrect="off"
           spellCheck={false}
         />
-      </div>
+      </section>
 
-      <div className="flex justify-end">
-        <Button className="w-full sm:w-auto" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Scores"}
-        </Button>
-      </div>
+      {serverError ? <p className={styles.error}>{serverError}</p> : null}
+
+      <button className={styles.submit} type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Saving..." : "Save Scores"}
+      </button>
     </form>
   );
 }

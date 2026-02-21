@@ -1,0 +1,215 @@
+.wrap {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tab {
+  border: 1px solid rgba(70, 43, 124, 0.2);
+  border-radius: 999px;
+  background: #fff;
+  color: #4a3d6b;
+  padding: 0.38rem 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: #462b7c;
+  border-color: #462b7c;
+  color: #fff;
+  box-shadow: 0 2px 14px rgba(70, 43, 124, 0.28);
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.1rem;
+  color: #8a7fa8;
+  font-size: 0.76rem;
+}
+
+.summary strong {
+  color: #1e1538;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.export {
+  border: 1px solid rgba(70, 43, 124, 0.22);
+  border-radius: 999px;
+  color: #462b7c;
+  text-decoration: none;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.65rem;
+  background: #fff;
+}
+
+.export:hover {
+  background: rgba(70, 43, 124, 0.08);
+}
+
+.tableCard {
+  border-radius: 14px;
+  border: 1px solid rgba(70, 43, 124, 0.09);
+  background: #fff;
+  box-shadow: 0 2px 16px rgba(70, 43, 124, 0.07);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.6rem 0.7rem;
+  border-bottom: 1px solid rgba(70, 43, 124, 0.08);
+  white-space: nowrap;
+}
+
+.table th {
+  background: rgba(243, 238, 248, 0.8);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a7fa8;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rank {
+  font-weight: 800;
+}
+
+.rank1 {
+  color: #c9a84c;
+}
+
+.rank2 {
+  color: #6b4baa;
+}
+
+.rank3 {
+  color: #c8864a;
+}
+
+.rankRest {
+  color: #8a7fa8;
+}
+
+.name {
+  color: #1e1538;
+  font-weight: 700;
+}
+
+.voice {
+  color: #6f6490;
+}
+
+.scoreCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.scoreBarTrack {
+  width: 80px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(70, 43, 124, 0.14);
+  overflow: hidden;
+}
+
+.scoreBarFill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #6b4baa, #462b7c);
+}
+
+.scoreValue {
+  color: #1e1538;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.judges {
+  text-align: right;
+  color: #6f6490;
+}
+
+.status {
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.statusApproved {
+  background: rgba(26, 122, 74, 0.09);
+  color: #1a7a4a;
+}
+
+.statusReview {
+  background: rgba(70, 43, 124, 0.09);
+  color: #462b7c;
+}
+
+.statusPending {
+  background: rgba(77, 77, 89, 0.09);
+  color: #63636d;
+}
+
+.emptyWrap {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(70, 43, 124, 0.09);
+  box-shadow: 0 2px 16px rgba(70, 43, 124, 0.07);
+  padding: 2rem 1rem;
+  text-align: center;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.emptyIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  margin: 0 auto;
+  background: #ede6f7;
+}
+
+.emptyTitle {
+  margin: 0;
+  color: #1e1538;
+  font-weight: 800;
+}
+
+.emptyText {
+  margin: 0;
+  color: #8a7fa8;
+  font-size: 0.82rem;
+}

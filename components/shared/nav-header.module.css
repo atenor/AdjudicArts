@@ -1,0 +1,108 @@
+.header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: #462b7c;
+}
+
+.inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-height: 52px;
+  padding: 0.45rem 0.9rem;
+}
+
+.left {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+}
+
+.wordmark {
+  font-size: 1.65rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.wordmarkStrong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.wordmarkLight {
+  color: #c9a84c;
+  font-weight: 300;
+  font-style: italic;
+}
+
+.link {
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: #ffffff;
+}
+
+.right {
+  margin-left: auto;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.userName {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.roleBadge {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.signOut {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+}
+
+.signOut:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (min-width: 640px) {
+  .inner {
+    padding: 0.45rem 1.5rem;
+  }
+
+  .right {
+    gap: 0.7rem;
+  }
+
+  .userName {
+    max-width: none;
+  }
+}

@@ -1,0 +1,46 @@
+.page {
+  display: grid;
+  gap: 1rem;
+  color: #120d25;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  color: #1e1538;
+  font-size: clamp(1.2rem, 2.8vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.subtext {
+  margin: 0.25rem 0 0;
+  color: #8a7fa8;
+  font-size: 0.82rem;
+}
+
+.backLink {
+  color: #8a7fa8;
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.backLink:hover {
+  color: #462b7c;
+  text-decoration: underline;
+}

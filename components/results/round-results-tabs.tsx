@@ -1,44 +1,36 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RoundResultsSummary } from "@/lib/db/results";
-
-function statusVariant(
-  status: string
-): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "CHAPTER_APPROVED":
-    case "NATIONAL_APPROVED":
-    case "DECIDED":
-      return "default";
-    case "CHAPTER_REJECTED":
-    case "NATIONAL_REJECTED":
-      return "destructive";
-    default:
-      return "secondary";
-  }
-}
+import styles from "./round-results-tabs.module.css";
 
 function formatStatus(status: string) {
   return status
     .split("_")
-    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
     .join(" ");
 }
 
-function fmt(n: number) {
-  return n.toFixed(2);
+function fmt(value: number) {
+  return value.toFixed(2);
+}
+
+function rankClass(rank: number) {
+  if (rank === 1) return styles.rank1;
+  if (rank === 2) return styles.rank2;
+  if (rank === 3) return styles.rank3;
+  return styles.rankRest;
+}
+
+function statusClass(status: string) {
+  if (status === "CHAPTER_APPROVED" || status === "NATIONAL_APPROVED" || status === "DECIDED") {
+    return styles.statusApproved;
+  }
+  if (status === "CHAPTER_REVIEW" || status === "NATIONAL_REVIEW") {
+    return styles.statusReview;
+  }
+  return styles.statusPending;
 }
 
 type Props = {
@@ -47,118 +39,109 @@ type Props = {
 };
 
 export default function RoundResultsTabs({ eventId, rounds }: Props) {
+  const [activeRoundId, setActiveRoundId] = useState(rounds[0]?.roundId ?? "");
+
   if (rounds.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No rounds found for this event.
-      </p>
-    );
+    return <p className={styles.emptyText}>No rounds found for this event.</p>;
   }
 
+  const activeRound = rounds.find((round) => round.roundId === activeRoundId) ?? rounds[0];
+
   return (
-    <Tabs defaultValue={rounds[0].roundId}>
-      <TabsList>
-        {rounds.map((round) => (
-          <TabsTrigger key={round.roundId} value={round.roundId}>
-            {round.roundName}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+    <div className={styles.wrap}>
+      <div className={styles.tabList}>
+        {rounds.map((round) => {
+          const isActive = round.roundId === activeRound.roundId;
+          return (
+            <button
+              key={round.roundId}
+              type="button"
+              className={`${styles.tab} ${isActive ? styles.tabActive : ""}`}
+              onClick={() => setActiveRoundId(round.roundId)}
+            >
+              {round.roundName}
+            </button>
+          );
+        })}
+      </div>
 
-      {rounds.map((round) => (
-        <TabsContent key={round.roundId} value={round.roundId} className="mt-4">
-          {/* Summary stats */}
-          {round.applicationCount > 0 && (
-            <div className="flex flex-wrap gap-4 mb-4 text-sm text-muted-foreground">
-              <span>
-                <span className="font-medium text-foreground">
-                  {round.applicationCount}
-                </span>{" "}
-                applicant{round.applicationCount !== 1 ? "s" : ""} scored
-              </span>
-              <span>
-                Avg:{" "}
-                <span className="font-medium text-foreground">
-                  {fmt(round.averageTotalScore)}
-                </span>
-                /100
-              </span>
-              <span>
-                High:{" "}
-                <span className="font-medium text-foreground">
-                  {fmt(round.highestScore)}
-                </span>
-              </span>
-              <span>
-                Low:{" "}
-                <span className="font-medium text-foreground">
-                  {fmt(round.lowestScore)}
-                </span>
-              </span>
-            </div>
-          )}
+      {activeRound.applicationCount > 0 ? (
+        <div className={styles.summary}>
+          <span>
+            <strong>{activeRound.applicationCount}</strong> applicants scored
+          </span>
+          <span>
+            Avg <strong>{fmt(activeRound.averageTotalScore)}</strong>/100
+          </span>
+          <span>
+            High <strong>{fmt(activeRound.highestScore)}</strong>
+          </span>
+          <span>
+            Low <strong>{fmt(activeRound.lowestScore)}</strong>
+          </span>
+        </div>
+      ) : null}
 
-          {/* Export button */}
-          <div className="flex justify-end mb-3">
-            <Button variant="outline" size="sm" asChild>
-              <Link
-                href={`/api/events/${eventId}/results/export?roundId=${round.roundId}`}
-              >
-                Export CSV
-              </Link>
-            </Button>
-          </div>
+      <div className={styles.actionRow}>
+        <Link
+          href={`/api/events/${eventId}/results/export?roundId=${activeRound.roundId}`}
+          className={styles.export}
+        >
+          Export CSV
+        </Link>
+      </div>
 
-          {round.results.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">
-              No scored applications for this round yet.
-            </p>
-          ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">Rank</TableHead>
-                    <TableHead>Applicant</TableHead>
-                    <TableHead>Voice Part</TableHead>
-                    <TableHead className="text-right">Total Score</TableHead>
-                    <TableHead className="text-right">Judges</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {round.results.map((result) => (
-                    <TableRow key={result.applicationId}>
-                      <TableCell className="font-medium">
-                        {result.tied ? "=" : ""}
-                        {result.rank}
-                      </TableCell>
-                      <TableCell>{result.applicantName}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {result.voicePart ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {fmt(result.totalScore)}
-                        <span className="text-muted-foreground text-xs">
-                          /100
+      {activeRound.results.length === 0 ? (
+        <div className={styles.emptyWrap}>
+          <div className={styles.emptyIcon} />
+          <p className={styles.emptyTitle}>No scored applications yet</p>
+          <p className={styles.emptyText}>Scores will appear here once judges submit this round.</p>
+        </div>
+      ) : (
+        <div className={styles.tableCard}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Applicant</th>
+                <th>Voice Part</th>
+                <th style={{ textAlign: "right" }}>Total Score</th>
+                <th style={{ textAlign: "right" }}>Judges</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeRound.results.map((result) => {
+                const barWidth = Math.max(0, Math.min(100, (result.totalScore / 100) * 100));
+                return (
+                  <tr key={result.applicationId}>
+                    <td className={`${styles.rank} ${rankClass(result.rank)}`}>
+                      {result.tied ? "=" : ""}
+                      {result.rank}
+                    </td>
+                    <td className={styles.name}>{result.applicantName}</td>
+                    <td className={styles.voice}>{result.voicePart ?? "—"}</td>
+                    <td>
+                      <div className={styles.scoreCell}>
+                        <span className={styles.scoreBarTrack}>
+                          <span className={styles.scoreBarFill} style={{ width: `${barWidth}%` }} />
                         </span>
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {result.judgeCount}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant(result.status)}>
-                          {formatStatus(result.status)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </TabsContent>
-      ))}
-    </Tabs>
+                        <span className={styles.scoreValue}>{fmt(result.totalScore)}</span>
+                      </div>
+                    </td>
+                    <td className={styles.judges}>{result.judgeCount}</td>
+                    <td>
+                      <span className={`${styles.status} ${statusClass(result.status)}`}>
+                        {formatStatus(result.status)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

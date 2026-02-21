@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import NavHeader from "@/components/shared/nav-header";
+import styles from "./layout.module.css";
 
 export default async function DashboardLayout({
   children,
@@ -12,9 +13,9 @@ export default async function DashboardLayout({
   if (!session) redirect("/login");
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={styles.shell}>
       <NavHeader />
-      <main className="min-w-0 flex-1 p-3 sm:p-6">{children}</main>
+      <main className={styles.main}>{children}</main>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { getServerSession } from "next-auth";
 import { redirect, notFound } from "next/navigation";
@@ -9,6 +9,7 @@ import { getEventById } from "@/lib/db/events";
 import { getResultsSummaryForEvent } from "@/lib/db/results";
 import EventStatusBadge from "@/components/events/event-status-badge";
 import RoundResultsTabs from "@/components/results/round-results-tabs";
+import styles from "./results.module.css";
 
 export default async function EventResultsPage({
   params,
@@ -25,28 +26,22 @@ export default async function EventResultsPage({
   const roundSummaries = await getResultsSummaryForEvent(event.id);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">Results — {event.name}</h1>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Results — {event.name}</h1>
             <EventStatusBadge status={event.status} />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className={styles.subtext}>
             Rankings by total average score across all judges and criteria.
           </p>
         </div>
-      </div>
+      </header>
 
-      {/* Tabbed rounds */}
       <RoundResultsTabs eventId={event.id} rounds={roundSummaries} />
 
-      {/* Back link */}
-      <Link
-        href={`/dashboard/events/${event.id}`}
-        className="text-sm text-muted-foreground hover:underline"
-      >
+      <Link href={`/dashboard/events/${event.id}`} className={styles.backLink}>
         ← Back to event
       </Link>
     </div>

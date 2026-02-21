@@ -5,11 +5,15 @@ import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
-import { getScoringApplicationForJudge } from "@/lib/db/scores";
+import {
+  getJudgeScoringQueue,
+  getScoringApplicationForJudge,
+} from "@/lib/db/scores";
 import { formatVoicePart } from "@/lib/application-metadata";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
+import styles from "./scoring.module.css";
 
 function parseRepertoire(repertoire: string | null) {
   if (!repertoire) return [];
@@ -39,6 +43,13 @@ function parseRepertoire(repertoire: string | null) {
     .filter(Boolean);
 }
 
+function initialsFromName(name: string) {
+  const parts = name.split(" ").filter(Boolean);
+  if (parts.length === 0) return "NA";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
 export default async function ScoreApplicationPage({
   params,
 }: {
@@ -50,12 +61,15 @@ export default async function ScoreApplicationPage({
     redirect("/dashboard");
   }
 
-  const scoringContext = await getScoringApplicationForJudge(
-    params.applicationId,
-    session.user.id,
-    session.user.organizationId,
-    session.user.role
-  );
+  const [scoringContext, queue] = await Promise.all([
+    getScoringApplicationForJudge(
+      params.applicationId,
+      session.user.id,
+      session.user.organizationId,
+      session.user.role
+    ),
+    getJudgeScoringQueue(session.user.id, session.user.organizationId, session.user.role),
+  ]);
 
   if (!scoringContext) notFound();
 
@@ -66,8 +80,8 @@ export default async function ScoreApplicationPage({
     finalComment,
     videoUrls,
     videoTitles,
-  } =
-    scoringContext;
+  } = scoringContext;
+
   const repertoirePieces = parseRepertoire(application.repertoire);
   const visibleVideoTitles = videoTitles
     .map((title, index) => ({
@@ -76,91 +90,155 @@ export default async function ScoreApplicationPage({
     }))
     .slice(0, videoUrls.length);
 
+  const queueApplications = queue.flatMap((roundQueue) =>
+    roundQueue.applications.map((queueApp) => ({
+      id: queueApp.id,
+      name: queueApp.applicant.name,
+      roundName: roundQueue.round.name,
+      eventName: roundQueue.event.name,
+    }))
+  );
+
+  const currentIndex = queueApplications.findIndex(
+    (queueApp) => queueApp.id === application.id
+  );
+
+  const hasNeighbors = queueApplications.length > 1 && currentIndex >= 0;
+  const previousApplication = hasNeighbors
+    ? queueApplications[
+        (currentIndex - 1 + queueApplications.length) % queueApplications.length
+      ]
+    : null;
+  const nextApplication = hasNeighbors
+    ? queueApplications[(currentIndex + 1) % queueApplications.length]
+    : null;
+
   return (
-    <div className="space-y-6">
-      <StickyVideoPlayer videoUrls={videoUrls} />
-      {visibleVideoTitles.length > 0 ? (
-        <div className="rounded-md border p-3">
-          <p className="text-sm font-medium">Video Titles</p>
-          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-            {visibleVideoTitles.map((video) => (
-              <li key={`${video.label}-${video.title}`}>
-                <span className="font-medium text-foreground">{video.label}:</span>{" "}
-                {video.title}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+    <div className={styles.page}>
+      <div className={styles.grid}>
+        <div className={styles.left}>
+          <section className={styles.applicantHeader}>
+            {application.headshot ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={application.headshot}
+                alt={`${application.applicant.name} headshot`}
+                className={styles.avatar}
+              />
+            ) : (
+              <span className={styles.avatarFallback}>
+                {initialsFromName(application.applicant.name)}
+              </span>
+            )}
+            <div>
+              <h1 className={styles.name}>{application.applicant.name}</h1>
+              <p className={styles.email}>{application.applicant.email}</p>
+              <p className={styles.meta}>
+                {formatVoicePart(application.notes)}
+                {application.chapter ? ` · ${application.chapter}` : ""}
+                {currentIndex >= 0 ? ` · #${currentIndex + 1}` : ""}
+              </p>
+            </div>
+          </section>
 
-      <div className="flex items-center gap-3">
-        {application.headshot ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={application.headshot}
-            alt={`${application.applicant.name} headshot`}
-            className="h-16 w-16 rounded-full border object-cover"
-          />
-        ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-full border bg-muted text-sm font-medium text-muted-foreground">
-            N/A
+          <section className={styles.card}>
+            <div className={styles.sectionHeader}>Application</div>
+            <div className={styles.cardBody}>
+              <p className={styles.bodyRow}>
+                <span className={styles.bodyLabel}>Event:</span> {application.event.name}
+              </p>
+              <p className={styles.bodyRow}>
+                <span className={styles.bodyLabel}>Voice Part:</span> {formatVoicePart(application.notes)}
+              </p>
+              <p className={styles.bodyRow}>
+                <span className={styles.bodyLabel}>Status:</span>{" "}
+                <ApplicationStatusBadge status={application.status} />
+              </p>
+            </div>
+          </section>
+
+          <section className={styles.card}>
+            <div className={styles.sectionHeader}>Repertoire</div>
+            <div className={styles.cardBody}>
+              {repertoirePieces.length === 0 ? (
+                <p className={styles.bodyRow}>No repertoire provided.</p>
+              ) : (
+                <ol className={styles.repertoire}>
+                  {repertoirePieces.map((piece, index) => (
+                    <li key={`${piece}-${index}`}>{piece}</li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <div className={styles.sectionHeader}>Rubric Scores</div>
+            <ScoringForm
+              applicationId={application.id}
+              criteria={criteria}
+              existingFinalComment={finalComment}
+              existingScores={existingScores.map((score) => ({
+                criteriaId: score.criteriaId,
+                value: score.value,
+                comment: score.comment,
+              }))}
+            />
+          </section>
+
+          <Link href="/dashboard/scoring" className={styles.backLink}>
+            ← Back to scoring queue
+          </Link>
+        </div>
+
+        <aside className={styles.right}>
+          <div className={styles.stickyPanel}>
+            <StickyVideoPlayer videoUrls={videoUrls} />
+
+            {visibleVideoTitles.length > 0 ? (
+              <section className={styles.sidebarCard}>
+                <h2 className={styles.sidebarTitle}>Video Titles</h2>
+                <ol className={styles.videoTitleList}>
+                  {visibleVideoTitles.map((video) => (
+                    <li key={`${video.label}-${video.title}`}>
+                      <strong>{video.label}:</strong> {video.title}
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
+
+            <section className={styles.sidebarCard}>
+              <h2 className={styles.sidebarTitle}>Queue Navigation</h2>
+              <p className={styles.navMeta}>
+                {currentIndex >= 0
+                  ? `${currentIndex + 1} of ${queueApplications.length} applicants`
+                  : "Current applicant not found in queue order."}
+              </p>
+              <div className={styles.navLinks}>
+                {previousApplication ? (
+                  <Link
+                    href={`/dashboard/scoring/${previousApplication.id}`}
+                    className={styles.navLink}
+                  >
+                    Prev
+                  </Link>
+                ) : (
+                  <span className={styles.navLink}>Prev</span>
+                )}
+
+                {nextApplication ? (
+                  <Link href={`/dashboard/scoring/${nextApplication.id}`} className={styles.navLink}>
+                    Next
+                  </Link>
+                ) : (
+                  <span className={styles.navLink}>Next</span>
+                )}
+              </div>
+            </section>
           </div>
-        )}
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">{application.applicant.name}</h1>
-          <p className="text-sm text-muted-foreground">{application.applicant.email}</p>
-        </div>
+        </aside>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-lg border p-4 space-y-2">
-          <h2 className="font-medium">Application</h2>
-          <p className="text-sm">
-            <span className="text-muted-foreground">Event:</span> {application.event.name}
-          </p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">Voice Part:</span>{" "}
-            {formatVoicePart(application.notes)}
-          </p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">Status:</span>{" "}
-            <ApplicationStatusBadge status={application.status} />
-          </p>
-        </section>
-        <section className="rounded-lg border p-4 space-y-2">
-          <h2 className="font-medium">Repertoire</h2>
-          {repertoirePieces.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No repertoire provided.</p>
-          ) : (
-            <ol className="list-decimal pl-5 space-y-1 text-sm text-muted-foreground">
-              {repertoirePieces.map((piece, index) => (
-                <li key={`${piece}-${index}`}>{piece}</li>
-              ))}
-            </ol>
-          )}
-        </section>
-      </div>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-medium">Rubric Scores</h2>
-        <ScoringForm
-          applicationId={application.id}
-          criteria={criteria}
-          existingFinalComment={finalComment}
-          existingScores={existingScores.map((score) => ({
-            criteriaId: score.criteriaId,
-            value: score.value,
-            comment: score.comment,
-          }))}
-        />
-      </section>
-
-      <Link
-        href="/dashboard/scoring"
-        className="inline-block text-sm text-muted-foreground hover:underline"
-      >
-        ← Back to scoring queue
-      </Link>
     </div>
   );
 }

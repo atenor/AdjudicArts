@@ -1,0 +1,21 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f0fc;
+  overflow-x: clip;
+}
+
+.main {
+  min-width: 0;
+  flex: 1;
+  padding: 1rem;
+  background: #f5f0fc;
+  color: #120d25;
+}
+
+@media (min-width: 640px) {
+  .main {
+    padding: 1.5rem;
+  }
+}
