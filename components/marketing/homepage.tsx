@@ -41,113 +41,388 @@ const VIEW_CONTENT: Record<
   },
 };
 
+const FEATURES = [
+  {
+    icon: "🎼",
+    title: "Centralized Intake",
+    body: "Applicants submit once. Admins and judges see everything in one organized place.",
+  },
+  {
+    icon: "⭐",
+    title: "10-Point Rubric Scoring",
+    body: "Judges score each criterion with tap-friendly chips. Comments auto-save per criterion.",
+  },
+  {
+    icon: "🏆",
+    title: "Live Rankings",
+    body: "Aggregate scores, rank tables, and CSV exports update the moment scores are submitted.",
+  },
+];
+
 export default function MarketingHomepage() {
   const [activeView, setActiveView] = useState<ViewKey>("admin");
   const active = VIEW_CONTENT[activeView];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-6xl px-6 py-6 sm:px-10">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="text-2xl font-semibold tracking-tight">
-            Adjudic<span className="font-light italic text-amber-300">Arts</span>
-          </div>
-          <div className="flex items-center gap-2">
+    <div
+      style={{
+        minHeight: "100vh",
+        background:
+          "linear-gradient(160deg, #0e0a1a 0%, #1e1538 60%, #2d1f5e 100%)",
+        color: "#f0ebff",
+      }}
+    >
+      {/* Nav */}
+      <nav
+        style={{
+          background: "#462B7C",
+          height: "52px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 2rem",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            fontSize: "1.35rem",
+            lineHeight: 1,
+          }}
+        >
+          <span style={{ color: "#ffffff", fontWeight: 700 }}>Adjudic</span>
+          <span style={{ color: "#e0c070", fontWeight: 300, fontStyle: "italic" }}>
+            arts
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <Link
+            href="/login"
+            style={{
+              border: "1px solid rgba(255,255,255,0.25)",
+              borderRadius: "6px",
+              padding: "0.4rem 0.9rem",
+              fontSize: "0.8rem",
+              color: "rgba(255,255,255,0.85)",
+              textDecoration: "none",
+            }}
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/login"
+            style={{
+              background: "#C9A84C",
+              borderRadius: "6px",
+              padding: "0.4rem 0.9rem",
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              color: "#1a1538",
+              textDecoration: "none",
+            }}
+          >
+            Get Started
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: "4rem 2rem 3rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "3rem",
+        }}
+      >
+        <div style={{ textAlign: "center", maxWidth: "700px" }}>
+          <p
+            style={{
+              display: "inline-block",
+              border: "1px solid rgba(201,168,76,0.35)",
+              background: "rgba(201,168,76,0.1)",
+              borderRadius: "999px",
+              padding: "0.3rem 1rem",
+              fontSize: "0.7rem",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "#e0c070",
+              marginBottom: "1.25rem",
+            }}
+          >
+            Classical Voice Adjudication
+          </p>
+          <h1
+            style={{
+              fontFamily: "var(--font-cormorant), Georgia, serif",
+              fontSize: "clamp(2.6rem, 6vw, 4rem)",
+              fontWeight: 700,
+              lineHeight: 1.1,
+              color: "#ffffff",
+              margin: "0 0 1rem",
+            }}
+          >
+            Be judgy.{" "}
+            <span
+              style={{
+                color: "#e0c070",
+                fontStyle: "italic",
+                fontWeight: 300,
+              }}
+            >
+              We&apos;ll handle the rest.
+            </span>
+          </h1>
+          <p
+            style={{
+              fontSize: "1rem",
+              lineHeight: 1.7,
+              color: "rgba(240,235,255,0.75)",
+              maxWidth: "520px",
+              margin: "0 auto 2rem",
+            }}
+          >
+            AdjudicArts centralizes applicant intake, chapter review, national
+            scoring, decisions, and exports for scholarship competitions.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+              justifyContent: "center",
+            }}
+          >
             <Link
               href="/login"
-              className="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-amber-300 hover:text-amber-200"
+              style={{
+                background: "#C9A84C",
+                borderRadius: "8px",
+                padding: "0.75rem 1.75rem",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                color: "#1a1538",
+                textDecoration: "none",
+              }}
+            >
+              Get Started
+            </Link>
+            <Link
+              href="/login"
+              style={{
+                border: "1px solid rgba(255,255,255,0.22)",
+                borderRadius: "8px",
+                padding: "0.75rem 1.75rem",
+                fontSize: "0.9rem",
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.85)",
+                textDecoration: "none",
+              }}
             >
               Sign In
             </Link>
-            <Link
-              href="/login"
-              className="rounded-md bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-amber-200"
-            >
-              Start Free Trial
-            </Link>
           </div>
-        </header>
+        </div>
 
-        <main className="mt-12 grid gap-10 lg:grid-cols-2 lg:items-center">
-          <section className="space-y-5">
-            <p className="inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs uppercase tracking-[0.14em] text-amber-200">
-              Classical Voice Adjudication
+        {/* Interactive feature panel */}
+        <div
+          style={{
+            maxWidth: "640px",
+            width: "100%",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "16px",
+            padding: "1.25rem",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              marginBottom: "1rem",
+            }}
+          >
+            {(["admin", "judge", "results"] as ViewKey[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveView(key)}
+                style={{
+                  borderRadius: "999px",
+                  padding: "0.35rem 0.9rem",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border:
+                    activeView === key
+                      ? "none"
+                      : "1px solid rgba(255,255,255,0.2)",
+                  background: activeView === key ? "#C9A84C" : "transparent",
+                  color: activeView === key ? "#1a1538" : "rgba(255,255,255,0.7)",
+                }}
+              >
+                {key === "admin"
+                  ? "Admin"
+                  : key === "judge"
+                  ? "Judge Scoring"
+                  : "Results"}
+              </button>
+            ))}
+          </div>
+          <div
+            style={{
+              background: "rgba(0,0,0,0.25)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "12px",
+              padding: "1.1rem",
+            }}
+          >
+            <h2
+              style={{
+                margin: "0 0 0.5rem",
+                color: "#ffffff",
+                fontSize: "1.05rem",
+                fontWeight: 700,
+              }}
+            >
+              {active.title}
+            </h2>
+            <p
+              style={{
+                margin: "0 0 0.75rem",
+                color: "rgba(240,235,255,0.7)",
+                fontSize: "0.85rem",
+                lineHeight: 1.6,
+              }}
+            >
+              {active.description}
             </p>
-            <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-              Be judgy. <span className="text-amber-300">We&apos;ll handle the rest.</span>
-            </h1>
-            <p className="max-w-xl text-base leading-7 text-slate-300">
-              AdjudicArts centralizes applicant intake, chapter review, national scoring,
-              decisions, and exports for scholarship competitions.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/login"
-                className="rounded-md bg-amber-300 px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-amber-200"
-              >
-                Get Started
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-md border border-slate-700 px-5 py-3 text-sm font-medium text-slate-100 hover:border-amber-300 hover:text-amber-200"
-              >
-                Sign In
-              </Link>
-            </div>
-          </section>
+            <ul
+              style={{
+                margin: 0,
+                padding: 0,
+                listStyle: "none",
+                display: "grid",
+                gap: "0.4rem",
+              }}
+            >
+              {active.points.map((point) => (
+                <li
+                  key={point}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "0.5rem",
+                    fontSize: "0.82rem",
+                    color: "rgba(240,235,255,0.85)",
+                  }}
+                >
+                  <span
+                    style={{
+                      marginTop: "0.3rem",
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "999px",
+                      background: "#C9A84C",
+                      flexShrink: 0,
+                    }}
+                  />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/40 backdrop-blur">
-            <div className="mb-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveView("admin")}
-                className={`rounded-full px-3 py-1.5 text-sm ${
-                  activeView === "admin"
-                    ? "bg-amber-300 text-slate-900"
-                    : "border border-slate-700 text-slate-300"
-                }`}
+      {/* Features */}
+      <section
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: "0 2rem 4rem",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "1rem",
+          }}
+        >
+          {FEATURES.map((f) => (
+            <div
+              key={f.title}
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "16px",
+                padding: "1.5rem",
+              }}
+            >
+              <div style={{ fontSize: "1.75rem", marginBottom: "0.75rem" }}>
+                {f.icon}
+              </div>
+              <h3
+                style={{
+                  margin: "0 0 0.4rem",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 700,
+                }}
               >
-                Admin Dashboard
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView("judge")}
-                className={`rounded-full px-3 py-1.5 text-sm ${
-                  activeView === "judge"
-                    ? "bg-amber-300 text-slate-900"
-                    : "border border-slate-700 text-slate-300"
-                }`}
+                {f.title}
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  color: "rgba(240,235,255,0.65)",
+                  fontSize: "0.85rem",
+                  lineHeight: 1.6,
+                }}
               >
-                Judge Scoring
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView("results")}
-                className={`rounded-full px-3 py-1.5 text-sm ${
-                  activeView === "results"
-                    ? "bg-amber-300 text-slate-900"
-                    : "border border-slate-700 text-slate-300"
-                }`}
-              >
-                Results
-              </button>
+                {f.body}
+              </p>
             </div>
+          ))}
+        </div>
+      </section>
 
-            <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-950/80 p-5">
-              <h2 className="text-xl font-semibold text-slate-100">{active.title}</h2>
-              <p className="text-sm leading-6 text-slate-300">{active.description}</p>
-              <ul className="space-y-2 text-sm text-slate-200">
-                {active.points.map((point) => (
-                  <li key={point} className="flex items-start gap-2">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-amber-300" />
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        </main>
-      </div>
+      {/* Footer */}
+      <footer
+        style={{
+          borderTop: "1px solid rgba(255,255,255,0.1)",
+          padding: "1.5rem 2rem",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            fontSize: "1.1rem",
+            marginBottom: "0.4rem",
+          }}
+        >
+          <span style={{ color: "#ffffff", fontWeight: 700 }}>Adjudic</span>
+          <span style={{ color: "#e0c070", fontWeight: 300, fontStyle: "italic" }}>
+            arts
+          </span>
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "0.75rem",
+            color: "rgba(255,255,255,0.4)",
+          }}
+        >
+          Arts adjudication, simplified.
+        </p>
+      </footer>
     </div>
   );
 }

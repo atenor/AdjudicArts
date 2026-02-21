@@ -1,6 +1,6 @@
 .player {
-  background: #fff;
-  border: 1px solid rgba(70, 43, 124, 0.1);
+  background: #0f0d20;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 0.75rem;
   display: grid;
@@ -18,7 +18,7 @@
   margin: 0;
   font-size: 0.86rem;
   font-weight: 700;
-  color: #1e1538;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .buttonRow {
@@ -28,9 +28,9 @@
 
 .navButton {
   border-radius: 8px;
-  border: 1px solid rgba(70, 43, 124, 0.16);
-  background: #fff;
-  color: #4a3d6b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.65);
   height: 1.8rem;
   min-width: 2.3rem;
   font-size: 0.66rem;
@@ -39,7 +39,8 @@
 }
 
 .navButton:hover {
-  background: rgba(70, 43, 124, 0.08);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .frameWrap {
@@ -47,14 +48,59 @@
   aspect-ratio: 16 / 9;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(70, 43, 124, 0.12);
-  background: linear-gradient(155deg, #ede6f7, rgba(70, 43, 124, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000;
 }
 
-.frame {
+.thumbnailLink {
+  display: block;
   width: 100%;
   height: 100%;
-  border: 0;
+  position: relative;
+  text-decoration: none;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.playBtn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  transition: background 0.15s;
+}
+
+.thumbnailLink:hover .playBtn {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.playBtn > span,
+.playBtn > svg {
+  display: block;
+}
+
+/* Red play circle */
+.playBtn::before {
+  content: "";
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(220, 30, 30, 0.88);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.playBtn > svg {
+  position: relative;
+  z-index: 1;
+  margin-left: 3px;
 }
 
 .tabs {
@@ -65,9 +111,9 @@
 
 .tab {
   border-radius: 8px;
-  border: 1px solid rgba(70, 43, 124, 0.16);
-  background: #fff;
-  color: #4a3d6b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
   height: 1.9rem;
   padding: 0 0.55rem;
   font-size: 0.66rem;
@@ -79,22 +125,22 @@
   background: #462b7c;
   border-color: #462b7c;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(70, 43, 124, 0.35);
+  box-shadow: 0 2px 8px rgba(70, 43, 124, 0.45);
 }
 
 .link {
-  color: #8a7fa8;
+  color: rgba(255, 255, 255, 0.35);
   font-size: 0.73rem;
   text-decoration: none;
 }
 
 .link:hover {
-  color: #462b7c;
+  color: #e0c070;
   text-decoration: underline;
 }
 
 .empty {
   margin: 0;
   font-size: 0.82rem;
-  color: #8a7fa8;
+  color: rgba(255, 255, 255, 0.4);
 }

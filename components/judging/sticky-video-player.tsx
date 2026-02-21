@@ -4,6 +4,12 @@ import { useMemo, useState } from "react";
 import { toYouTubeEmbedUrl } from "@/lib/youtube";
 import styles from "./sticky-video-player.module.css";
 
+function extractVideoId(embedUrl: string): string {
+  // embed URL is https://www.youtube.com/embed/VIDEOID[?params]
+  const path = embedUrl.split("?")[0];
+  return path.split("/").pop() ?? "";
+}
+
 export default function StickyVideoPlayer({
   videoUrls,
 }: {
@@ -27,6 +33,8 @@ export default function StickyVideoPlayer({
   }
 
   const current = embeds[currentIndex];
+  const videoId = extractVideoId(current.embed);
+  const thumbnailSrc = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
   return (
     <div className={styles.player}>
@@ -53,14 +61,25 @@ export default function StickyVideoPlayer({
       </div>
 
       <div className={styles.frameWrap}>
-        <iframe
-          src={current.embed}
-          title={`Audition video ${currentIndex + 1}`}
-          className={styles.frame}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
+        <a
+          href={current.original}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={styles.thumbnailLink}
+          aria-label={`Open audition video ${currentIndex + 1} on YouTube`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={thumbnailSrc}
+            alt={`Audition video ${currentIndex + 1} thumbnail`}
+            className={styles.thumbnail}
+          />
+          <span className={styles.playBtn} aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </a>
       </div>
 
       <div className={styles.tabs}>
@@ -80,7 +99,7 @@ export default function StickyVideoPlayer({
       </div>
 
       <a href={current.original} target="_blank" rel="noreferrer" className={styles.link}>
-        Open current video on YouTube
+        Open on YouTube ↗
       </a>
     </div>
   );

@@ -13,6 +13,7 @@ import { formatVoicePart } from "@/lib/application-metadata";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
+import FavouriteButton from "@/components/judging/favourite-button";
 import styles from "./scoring.module.css";
 
 function parseRepertoire(repertoire: string | null) {
@@ -41,13 +42,6 @@ function parseRepertoire(repertoire: string | null) {
     .split(/\s*;\s*/)
     .map((piece) => piece.trim())
     .filter(Boolean);
-}
-
-function initialsFromName(name: string) {
-  const parts = name.split(" ").filter(Boolean);
-  if (parts.length === 0) return "NA";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
 export default async function ScoreApplicationPage({
@@ -126,17 +120,22 @@ export default async function ScoreApplicationPage({
                 className={styles.avatar}
               />
             ) : (
-              <span className={styles.avatarFallback}>
-                {initialsFromName(application.applicant.name)}
-              </span>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(application.applicant.name)}`}
+                alt={`${application.applicant.name} avatar`}
+                className={styles.avatar}
+              />
             )}
             <div>
-              <h1 className={styles.name}>{application.applicant.name}</h1>
+              <div className={styles.nameRow}>
+                <h1 className={styles.name}>{application.applicant.name}</h1>
+                <FavouriteButton />
+              </div>
               <p className={styles.email}>{application.applicant.email}</p>
               <p className={styles.meta}>
                 {formatVoicePart(application.notes)}
                 {application.chapter ? ` · ${application.chapter}` : ""}
-                {currentIndex >= 0 ? ` · #${currentIndex + 1}` : ""}
               </p>
             </div>
           </section>
