@@ -1,4 +1,4 @@
-import MarketingHomepage from "@/app/(marketing)/page";
+import MarketingHomepage from "@/components/marketing/homepage";
 
 export default function RootPage() {
   return <MarketingHomepage />;

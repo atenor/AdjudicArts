@@ -224,49 +224,48 @@
   flex-wrap: wrap;
 }
 .btnPrimary {
-  background: #462B7C;
-  color: white;
+  background: #C9A84C;
+  color: #1e1538;
   text-decoration: none;
   font-size: 0.92rem;
   font-weight: 600;
   padding: 13px 30px;
   border-radius: 100px;
-  box-shadow: 0 4px 24px rgba(70,43,124,0.35);
+  box-shadow: 0 4px 24px rgba(201,168,76,0.35);
   transition: all 0.25s;
   display: flex;
   align-items: center;
   gap: 7px;
 }
 .btnPrimary:hover {
-  background: #6B4BAA;
+  background: #e0c070;
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(70,43,124,0.45);
+  box-shadow: 0 8px 32px rgba(201,168,76,0.45);
 }
 .btnSecondary {
-  background: rgba(255,255,255,0.75);
-  backdrop-filter: blur(6px);
-  color: #4a3d6b;
+  background: #462B7C;
+  color: #ffffff;
   text-decoration: none;
   font-size: 0.92rem;
   font-weight: 500;
   padding: 13px 24px;
   border-radius: 100px;
-  border: 1px solid rgba(70,43,124,0.15);
+  border: 1px solid rgba(255,255,255,0.16);
   display: flex;
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
 }
-.btnSecondary:hover { border-color: #462B7C; color: #462B7C; }
+.btnSecondary:hover { background: #6B4BAA; border-color: rgba(255,255,255,0.24); }
 .playRing {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #ede6f7;
+  background: rgba(255,255,255,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #462B7C;
+  color: #ffffff;
   font-size: 0.5rem;
 }
 
