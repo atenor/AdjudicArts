@@ -25,7 +25,28 @@ const eventSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventSchema>;
 
-export default function EventForm() {
+type EventFormProps = {
+  mode?: "create" | "edit";
+  eventId?: string;
+  initialValues?: {
+    name: string;
+    description?: string | null;
+    openAt?: Date | null;
+    closeAt?: Date | null;
+  };
+};
+
+function toDateInputValue(date: Date | null | undefined) {
+  if (!date) return "";
+  const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return adjusted.toISOString().slice(0, 10);
+}
+
+export default function EventForm({
+  mode = "create",
+  eventId,
+  initialValues,
+}: EventFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -35,6 +56,12 @@ export default function EventForm() {
     formState: { errors, isSubmitting },
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
+    defaultValues: {
+      name: initialValues?.name ?? "",
+      description: initialValues?.description ?? "",
+      openAt: toDateInputValue(initialValues?.openAt),
+      closeAt: toDateInputValue(initialValues?.closeAt),
+    },
   });
 
   async function onSubmit(data: EventFormValues) {
@@ -47,8 +74,11 @@ export default function EventForm() {
       closeAt: data.closeAt ? new Date(data.closeAt).toISOString() : null,
     };
 
-    const res = await fetch("/api/events", {
-      method: "POST",
+    const targetUrl = mode === "edit" && eventId ? `/api/events/${eventId}` : "/api/events";
+    const method = mode === "edit" ? "PATCH" : "POST";
+
+    const res = await fetch(targetUrl, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -57,14 +87,18 @@ export default function EventForm() {
       const event = await res.json();
       router.push(`/dashboard/events/${event.id}`);
     } else {
-      setServerError("Failed to create event. Please try again.");
+      setServerError(
+        mode === "edit"
+          ? "Failed to update event. Please try again."
+          : "Failed to create event. Please try again."
+      );
     }
   }
 
   return (
     <Card className="w-full max-w-xl">
       <CardHeader>
-        <CardTitle>New Event</CardTitle>
+        <CardTitle>{mode === "edit" ? "Edit Event" : "New Event"}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -98,7 +132,13 @@ export default function EventForm() {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating…" : "Create Event"}
+              {isSubmitting
+                ? mode === "edit"
+                  ? "Saving…"
+                  : "Creating…"
+                : mode === "edit"
+                  ? "Save Changes"
+                  : "Create Event"}
             </Button>
             <Button
               type="button"
