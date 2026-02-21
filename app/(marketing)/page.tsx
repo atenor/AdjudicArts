@@ -420,10 +420,10 @@ export default function MarketingHomepage() {
             <rect x="27" y="4" width="14" height="7" rx="2" fill="#C9A84C"/>
             <circle cx="34" cy="7.5" r="2.4" fill="#a07820"/>
             <path d="M 34 11 L 7 66 L 61 66 Z" fill="url(#lg)"/>
-            <line x1="34" y1="11" x2="7" y2="66" stroke="#462B7C" strokeWidth="1" opacity="0.35"/>
-            <line x1="34" y1="11" x2="61" y2="66" stroke="#462B7C" strokeWidth="1" opacity="0.35"/>
-            <line x1="3" y1="76" x2="65" y2="76" stroke="#462B7C" strokeWidth="2.5" strokeLinecap="round"/>
-            <ellipse cx="34" cy="68" rx="22" ry="3.5" fill="#462B7C" opacity="0.2"/>
+            <line x1="34" y1="11" x2="7" y2="66" stroke="#F5F0FC" strokeWidth="1.1" opacity="0.7"/>
+            <line x1="34" y1="11" x2="61" y2="66" stroke="#F5F0FC" strokeWidth="1.1" opacity="0.7"/>
+            <line x1="3" y1="76" x2="65" y2="76" stroke="#F5F0FC" strokeWidth="2.5" strokeLinecap="round"/>
+            <ellipse cx="34" cy="68" rx="22" ry="3.5" fill="#F5F0FC" opacity="0.35"/>
           </svg>
           <div className={`${styles.navWordmark} cormorant`}>
             <span className={styles.adjudic}>Adjudic</span>
@@ -458,7 +458,7 @@ export default function MarketingHomepage() {
           </div>
 
           <h1 className={`${styles.heroH1} ${styles.fadeUp}`}>
-            Be judgy.<br />
+            Be judgy,<br />
             <span className={styles.heroLine2}>
               {typewriterText}
               {showCursor && <span className={styles.cursor} />}

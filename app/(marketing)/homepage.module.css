@@ -46,9 +46,9 @@
   justify-content: space-between;
   padding: 0 56px;
   height: 66px;
-  background: rgba(255,255,255,0.97);
+  background: #462B7C;
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(70,43,124,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
 }
 .navLogo {
   display: flex;
@@ -63,7 +63,7 @@
 }
 .navWordmark .adjudic {
   font-weight: 700;
-  color: #1e1538;
+  color: #ffffff;
 }
 .navWordmark .arts {
   font-weight: 300;
@@ -76,43 +76,43 @@
   list-style: none;
 }
 .navLinks a {
-  color: #4a3d6b;
+  color: rgba(255,255,255,0.86);
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 500;
   transition: color 0.2s;
 }
-.navLinks a:hover { color: #462B7C; }
+.navLinks a:hover { color: #ffffff; }
 .navRight {
   display: flex;
   gap: 10px;
   align-items: center;
 }
 .navSignIn {
-  color: #4a3d6b;
+  color: rgba(255,255,255,0.86);
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 500;
   padding: 7px 16px;
-  border: 1px solid rgba(70,43,124,0.1);
+  border: 1px solid rgba(255,255,255,0.26);
   border-radius: 100px;
   transition: all 0.2s;
 }
-.navSignIn:hover { color: #462B7C; border-color: #462B7C; }
+.navSignIn:hover { color: #ffffff; border-color: rgba(255,255,255,0.5); }
 .navCta {
-  background: #462B7C;
+  background: rgba(255,255,255,0.12);
   color: white;
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 600;
   padding: 8px 20px;
   border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.22);
   transition: all 0.2s;
-  box-shadow: 0 2px 14px rgba(70,43,124,0.3);
+  box-shadow: none;
 }
 .navCta:hover {
-  background: #6B4BAA;
-  transform: translateY(-1px);
+  background: rgba(255,255,255,0.2);
 }
 
 /* ── HERO ── */
