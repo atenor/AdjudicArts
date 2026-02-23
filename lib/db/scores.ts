@@ -170,6 +170,7 @@ export async function getJudgeScoringQueue(
         return {
           id: application.id,
           headshot: application.headshot,
+          chapter: application.chapter,
           status: application.status,
           voicePart: application.notes,
           submittedAt: application.submittedAt,

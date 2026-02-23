@@ -13,14 +13,6 @@ import ApplicationStatusBadge from "@/components/applications/application-status
 import { Badge } from "@/components/ui/badge";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 export default async function ScoringQueuePage() {
   const session = await getServerSession(authOptions);
@@ -73,94 +65,67 @@ export default async function ScoringQueuePage() {
                   No applications are currently in this scoring stage.
                 </p>
               ) : (
-                <>
-                  <div className="space-y-2 sm:hidden">
-                    {roundQueue.applications.map((application) => (
-                      <article key={application.id} className="rounded-lg border p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={getDisplayHeadshot(application.headshot, application.id)}
-                            alt={`${application.applicant.name} headshot`}
-                            className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
-                            loading="lazy"
-                          />
-                          <Link
-                            href={`/dashboard/scoring/${application.id}`}
-                            className="font-medium hover:underline"
-                          >
-                            {application.applicant.name}
-                          </Link>
-                        </div>
-                        <p className="break-all text-xs text-muted-foreground">
-                          {application.applicant.email}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">{formatVoicePart(application.voicePart)}</Badge>
-                          <ApplicationStatusBadge status={application.status} />
-                          {application.isScored ? (
-                            <Badge variant="default">Scored</Badge>
-                          ) : (
-                            <Badge variant="secondary">Pending</Badge>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                (() => {
+                  const byDivision = roundQueue.applications.reduce<
+                    Record<string, typeof roundQueue.applications>
+                  >((groups, application) => {
+                    const division = formatVoicePart(application.voicePart);
+                    const key = division === "Not specified" ? "Unspecified" : division;
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(application);
+                    return groups;
+                  }, {});
 
-                  <div className="hidden sm:block">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Applicant</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Voice Part</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Progress</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {roundQueue.applications.map((application) => (
-                          <TableRow key={application.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={getDisplayHeadshot(application.headshot, application.id)}
-                                  alt={`${application.applicant.name} headshot`}
-                                  className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
-                                  loading="lazy"
-                                />
-                                <Link
-                                  href={`/dashboard/scoring/${application.id}`}
-                                  className="font-medium hover:underline"
-                                >
-                                  {application.applicant.name}
-                                </Link>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {application.applicant.email}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {formatVoicePart(application.voicePart)}
-                            </TableCell>
-                            <TableCell>
-                              <ApplicationStatusBadge status={application.status} />
-                            </TableCell>
-                            <TableCell>
-                              {application.isScored ? (
-                                <Badge variant="default">Scored</Badge>
-                              ) : (
-                                <Badge variant="secondary">Pending</Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </>
+                  return (
+                    <div className="space-y-3">
+                      {Object.entries(byDivision).map(([division, applications]) => (
+                        <article key={`${roundQueue.round.id}-${division}`} className="rounded-lg border">
+                          <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+                            <p className="text-sm font-semibold">{division} Division</p>
+                            <span className="text-xs text-muted-foreground">
+                              {applications.length} applicant{applications.length === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                          <div className="divide-y">
+                            {applications.map((application) => (
+                              <Link
+                                key={application.id}
+                                href={`/dashboard/scoring/${application.id}`}
+                                className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30"
+                              >
+                                <div className="flex min-w-0 items-center gap-2">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={getDisplayHeadshot(application.headshot, application.id)}
+                                    alt={`${application.applicant.name} headshot`}
+                                    className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
+                                    loading="lazy"
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold">
+                                      {application.applicant.name}
+                                    </p>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                      {application.chapter || "No chapter"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <ApplicationStatusBadge status={application.status} />
+                                  {application.isScored ? (
+                                    <Badge variant="default">Scored</Badge>
+                                  ) : (
+                                    <Badge variant="secondary">Pending</Badge>
+                                  )}
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  );
+                })()
               )}
             </section>
           ))}
