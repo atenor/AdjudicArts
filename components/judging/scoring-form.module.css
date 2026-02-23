@@ -39,8 +39,8 @@
 
 .criterion {
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(70, 43, 124, 0.1);
+  background: rgba(243, 238, 248, 0.5);
   padding: 0.7rem;
   display: grid;
   gap: 0.6rem;
@@ -48,14 +48,14 @@
 
 .criterionTitle {
   margin: 0;
-  color: #ffffff;
+  color: #1e1538;
   font-size: 1.05rem;
   font-weight: 800;
 }
 
 .criterionDescription {
   margin: 0.15rem 0 0;
-  color: rgba(255, 255, 255, 0.5);
+  color: #6e628f;
   font-size: 0.85rem;
 }
 
@@ -69,7 +69,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: #8a7fa8;
   font-weight: 700;
 }
 
@@ -85,51 +85,45 @@
   border-radius: 6px;
   font-size: 0.65rem;
   font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(70, 43, 124, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  color: #8a7fa8;
   cursor: pointer;
 }
 
 .scoreChipFilled {
-  background: rgba(70, 43, 124, 0.35);
-  color: rgba(255, 255, 255, 0.75);
-  border-color: rgba(70, 43, 124, 0.5);
+  background: rgba(70, 43, 124, 0.1);
+  color: #462b7c;
 }
 
 .scoreChipSelected {
   background: #462b7c;
   color: #fff;
   border-color: #462b7c;
-  box-shadow: 0 2px 8px rgba(70, 43, 124, 0.5);
+  box-shadow: 0 2px 8px rgba(70, 43, 124, 0.4);
 }
 
 .comment {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(70, 43, 124, 0.1);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.85);
+  background: rgba(243, 238, 248, 0.7);
+  color: #2d2448;
   padding: 0.55rem 0.65rem;
   font-size: 0.84rem;
   font-style: italic;
   resize: vertical;
-  min-height: 58px;
-}
-
-.comment::placeholder {
-  color: rgba(255, 255, 255, 0.3);
 }
 
 .comment:focus {
-  outline: 2px solid rgba(70, 43, 124, 0.5);
+  outline: 2px solid rgba(70, 43, 124, 0.22);
   outline-offset: 1px;
 }
 
 .finalWrap {
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(70, 43, 124, 0.1);
+  background: rgba(243, 238, 248, 0.5);
   padding: 0.7rem;
   display: grid;
   gap: 0.5rem;
@@ -137,7 +131,7 @@
 
 .error {
   margin: 0;
-  color: #f87171;
+  color: #b42318;
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -154,7 +148,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 3px 16px rgba(70, 43, 124, 0.4);
+  box-shadow: 0 3px 16px rgba(70, 43, 124, 0.3);
 }
 
 .submit:disabled {
@@ -165,25 +159,5 @@
 @media (min-width: 760px) {
   .scoreGrid {
     grid-template-columns: repeat(11, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 860px) {
-  .scoreGrid {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 0.25rem;
-    overflow-x: auto;
-    padding-bottom: 0.1rem;
-  }
-
-  .scoreChip {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-  }
-
-  .comment {
-    min-height: 58px;
   }
 }

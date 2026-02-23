@@ -1,9 +1,6 @@
 .page {
   display: grid;
   gap: 1rem;
-  background: #13102a;
-  min-height: calc(100vh - 52px);
-  padding: 1rem;
 }
 
 .grid {
@@ -35,8 +32,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: #1a1538;
-  border: 1px solid rgba(201, 168, 76, 0.18);
+  background: #ffffff;
+  border: 1px solid rgba(70, 43, 124, 0.1);
   border-radius: 12px;
   padding: 0.75rem;
 }
@@ -51,7 +48,7 @@
   width: 3rem;
   height: 3rem;
   border-radius: 999px;
-  border: 1px solid rgba(201, 168, 76, 0.25);
+  border: 1px solid rgba(70, 43, 124, 0.16);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -72,7 +69,7 @@
 
 .name {
   margin: 0;
-  color: #ffffff;
+  color: #1e1538;
   font-size: 1.3rem;
   font-weight: 800;
   line-height: 1.1;
@@ -80,19 +77,19 @@
 
 .email {
   margin: 0.2rem 0 0;
-  color: rgba(255, 255, 255, 0.45);
+  color: #8a7fa8;
   font-size: 0.78rem;
 }
 
 .meta {
   margin: 0.25rem 0 0;
-  color: rgba(255, 255, 255, 0.45);
+  color: #8a7fa8;
   font-size: 0.72rem;
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #fff;
+  border: 1px solid rgba(70, 43, 124, 0.1);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -104,36 +101,36 @@
 }
 
 .sectionHeader {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(243, 238, 248, 0.8);
   padding: 0.62rem 0.85rem;
   font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #8a7fa8;
 }
 
 .bodyRow {
   margin: 0;
-  color: rgba(255, 255, 255, 0.85);
+  color: #1e1538;
   font-size: 0.9rem;
 }
 
 .bodyLabel {
-  color: rgba(255, 255, 255, 0.45);
+  color: #8a7fa8;
 }
 
 .repertoire {
   margin: 0;
   padding-left: 1.2rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: #4a3d6b;
   display: grid;
   gap: 0.32rem;
   font-size: 0.9rem;
 }
 
 .backLink {
-  color: rgba(255, 255, 255, 0.4);
+  color: #8a7fa8;
   text-decoration: none;
   font-size: 0.78rem;
   font-weight: 600;
@@ -141,13 +138,13 @@
 }
 
 .backLink:hover {
-  color: #e0c070;
+  color: #462b7c;
   text-decoration: underline;
 }
 
 .sidebarCard {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #fff;
+  border: 1px solid rgba(70, 43, 124, 0.1);
   border-radius: 12px;
   padding: 0.75rem;
   display: grid;
@@ -160,12 +157,12 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #8a7fa8;
 }
 
 .navMeta {
   margin: 0;
-  color: rgba(255, 255, 255, 0.65);
+  color: #4a3d6b;
   font-size: 0.82rem;
   line-height: 1.4;
 }
@@ -178,21 +175,20 @@
 }
 
 .navLink {
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(70, 43, 124, 0.2);
   border-radius: 999px;
   padding: 0.35rem 0.58rem;
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.65);
+  color: #462b7c;
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .navLink:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: rgba(70, 43, 124, 0.08);
 }
 
 .videoTitleList {
@@ -200,28 +196,12 @@
   padding-left: 1rem;
   display: grid;
   gap: 0.2rem;
-  color: rgba(255, 255, 255, 0.65);
+  color: #4a3d6b;
   font-size: 0.75rem;
 }
 
 @media (min-width: 1100px) {
   .grid {
     grid-template-columns: minmax(0, 1fr) 24.5rem;
-  }
-}
-
-@media (max-width: 860px) {
-  .right {
-    order: -1;
-    position: sticky;
-    top: 52px;
-    height: 126px;
-    overflow: hidden;
-    z-index: 10;
-  }
-
-  .stickyPanel {
-    position: static;
-    top: auto;
   }
 }

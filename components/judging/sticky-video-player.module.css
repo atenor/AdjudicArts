@@ -1,6 +1,6 @@
 .player {
-  background: #0f0d20;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #fff;
+  border: 1px solid rgba(70, 43, 124, 0.1);
   border-radius: 12px;
   padding: 0.75rem;
   display: grid;
@@ -18,7 +18,7 @@
   margin: 0;
   font-size: 0.86rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+  color: #1e1538;
 }
 
 .buttonRow {
@@ -28,9 +28,9 @@
 
 .navButton {
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(70, 43, 124, 0.16);
+  background: #fff;
+  color: #4a3d6b;
   height: 1.8rem;
   min-width: 2.3rem;
   font-size: 0.66rem;
@@ -39,8 +39,7 @@
 }
 
 .navButton:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: rgba(70, 43, 124, 0.08);
 }
 
 .frameWrap {
@@ -48,8 +47,8 @@
   aspect-ratio: 16 / 9;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #000;
+  border: 1px solid rgba(70, 43, 124, 0.12);
+  background: #ede6f7;
 }
 
 .thumbnailLink {
@@ -73,28 +72,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.18);
   transition: background 0.15s;
 }
 
 .thumbnailLink:hover .playBtn {
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.32);
 }
 
-.playBtn > span,
-.playBtn > svg {
-  display: block;
-}
-
-/* Red play circle */
 .playBtn::before {
   content: "";
   position: absolute;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: rgba(220, 30, 30, 0.88);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  background: rgba(220, 30, 30, 0.85);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .playBtn > svg {
@@ -111,9 +104,9 @@
 
 .tab {
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(70, 43, 124, 0.16);
+  background: #fff;
+  color: #4a3d6b;
   height: 1.9rem;
   padding: 0 0.55rem;
   font-size: 0.66rem;
@@ -125,22 +118,22 @@
   background: #462b7c;
   border-color: #462b7c;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(70, 43, 124, 0.45);
+  box-shadow: 0 2px 8px rgba(70, 43, 124, 0.35);
 }
 
 .link {
-  color: rgba(255, 255, 255, 0.35);
+  color: #8a7fa8;
   font-size: 0.73rem;
   text-decoration: none;
 }
 
 .link:hover {
-  color: #e0c070;
+  color: #462b7c;
   text-decoration: underline;
 }
 
 .empty {
   margin: 0;
   font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: #8a7fa8;
 }
