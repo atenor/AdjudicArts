@@ -248,6 +248,21 @@ export default function ScoringForm({
         );
       })}
 
+      <section className={styles.finalWrap}>
+        <p className={styles.label}>Final Comments</p>
+        <textarea
+          id="final-comment"
+          className={styles.comment}
+          rows={5}
+          placeholder="Overall adjudication comments for this applicant..."
+          value={finalComment}
+          onChange={(event) => setFinalComment(event.target.value)}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+      </section>
+
       <section className={styles.aggregateWrap}>
         <div className={styles.aggregateHeader}>
           <p className={styles.label}>Aggregated Rubric Notes</p>
@@ -260,8 +275,8 @@ export default function ScoringForm({
             {isCompiling ? "Compiling..." : "Compile Final Comment"}
           </button>
         </div>
-        {aggregatedNotes.length === 0 ? (
-          <p className={styles.aggregateEmpty}>No quick notes yet.</p>
+        {aggregatedNotes.length === 0 && !finalComment.trim() ? (
+          <p className={styles.aggregateEmpty}>No quick notes or final comments yet.</p>
         ) : (
           <ul className={styles.aggregateList}>
             {aggregatedNotes.map((item) => (
@@ -269,6 +284,11 @@ export default function ScoringForm({
                 <strong>{item.criterionName}:</strong> {item.comment}
               </li>
             ))}
+            {finalComment.trim() ? (
+              <li className={styles.aggregateItem}>
+                <strong>Final comments:</strong> {finalComment.trim()}
+              </li>
+            ) : null}
           </ul>
         )}
       </section>
@@ -304,21 +324,6 @@ export default function ScoringForm({
           </div>
         </section>
       ) : null}
-
-      <section className={styles.finalWrap}>
-        <p className={styles.label}>Final Comments</p>
-        <textarea
-          id="final-comment"
-          className={styles.comment}
-          rows={5}
-          placeholder="Overall adjudication comments for this applicant..."
-          value={finalComment}
-          onChange={(event) => setFinalComment(event.target.value)}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-        />
-      </section>
 
       {compileError ? <p className={styles.error}>{compileError}</p> : null}
       {serverError ? <p className={styles.error}>{serverError}</p> : null}
