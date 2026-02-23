@@ -29,7 +29,7 @@
   display: grid;
   gap: 0.7rem;
   max-height: calc(100dvh - 92px);
-  overflow: auto;
+  overflow: visible;
   padding-right: 0.15rem;
   z-index: 30;
 }
@@ -213,8 +213,11 @@
 
   .stickyPanel {
     top: 66px;
-    max-height: 38dvh;
-    overflow: auto;
+    max-height: none;
+    width: 100%;
+    max-width: 52rem;
+    margin: 0 auto;
+    overflow: visible;
     padding-right: 0;
   }
 
