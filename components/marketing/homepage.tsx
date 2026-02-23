@@ -20,7 +20,7 @@ const TYPEWRITER_LINES = [
   'for juries.',
   'for scholarships.',
   'for festivals.',
-  'for any adjudication needs.',
+  'for all your adjudication needs...',
 ];
 const ENDING_MESSAGE = "we'll handle the rest.";
 const START_DELAY_MS = 0;
