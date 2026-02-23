@@ -10,6 +10,7 @@ import {
   getScoringApplicationForJudge,
 } from "@/lib/db/scores";
 import { formatVoicePart } from "@/lib/application-metadata";
+import { getDisplayHeadshot } from "@/lib/headshots";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
@@ -112,21 +113,13 @@ export default async function ScoreApplicationPage({
       <div className={styles.grid}>
         <div className={styles.left}>
           <section className={styles.applicantHeader}>
-            {application.headshot ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={application.headshot}
-                alt={`${application.applicant.name} headshot`}
-                className={styles.avatar}
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(application.applicant.name)}`}
-                alt={`${application.applicant.name} avatar`}
-                className={styles.avatar}
-              />
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getDisplayHeadshot(application.headshot, application.id)}
+              alt={`${application.applicant.name} headshot`}
+              className={styles.avatar}
+              loading="lazy"
+            />
             <div>
               <div className={styles.nameRow}>
                 <h1 className={styles.name}>{application.applicant.name}</h1>

@@ -164,6 +164,7 @@ export async function getPublicApplicationById(id: string) {
       status: true,
       submittedAt: true,
       notes: true,
+      headshot: true,
       applicant: {
         select: { name: true, email: true },
       },

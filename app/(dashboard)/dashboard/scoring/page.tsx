@@ -12,6 +12,7 @@ import { getJudgeScoringQueue } from "@/lib/db/scores";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { formatVoicePart } from "@/lib/application-metadata";
+import { getDisplayHeadshot } from "@/lib/headshots";
 import {
   Table,
   TableBody,
@@ -76,12 +77,21 @@ export default async function ScoringQueuePage() {
                   <div className="space-y-2 sm:hidden">
                     {roundQueue.applications.map((application) => (
                       <article key={application.id} className="rounded-lg border p-3 space-y-2">
-                        <Link
-                          href={`/dashboard/scoring/${application.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {application.applicant.name}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={getDisplayHeadshot(application.headshot, application.id)}
+                            alt={`${application.applicant.name} headshot`}
+                            className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
+                            loading="lazy"
+                          />
+                          <Link
+                            href={`/dashboard/scoring/${application.id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {application.applicant.name}
+                          </Link>
+                        </div>
                         <p className="break-all text-xs text-muted-foreground">
                           {application.applicant.email}
                         </p>
@@ -113,12 +123,21 @@ export default async function ScoringQueuePage() {
                         {roundQueue.applications.map((application) => (
                           <TableRow key={application.id}>
                             <TableCell>
-                              <Link
-                                href={`/dashboard/scoring/${application.id}`}
-                                className="font-medium hover:underline"
-                              >
-                                {application.applicant.name}
-                              </Link>
+                              <div className="flex items-center gap-2">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={getDisplayHeadshot(application.headshot, application.id)}
+                                  alt={`${application.applicant.name} headshot`}
+                                  className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
+                                  loading="lazy"
+                                />
+                                <Link
+                                  href={`/dashboard/scoring/${application.id}`}
+                                  className="font-medium hover:underline"
+                                >
+                                  {application.applicant.name}
+                                </Link>
+                              </div>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {application.applicant.email}

@@ -122,6 +122,31 @@
   padding: 0.6rem 0.65rem;
 }
 
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowAvatar {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(70, 43, 124, 0.16);
+  background: rgba(70, 43, 124, 0.08);
+  flex-shrink: 0;
+}
+
+.rowAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .rowTitle {
   margin: 0;
   font-size: 0.88rem;
@@ -193,6 +218,156 @@
   font-size: 0.82rem;
 }
 
+.analyticsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.analyticsCard {
+  border: 1px solid rgba(70, 43, 124, 0.1);
+  border-radius: 10px;
+  background: rgba(243, 238, 248, 0.45);
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.analyticsTitle {
+  margin: 0;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8a7fa8;
+  font-weight: 700;
+}
+
+.analyticsRows {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.analyticsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.2fr auto;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.analyticsRowLabel {
+  font-size: 0.74rem;
+  color: #1e1538;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.analyticsBarWrap {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(70, 43, 124, 0.12);
+  overflow: hidden;
+}
+
+.analyticsBar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #462b7c, #6b4baa);
+}
+
+.analyticsValue {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #462b7c;
+  min-width: 1.4rem;
+  text-align: right;
+}
+
+.trendGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.45rem;
+  align-items: end;
+  min-height: 7rem;
+}
+
+.trendItem {
+  display: grid;
+  gap: 0.28rem;
+  justify-items: center;
+}
+
+.trendCount {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #462b7c;
+}
+
+.trendBarWrap {
+  height: 4.8rem;
+  width: 100%;
+  border-radius: 8px;
+  background: rgba(70, 43, 124, 0.1);
+  display: flex;
+  align-items: end;
+  overflow: hidden;
+}
+
+.trendBar {
+  width: 100%;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #c9a84c 0%, #462b7c 100%);
+}
+
+.trendLabel {
+  font-size: 0.62rem;
+  color: #8a7fa8;
+}
+
+.completionSummary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.completionPercent {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #462b7c;
+  line-height: 1;
+}
+
+.completionMeta {
+  font-size: 0.72rem;
+  color: #8a7fa8;
+}
+
+.completionTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(70, 43, 124, 0.12);
+  overflow: hidden;
+}
+
+.completionFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #462b7c, #c9a84c);
+}
+
+.analyticsRowCompact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  color: #4a3d6b;
+}
+
+.analyticsRowCompact strong {
+  color: #1e1538;
+  font-weight: 800;
+}
+
 @media (min-width: 860px) {
   .grid4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -204,6 +379,10 @@
 }
 
 @media (max-width: 740px) {
+  .analyticsGrid {
+    grid-template-columns: 1fr;
+  }
+
   .grid3 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }

@@ -32,6 +32,9 @@ export default function ScoringForm({
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompiling, setIsCompiling] = useState(false);
+  const [compileError, setCompileError] = useState<string | null>(null);
+  const [compiledDraft, setCompiledDraft] = useState("");
   const [finalComment, setFinalComment] = useState(existingFinalComment ?? "");
 
   const initialByCriterion = useMemo(
@@ -68,6 +71,62 @@ export default function ScoringForm({
 
     return { total, filled, max, average };
   }, [criteria, values]);
+
+  const aggregatedNotes = useMemo(
+    () =>
+      criteria
+        .map((criterion) => ({
+          criteriaId: criterion.id,
+          criterionName: criterion.name,
+          value: values[criterion.id] === "" ? null : Number(values[criterion.id]),
+          comment: comments[criterion.id]?.trim() || "",
+        }))
+        .filter((item) => item.comment.length > 0),
+    [comments, criteria, values]
+  );
+
+  async function compileFinalComment() {
+    setCompileError(null);
+    if (aggregatedNotes.length === 0) {
+      setCompileError("Add at least one quick note before compiling final comments.");
+      return;
+    }
+
+    setIsCompiling(true);
+    try {
+      const response = await fetch(`/api/scoring/${applicationId}/compile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          notes: aggregatedNotes.map((item) => ({
+            criteriaId: item.criteriaId,
+            value: item.value,
+            comment: item.comment,
+          })),
+          existingFinalComment: finalComment,
+        }),
+      });
+
+      if (!response.ok) {
+        setCompileError("Unable to compile final comments right now.");
+        return;
+      }
+
+      const data = (await response.json()) as { compiledComment?: string };
+      if (!data.compiledComment) {
+        setCompileError("No compiled comment was returned.");
+        return;
+      }
+
+      setCompiledDraft(data.compiledComment);
+    } catch {
+      setCompileError("Unable to compile final comments right now.");
+    } finally {
+      setIsCompiling(false);
+    }
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -169,6 +228,7 @@ export default function ScoringForm({
 
             <div className={styles.stack}>
               <p className={styles.label}>Comment (optional)</p>
+              <p className={styles.helperText}>Quick note</p>
               <textarea
                 id={`comment-${criterion.id}`}
                 className={styles.comment}
@@ -189,6 +249,63 @@ export default function ScoringForm({
         );
       })}
 
+      <section className={styles.aggregateWrap}>
+        <div className={styles.aggregateHeader}>
+          <p className={styles.label}>Aggregated Rubric Notes</p>
+          <button
+            type="button"
+            className={styles.compileButton}
+            onClick={() => void compileFinalComment()}
+            disabled={isCompiling}
+          >
+            {isCompiling ? "Compiling..." : "Compile Final Comment"}
+          </button>
+        </div>
+        {aggregatedNotes.length === 0 ? (
+          <p className={styles.aggregateEmpty}>No quick notes yet.</p>
+        ) : (
+          <ul className={styles.aggregateList}>
+            {aggregatedNotes.map((item) => (
+              <li key={`${item.criteriaId}-aggregate`} className={styles.aggregateItem}>
+                <strong>{item.criterionName}:</strong> {item.comment}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {compiledDraft ? (
+        <section className={styles.draftWrap}>
+          <p className={styles.label}>AI-Compiled Draft</p>
+          <textarea
+            id="compiled-comment"
+            className={styles.comment}
+            rows={5}
+            value={compiledDraft}
+            onChange={(event) => setCompiledDraft(event.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.approveButton}
+              onClick={() => setFinalComment(compiledDraft)}
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              className={styles.denyButton}
+              onClick={() => setCompiledDraft("")}
+            >
+              Deny
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <section className={styles.finalWrap}>
         <p className={styles.label}>Final Comments</p>
         <textarea
@@ -204,6 +321,7 @@ export default function ScoringForm({
         />
       </section>
 
+      {compileError ? <p className={styles.error}>{compileError}</p> : null}
       {serverError ? <p className={styles.error}>{serverError}</p> : null}
 
       <button className={styles.submit} type="submit" disabled={isSubmitting}>

@@ -73,6 +73,12 @@
   font-weight: 700;
 }
 
+.helperText {
+  margin: -0.2rem 0 0;
+  font-size: 0.72rem;
+  color: #6e628f;
+}
+
 .scoreGrid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -127,6 +133,92 @@
   padding: 0.7rem;
   display: grid;
   gap: 0.5rem;
+}
+
+.aggregateWrap {
+  border-radius: 9px;
+  border: 1px solid rgba(70, 43, 124, 0.1);
+  background: rgba(243, 238, 248, 0.4);
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.aggregateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.aggregateEmpty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #8a7fa8;
+}
+
+.aggregateList {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.aggregateItem {
+  color: #2d2448;
+  font-size: 0.8rem;
+}
+
+.compileButton {
+  border: 1px solid rgba(70, 43, 124, 0.24);
+  background: #ffffff;
+  color: #462b7c;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.compileButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.draftWrap {
+  border-radius: 9px;
+  border: 1px solid rgba(70, 43, 124, 0.15);
+  background: rgba(255, 255, 255, 0.75);
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.approveButton,
+.denyButton {
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.approveButton {
+  border: 1px solid #462b7c;
+  background: #462b7c;
+  color: #fff;
+}
+
+.denyButton {
+  border: 1px solid rgba(70, 43, 124, 0.2);
+  background: #fff;
+  color: #462b7c;
 }
 
 .error {

@@ -7,6 +7,7 @@ import { getPublicApplicationById } from "@/lib/db/applications";
 export const metadata: Metadata = { title: "Application Status" };
 import { parseApplicationMetadata } from "@/lib/application-metadata";
 import { ApplicationStatus } from "@prisma/client";
+import { getDisplayHeadshot } from "@/lib/headshots";
 
 const STATUS_MESSAGES: Record<ApplicationStatus, string> = {
   SUBMITTED:
@@ -197,11 +198,21 @@ export default async function StatusPage({
         </div>
 
         <div className="rounded-lg border bg-card p-6 space-y-5">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getDisplayHeadshot(application.headshot, application.id)}
+              alt={`${application.applicant.name} headshot`}
+              className="h-12 w-12 rounded-full object-cover border border-border/70 bg-muted"
+              loading="lazy"
+            />
             <div>
-              <dt className="text-muted-foreground">Applicant</dt>
-              <dd className="font-medium mt-0.5">{application.applicant.name}</dd>
+              <p className="text-sm text-muted-foreground">Applicant</p>
+              <p className="font-medium">{application.applicant.name}</p>
             </div>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             {voicePart && (
               <div>
                 <dt className="text-muted-foreground">Voice Part</dt>

@@ -11,6 +11,7 @@ import ApplicationStatusBadge from "@/components/applications/application-status
 import AdvanceApplicationStatusButtons from "@/components/applications/advance-application-status-buttons";
 import DeleteApplicationButton from "@/components/applications/delete-application-button";
 import { formatVoicePart } from "@/lib/application-metadata";
+import { getDisplayHeadshot } from "@/lib/headshots";
 
 const STATUS_FLOW: ApplicationStatus[] = [
   "SUBMITTED",
@@ -84,9 +85,18 @@ export default async function ApplicationDetailPage({
 
   return (
     <div className="space-y-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">{application.applicant.name}</h1>
-        <p className="text-sm text-muted-foreground">{application.applicant.email}</p>
+      <div className="flex items-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={getDisplayHeadshot(application.headshot, application.id)}
+          alt={`${application.applicant.name} headshot`}
+          className="h-14 w-14 rounded-full object-cover border border-border/70 bg-muted"
+          loading="lazy"
+        />
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">{application.applicant.name}</h1>
+          <p className="text-sm text-muted-foreground">{application.applicant.email}</p>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
