@@ -24,11 +24,10 @@
 }
 
 .stickyPanel {
-  position: sticky;
-  top: 76px;
+  position: static;
   display: grid;
   gap: 0.7rem;
-  max-height: calc(100dvh - 92px);
+  max-height: none;
   overflow: visible;
   padding-right: 0.15rem;
   z-index: 30;
@@ -229,5 +228,15 @@
 @media (min-width: 980px) {
   .grid {
     grid-template-columns: minmax(0, 1fr) minmax(18.5rem, 21.5rem);
+  }
+
+  .right {
+    position: sticky;
+    top: 76px;
+  }
+
+  .stickyPanel {
+    max-height: calc(100dvh - 92px);
+    overflow: auto;
   }
 }
