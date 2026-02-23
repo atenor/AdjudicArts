@@ -208,9 +208,11 @@
 @media (max-width: 979px) {
   .right {
     order: -1;
+    position: relative;
   }
 
   .stickyPanel {
+    position: sticky;
     top: 66px;
     max-height: none;
     width: 100%;
@@ -218,6 +220,7 @@
     margin: 0 auto;
     overflow: visible;
     padding-right: 0;
+    z-index: 40;
   }
 
   .desktopOnly {
