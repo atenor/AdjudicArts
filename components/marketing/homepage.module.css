@@ -358,6 +358,12 @@
   border: 1.5px solid rgba(70,43,124,0.15);
   flex-shrink: 0;
 }
+.avatarPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .pillOk {
   display: inline-flex;
   align-items: center;

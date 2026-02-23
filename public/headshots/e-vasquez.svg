@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Synthetic applicant headshot illustration">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0e8fb"/>
+      <stop offset="100%" stop-color="#d6c4f5"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" fill="url(#bg)"/>
+  <ellipse cx="160" cy="280" rx="120" ry="76" fill="#6b4baa"/>
+  <ellipse cx="160" cy="156" rx="62" ry="76" fill="#f3c7a9"/>
+  <path d="M96 150c0-52 30-88 64-88s64 36 64 88v18c-8-16-22-22-32-22-20 0-24 18-40 18-11 0-27-7-56-14z" fill="#2d1f52"/>
+  <circle cx="140" cy="152" r="5" fill="#2b1d48"/>
+  <circle cx="182" cy="152" r="5" fill="#2b1d48"/>
+  <path d="M145 188c10 8 20 8 30 0" stroke="#a35b58" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <rect x="108" y="214" width="104" height="16" rx="8" fill="#efb890"/>
+  <rect x="112" y="236" width="96" height="52" rx="20" fill="#ffffff" opacity="0.7"/>
+</svg>

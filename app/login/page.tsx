@@ -6,16 +6,10 @@ import { useSession, signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import styles from "./login.module.css";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -59,50 +53,69 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">AdjudicArts</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-1">
+    <main className={styles.page}>
+      <div className={styles.bgGlow} />
+      <div className={styles.bgRingOuter} />
+      <div className={styles.bgRingInner} />
+
+      <section className={styles.shell}>
+        <div className={styles.brandBlock}>
+          <p className={styles.kicker}>Adjudication Platform</p>
+          <h1 className={styles.heading}>
+            Sign in and
+            <span> keep judging.</span>
+          </h1>
+          <p className={styles.copy}>
+            Access event administration, chapter reviews, judge scoring, and final rankings in one place.
+          </p>
+        </div>
+
+        <article className={styles.card}>
+          <header className={styles.cardHeader}>
+            <h2 className={styles.wordmark}>
+              <span className={styles.wordStrong}>Adjudic</span>
+              <span className={styles.wordLight}>arts</span>
+            </h2>
+            <p className={styles.subtitle}>Sign in to your account</p>
+          </header>
+
+          <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
+            <div className={styles.field}>
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
                 {...register("email")}
+                className={styles.input}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+                <p className={styles.error}>{errors.email.message}</p>
               )}
             </div>
 
-            <div className="space-y-1">
+            <div className={styles.field}>
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
                 autoComplete="current-password"
                 {...register("password")}
+                className={styles.input}
               />
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
+                <p className={styles.error}>{errors.password.message}</p>
               )}
             </div>
 
-            {authError && (
-              <p className="text-sm text-destructive">{authError}</p>
-            )}
+            {authError && <p className={styles.error}>{authError}</p>}
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className={styles.submit} disabled={isSubmitting}>
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </article>
+      </section>
+    </main>
   );
 }

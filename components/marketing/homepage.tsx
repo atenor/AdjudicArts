@@ -36,14 +36,26 @@ const TOUR_TABS = [
   { key: 'results',   label: 'Results & Rankings', url: 'adjudicarts.app/dashboard/events/1/results' },
 ];
 
-// ─── SVG AVATAR (reused throughout) ─────────────────────────────────────────
-function AvatarSvg({ size = 22 }: { size?: number }) {
+const HEADSHOTS = {
+  eVasquez: "/headshots/e-vasquez.svg",
+  mChen: "/headshots/m-chen.svg",
+  sRamirez: "/headshots/s-ramirez.svg",
+  jWhitfield: "/headshots/j-whitfield.svg",
+  elena: "/headshots/elena-vasquez.svg",
+} as const;
+
+type HeadshotId = keyof typeof HEADSHOTS;
+
+function Headshot({ id, size = 22 }: { id: HeadshotId; size?: number }) {
   return (
-    <svg viewBox="0 0 22 22" width={size} height={size}>
-      <circle cx="11" cy="11" r="11" fill="#ede6f7"/>
-      <circle cx="11" cy="8" r="4" fill="#6B4BAA"/>
-      <ellipse cx="11" cy="18" rx="7" ry="4" fill="#6B4BAA"/>
-    </svg>
+    <img
+      src={HEADSHOTS[id]}
+      alt="Synthetic applicant headshot"
+      width={size}
+      height={size}
+      className={styles.avatarPhoto}
+      loading="lazy"
+    />
   );
 }
 
@@ -80,9 +92,9 @@ function ScoreChips({ selected, total = 10 }: { selected: number; total?: number
 
 function TourDashboard() {
   const rows = [
-    { name: 'E. Vasquez', disc: 'Soprano', chapter: 'Northeast', pillClass: styles.tpP, pillText: 'In Review' },
-    { name: 'M. Chen',    disc: 'Tenor',   chapter: 'Pacific',   pillClass: styles.tpG, pillText: 'Approved' },
-    { name: 'S. Ramirez', disc: 'Mezzo',   chapter: 'Southeast', pillClass: styles.tpD, pillText: 'Submitted' },
+    { name: 'E. Vasquez', avatar: 'eVasquez' as const, disc: 'Soprano', chapter: 'Northeast', pillClass: styles.tpP, pillText: 'In Review' },
+    { name: 'M. Chen', avatar: 'mChen' as const, disc: 'Tenor', chapter: 'Pacific', pillClass: styles.tpG, pillText: 'Approved' },
+    { name: 'S. Ramirez', avatar: 'sRamirez' as const, disc: 'Mezzo', chapter: 'Southeast', pillClass: styles.tpD, pillText: 'Submitted' },
   ];
   return (
     <>
@@ -119,7 +131,7 @@ function TourDashboard() {
                 <tr key={r.name}>
                   <td>
                     <div className={styles.tn}>
-                      <div className={styles.avs}><AvatarSvg /></div>
+                      <div className={styles.avs}><Headshot id={r.avatar} /></div>
                       <span style={{ color: '#1e1538', fontWeight: 600 }}>{r.name}</span>
                     </div>
                   </td>
@@ -139,9 +151,15 @@ function TourDashboard() {
 function TourScoring() {
   const criteria = [
     { name: 'Vocal Technique', sel: 9 },
-    { name: 'Tone Quality',    sel: 10 },
-    { name: 'Musicality',      sel: 8 },
-    { name: 'Interpretation',  sel: 9 },
+    { name: 'Tone Quality', sel: 10 },
+    { name: 'Intonation Accuracy', sel: 8 },
+    { name: 'Diction/Language', sel: 8 },
+    { name: 'Musicality', sel: 8 },
+    { name: 'Acting/Interpretation', sel: 9 },
+    { name: 'Stylistic Appropriateness', sel: 8 },
+    { name: 'Stage Presence', sel: 9 },
+    { name: 'Repertoire Selection', sel: 8 },
+    { name: 'Artistic Potential / X-Factor', sel: 10 },
   ];
   return (
     <>
@@ -156,11 +174,7 @@ function TourScoring() {
         <div className={styles.scL}>
           <div className={styles.scApp}>
             <div className={styles.scAv}>
-              <svg viewBox="0 0 40 40" width="40" height="40">
-                <circle cx="20" cy="20" r="20" fill="#ede6f7"/>
-                <circle cx="20" cy="15" r="7" fill="#6B4BAA"/>
-                <ellipse cx="20" cy="31" rx="12" ry="7" fill="#6B4BAA"/>
-              </svg>
+              <Headshot id="elena" size={40} />
             </div>
             <div>
               <div className={styles.scName}>Elena Vasquez</div>
@@ -177,7 +191,17 @@ function TourScoring() {
             </div>
           ))}
           <div className={styles.scCm}>
-            <div className={styles.scCl}>Judge&apos;s Comment</div>
+            <div className={styles.scCl}>Criterion Comments</div>
+            <div className={styles.scCb}>
+              Vocal Technique: &ldquo;Excellent breath control and consistency across range.&rdquo;
+              <br />
+              Diction/Language: &ldquo;Italian diction is clean and intelligible, with clear consonant definition.&rdquo;
+              <br />
+              Stage Presence: &ldquo;Strong poise with clear dramatic intent and audience connection.&rdquo;
+            </div>
+          </div>
+          <div className={styles.scCm}>
+            <div className={styles.scCl}>Final Comments</div>
             <div className={styles.scCb}>
               &ldquo;Exceptional breath support and register control. The Puccini showed real stylistic depth and remarkable stage maturity.&rdquo;
             </div>
@@ -210,10 +234,10 @@ function TourScoring() {
 
 function TourResults() {
   const rows = [
-    { rank: '#1', rankClass: styles.rk1, name: 'E. Vasquez', disc: 'Soprano', score: 94.0, pct: 94, pillClass: styles.tpG, pillText: 'Approved' },
-    { rank: '#2', rankClass: styles.rk2, name: 'M. Chen',    disc: 'Tenor',   score: 89.3, pct: 89, pillClass: styles.tpP, pillText: 'Review' },
-    { rank: '#3', rankClass: styles.rk3, name: 'S. Ramirez', disc: 'Mezzo',   score: 85.7, pct: 85, pillClass: styles.tpP, pillText: 'Review' },
-    { rank: '#4', rankClass: styles.rk4, name: 'J. Whitfield',disc:'Baritone',score: 80.5, pct: 80, pillClass: styles.tpD, pillText: 'Pending' },
+    { rank: '#1', rankClass: styles.rk1, name: 'E. Vasquez', avatar: 'eVasquez' as const, disc: 'Soprano', score: 94.0, pct: 94, pillClass: styles.tpG, pillText: 'Approved' },
+    { rank: '#2', rankClass: styles.rk2, name: 'M. Chen', avatar: 'mChen' as const, disc: 'Tenor', score: 89.3, pct: 89, pillClass: styles.tpP, pillText: 'Review' },
+    { rank: '#3', rankClass: styles.rk3, name: 'S. Ramirez', avatar: 'sRamirez' as const, disc: 'Mezzo', score: 85.7, pct: 85, pillClass: styles.tpP, pillText: 'Review' },
+    { rank: '#4', rankClass: styles.rk4, name: 'J. Whitfield', avatar: 'jWhitfield' as const, disc:'Baritone',score: 80.5, pct: 80, pillClass: styles.tpD, pillText: 'Pending' },
   ];
   return (
     <>
@@ -239,7 +263,7 @@ function TourResults() {
                 <td><span className={`${styles.rk} ${r.rankClass}`}>{r.rank}</span></td>
                 <td>
                   <div className={styles.tn}>
-                    <div className={styles.avs}><AvatarSvg /></div>
+                    <div className={styles.avs}><Headshot id={r.avatar} /></div>
                     <span style={{ color: '#1e1538', fontWeight: 600 }}>{r.name}</span>
                   </div>
                 </td>
@@ -431,7 +455,7 @@ export default function MarketingHomepage() {
           <li><a href="#pricing">Pricing</a></li>
         </ul>
         <div className={styles.navRight}>
-          <Link href="/dashboard/login" className={styles.navSignIn}>Sign In</Link>
+          <Link href="/login" className={styles.navSignIn}>Sign In</Link>
           <Link href="#pricing" className={styles.navCta}>Get Started</Link>
         </div>
       </nav>
@@ -504,7 +528,7 @@ export default function MarketingHomepage() {
           <div className={`${styles.fc} ${styles.fc1}`}>
             <div className={styles.fcEy}>Application Received</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-              <div className={styles.av}><AvatarSvg size={24} /></div>
+              <div className={styles.av}><Headshot id="eVasquez" size={24} /></div>
               <div>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e1538' }}>E. Vasquez</div>
                 <div style={{ fontSize: '0.6rem', color: '#8a7fa8' }}>Soprano · Northeast</div>
@@ -721,7 +745,7 @@ export default function MarketingHomepage() {
           <p className={styles.ctaP}>Set up in an afternoon. Running by tomorrow. Your panel will thank you.</p>
           <div className={styles.ctaBtns}>
             <Link href="#" className={styles.btnCtaWhite}>Get Started →</Link>
-            <Link href="/dashboard/login" className={styles.btnCtaGhost}>Sign In</Link>
+            <Link href="/login" className={styles.btnCtaGhost}>Sign In</Link>
           </div>
         </div>
       </section>
@@ -734,7 +758,7 @@ export default function MarketingHomepage() {
           <Link href="#">Privacy</Link>
           <Link href="#">Terms</Link>
           <Link href="#">Support</Link>
-          <Link href="/dashboard/login">Sign In</Link>
+          <Link href="/login">Sign In</Link>
         </div>
       </footer>
 
