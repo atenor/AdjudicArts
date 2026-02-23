@@ -63,7 +63,7 @@ export default function LoginPage() {
           <p className={styles.kicker}>Adjudication Platform</p>
           <h1 className={styles.heading}>
             Sign in and
-            <span> keep judging.</span>
+            <span> continue being judgy.</span>
           </h1>
           <p className={styles.copy}>
             Access event administration, chapter reviews, judge scoring, and final rankings in one place.

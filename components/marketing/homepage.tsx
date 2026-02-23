@@ -20,10 +20,12 @@ const TYPEWRITER_LINES = [
   'for juries.',
   'for scholarships.',
   'for festivals.',
-  'for any adjudication.',
+  'for any adjudication needs.',
 ];
 const ENDING_MESSAGE = "we'll handle the rest.";
 const START_DELAY_MS = 0;
+const LAST_LINE_PAUSE_MS = 2400;
+const ENDING_START_GAP_MS = 320;
 const RESTART_DELAY_MS = 10_000;
 
 const DISCIPLINES = [
@@ -341,6 +343,7 @@ export default function MarketingHomepage() {
     let lineIndex = 0;
     let charIndex = 0;
     let deleting = false;
+    let typingEnding = false;
     let timer: ReturnType<typeof setTimeout>;
     let restartTimer: ReturnType<typeof setTimeout>;
     let cancelled = false;
@@ -355,6 +358,24 @@ export default function MarketingHomepage() {
 
     const tick = () => {
       if (cancelled) return;
+
+      if (typingEnding) {
+        charIndex++;
+        setTypewriterText(ENDING_MESSAGE.substring(0, charIndex));
+        if (charIndex === ENDING_MESSAGE.length) {
+          setShowCursor(false);
+          restartTimer = setTimeout(() => {
+            if (!cancelled) {
+              setTypewriterText('');
+              runSequence();
+            }
+          }, RESTART_DELAY_MS);
+          return;
+        }
+        timer = setTimeout(tick, 55);
+        return;
+      }
+
       const line = TYPEWRITER_LINES[lineIndex];
       const isLastLine = lineIndex === TYPEWRITER_LINES.length - 1;
 
@@ -364,15 +385,16 @@ export default function MarketingHomepage() {
 
         if (charIndex === line.length) {
           if (isLastLine) {
-            // Terminal line reached — immediately show ending message, then restart after hold.
-            setShowCursor(false);
-            setTypewriterText(ENDING_MESSAGE);
-            restartTimer = setTimeout(() => {
+            // Last rotating line reached — use same pause as other lines, then type the ending message.
+            timer = setTimeout(() => {
               if (!cancelled) {
+                typingEnding = true;
+                charIndex = 0;
                 setTypewriterText('');
-                runSequence();
+                setShowCursor(true);
+                timer = setTimeout(tick, ENDING_START_GAP_MS);
               }
-            }, RESTART_DELAY_MS);
+            }, LAST_LINE_PAUSE_MS);
             return;
           }
           deleting = true;
