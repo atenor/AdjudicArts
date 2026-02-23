@@ -1,17 +1,35 @@
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
+function getLastNDays(n: number) {
+  const dates: Date[] = [];
+  const today = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(today.getDate() - i);
+    dates.push(d);
+  }
+  return dates;
+}
+
 // ---------------------------------------------------------------------------
 // ADMIN / NATIONAL_CHAIR
 // ---------------------------------------------------------------------------
 
 export async function getAdminDashboardStats(organizationId: string) {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
   const [
     totalEvents,
     openEvents,
     totalApplications,
     pendingApplications,
     recentApplications,
+    statusCounts,
+    recentSubmissions,
   ] = await Promise.all([
     prisma.event.count({ where: { organizationId } }),
     prisma.event.count({
@@ -33,7 +51,43 @@ export async function getAdminDashboardStats(organizationId: string) {
         event: { select: { id: true, name: true } },
       },
     }),
+    prisma.application.groupBy({
+      by: ["status"],
+      where: { organizationId },
+      _count: { status: true },
+    }),
+    prisma.application.findMany({
+      where: { organizationId, submittedAt: { gte: sevenDaysAgo } },
+      select: { submittedAt: true },
+    }),
   ]);
+
+  const statusBreakdown = {
+    submitted: 0,
+    chapterReview: 0,
+    nationalReview: 0,
+    decided: 0,
+  };
+
+  for (const row of statusCounts) {
+    if (row.status === "SUBMITTED") statusBreakdown.submitted = row._count.status;
+    if (row.status === "CHAPTER_REVIEW") statusBreakdown.chapterReview = row._count.status;
+    if (row.status === "NATIONAL_REVIEW") statusBreakdown.nationalReview = row._count.status;
+    if (row.status === "DECIDED") statusBreakdown.decided = row._count.status;
+  }
+
+  const last7Days = getLastNDays(7);
+  const submissionsLast7Days = last7Days.map((date) => {
+    const next = new Date(date);
+    next.setDate(next.getDate() + 1);
+    const count = recentSubmissions.filter(
+      (s) => s.submittedAt >= date && s.submittedAt < next
+    ).length;
+    return {
+      label: date.toLocaleDateString("en-US", { weekday: "short" }),
+      count,
+    };
+  });
 
   return {
     totalEvents,
@@ -41,6 +95,8 @@ export async function getAdminDashboardStats(organizationId: string) {
     totalApplications,
     pendingApplications,
     recentApplications,
+    statusBreakdown,
+    submissionsLast7Days,
   };
 }
 
@@ -113,7 +169,16 @@ export async function getJudgeDashboardStats(
   });
 
   if (assignments.length === 0) {
-    return { totalToScore: 0, totalScored: 0, roundCount: assignments.length };
+    return {
+      totalToScore: 0,
+      totalScored: 0,
+      roundCount: assignments.length,
+      partiallyScored: 0,
+      untouched: 0,
+      completionRate: 0,
+      scoredLast7Days: 0,
+      assignedByEvent: [] as Array<{ eventName: string; count: number }>,
+    };
   }
 
   // All applications in the relevant events at the right status
@@ -127,7 +192,16 @@ export async function getJudgeDashboardStats(
   const totalToScore = applications.length;
 
   if (totalToScore === 0) {
-    return { totalToScore: 0, totalScored: 0, roundCount: assignments.length };
+    return {
+      totalToScore: 0,
+      totalScored: 0,
+      roundCount: assignments.length,
+      partiallyScored: 0,
+      untouched: 0,
+      completionRate: 0,
+      scoredLast7Days: 0,
+      assignedByEvent: [] as Array<{ eventName: string; count: number }>,
+    };
   }
 
   // For each application, check if judge has scored all criteria
@@ -158,17 +232,57 @@ export async function getJudgeDashboardStats(
   );
 
   let totalScored = 0;
+  let partiallyScored = 0;
+  let untouched = 0;
   for (const appId of applicationIds) {
     const eventId = eventIdByApp.get(appId)!;
     const criteriaCount = criteriaCountByEvent.get(eventId) ?? 0;
     const scored = scoreCountMap.get(appId) ?? 0;
     if (criteriaCount > 0 && scored >= criteriaCount) totalScored++;
+    else if (scored > 0) partiallyScored++;
+    else untouched++;
   }
+
+  const recentScoreCutoff = new Date();
+  recentScoreCutoff.setDate(recentScoreCutoff.getDate() - 6);
+  recentScoreCutoff.setHours(0, 0, 0, 0);
+
+  const recentScoredApps = await prisma.score.groupBy({
+    by: ["applicationId"],
+    where: {
+      judgeId,
+      organizationId,
+      applicationId: { in: applicationIds },
+      updatedAt: { gte: recentScoreCutoff },
+    },
+    _count: { applicationId: true },
+  });
+
+  const eventNameById = new Map(
+    assignments.map((a) => [a.round.eventId, a.round.event.name])
+  );
+  const workloadCounts = new Map<string, number>();
+  for (const app of applications) {
+    workloadCounts.set(app.eventId, (workloadCounts.get(app.eventId) ?? 0) + 1);
+  }
+
+  const assignedByEvent = Array.from(workloadCounts.entries())
+    .map(([eventId, count]) => ({
+      eventName: eventNameById.get(eventId) ?? "Event",
+      count,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
 
   return {
     totalToScore,
     totalScored,
     roundCount: assignments.length,
+    partiallyScored,
+    untouched,
+    completionRate: totalToScore > 0 ? Math.round((totalScored / totalToScore) * 100) : 0,
+    scoredLast7Days: recentScoredApps.length,
+    assignedByEvent,
   };
 }
 
