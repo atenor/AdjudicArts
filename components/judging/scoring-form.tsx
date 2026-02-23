@@ -32,9 +32,6 @@ export default function ScoringForm({
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCompiling, setIsCompiling] = useState(false);
-  const [compileError, setCompileError] = useState<string | null>(null);
-  const [compiledDraft, setCompiledDraft] = useState("");
   const [finalComment, setFinalComment] = useState(existingFinalComment ?? "");
 
   const initialByCriterion = useMemo(
@@ -85,52 +82,20 @@ export default function ScoringForm({
     [comments, criteria, values]
   );
 
-  async function compileFinalComment() {
-    setCompileError(null);
-    if (aggregatedNotes.length === 0) {
-      setCompileError("Add at least one quick note before compiling final comments.");
-      return;
-    }
-
-    setIsCompiling(true);
-    try {
-      const response = await fetch(`/api/scoring/${applicationId}/compile`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          notes: aggregatedNotes.map((item) => ({
-            criteriaId: item.criteriaId,
-            value: item.value,
-            comment: item.comment,
-          })),
-          existingFinalComment: finalComment,
-        }),
-      });
-
-      if (!response.ok) {
-        setCompileError("Unable to compile final comments right now.");
-        return;
-      }
-
-      const data = (await response.json()) as { compiledComment?: string };
-      if (!data.compiledComment) {
-        setCompileError("No compiled comment was returned.");
-        return;
-      }
-
-      setCompiledDraft(data.compiledComment);
-    } catch {
-      setCompileError("Unable to compile final comments right now.");
-    } finally {
-      setIsCompiling(false);
-    }
-  }
+  const aggregatedPreview = useMemo(() => {
+    const noteLines = aggregatedNotes.map(
+      (item) => `${item.criterionName}: ${item.comment}`
+    );
+    const finalLine = finalComment.trim()
+      ? `Final comments: ${finalComment.trim()}`
+      : "";
+    return [...noteLines, finalLine].filter(Boolean).join("\n");
+  }, [aggregatedNotes, finalComment]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setServerError(null);
+    const trimmedFinalComment = finalComment.trim();
 
     const scores = criteria.map((criterion) => {
       const numericValue = Number(values[criterion.id]);
@@ -150,15 +115,49 @@ export default function ScoringForm({
       setServerError("Each criterion must be scored from 0 to 10.");
       return;
     }
+    if (!trimmedFinalComment) {
+      setServerError("Final comments are required before saving.");
+      return;
+    }
+
+    let compiledFinalComment = trimmedFinalComment;
 
     setIsSubmitting(true);
     try {
+      if (aggregatedNotes.length > 0) {
+        try {
+          const compileResponse = await fetch(`/api/scoring/${applicationId}/compile`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              notes: aggregatedNotes.map((item) => ({
+                criteriaId: item.criteriaId,
+                value: item.value,
+                comment: item.comment,
+              })),
+              existingFinalComment: trimmedFinalComment,
+            }),
+          });
+
+          if (compileResponse.ok) {
+            const data = (await compileResponse.json()) as { compiledComment?: string };
+            if (data.compiledComment?.trim()) {
+              compiledFinalComment = data.compiledComment.trim();
+            }
+          }
+        } catch {
+          // If compile service fails, still allow score submission with judge-entered final comment.
+        }
+      }
+
       const response = await fetch(`/api/scoring/${applicationId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scores, finalComment }),
+        body: JSON.stringify({ scores, finalComment: compiledFinalComment }),
       });
 
       if (!response.ok) {
@@ -252,9 +251,9 @@ export default function ScoringForm({
         <p className={styles.label}>Final Comments</p>
         <textarea
           id="final-comment"
-          className={styles.comment}
+          className={styles.noteBox}
           rows={5}
-          placeholder="Overall adjudication comments for this applicant..."
+          placeholder="Final comments (required)"
           value={finalComment}
           onChange={(event) => setFinalComment(event.target.value)}
           autoComplete="off"
@@ -264,68 +263,16 @@ export default function ScoringForm({
       </section>
 
       <section className={styles.aggregateWrap}>
-        <div className={styles.aggregateHeader}>
-          <p className={styles.label}>Aggregated Rubric Notes</p>
-          <button
-            type="button"
-            className={styles.compileButton}
-            onClick={() => void compileFinalComment()}
-            disabled={isCompiling}
-          >
-            {isCompiling ? "Compiling..." : "Compile Final Comment"}
-          </button>
-        </div>
-        {aggregatedNotes.length === 0 && !finalComment.trim() ? (
-          <p className={styles.aggregateEmpty}>No quick notes or final comments yet.</p>
-        ) : (
-          <ul className={styles.aggregateList}>
-            {aggregatedNotes.map((item) => (
-              <li key={`${item.criteriaId}-aggregate`} className={styles.aggregateItem}>
-                <strong>{item.criterionName}:</strong> {item.comment}
-              </li>
-            ))}
-            {finalComment.trim() ? (
-              <li className={styles.aggregateItem}>
-                <strong>Final comments:</strong> {finalComment.trim()}
-              </li>
-            ) : null}
-          </ul>
-        )}
+        <p className={styles.label}>Aggregated Rubric Notes</p>
+        <textarea
+          id="aggregated-rubric-notes"
+          className={styles.noteBox}
+          rows={5}
+          readOnly
+          value={aggregatedPreview}
+          placeholder="Will aggregate rubric quick notes and final comments when you save."
+        />
       </section>
-
-      {compiledDraft ? (
-        <section className={styles.draftWrap}>
-          <p className={styles.label}>AI-Compiled Draft</p>
-          <textarea
-            id="compiled-comment"
-            className={styles.comment}
-            rows={5}
-            value={compiledDraft}
-            onChange={(event) => setCompiledDraft(event.target.value)}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.approveButton}
-              onClick={() => setFinalComment(compiledDraft)}
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              className={styles.denyButton}
-              onClick={() => setCompiledDraft("")}
-            >
-              Deny
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {compileError ? <p className={styles.error}>{compileError}</p> : null}
       {serverError ? <p className={styles.error}>{serverError}</p> : null}
 
       <button className={styles.submit} type="submit" disabled={isSubmitting}>
