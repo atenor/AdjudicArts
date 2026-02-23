@@ -23,12 +23,8 @@ const TYPEWRITER_LINES = [
   'for any adjudication.',
 ];
 const ENDING_MESSAGE = "we'll handle the rest.";
+const START_DELAY_MS = 0;
 const RESTART_DELAY_MS = 10_000;
-
-const LOGO_ORGS = [
-  'NATS', 'MTNA', 'YPSCA', 'Winston Found.', 'Orpheus Society',
-  'Civic Arts', 'Aria Institute', 'NEC', 'Interlochen', 'Bel Canto', 'ACDA', 'Juilliard',
-];
 
 const DISCIPLINES = [
   'Voice Competition', 'Dance Audition', 'Film Jury', 'Scholarship Panel', 'Multi-Disciplinary',
@@ -373,7 +369,7 @@ export default function MarketingHomepage() {
       }
     };
 
-    const startTimer = setTimeout(runSequence, 1600);
+    const startTimer = setTimeout(runSequence, START_DELAY_MS);
     return () => {
       cancelled = true;
       clearTimeout(startTimer);
@@ -393,8 +389,6 @@ export default function MarketingHomepage() {
     document.querySelectorAll(`.${styles.fadeUp}`).forEach(el => obs.observe(el));
     return () => obs.disconnect();
   }, []);
-
-  const dupes = [...LOGO_ORGS, ...LOGO_ORGS]; // duplicate for seamless marquee
 
   return (
     <div className={styles.pageRoot} style={{ background: '#ede6f7', minHeight: '100vh' }}>
@@ -459,7 +453,7 @@ export default function MarketingHomepage() {
           </div>
 
           <h1 className={`${styles.heroH1} ${styles.fadeUp}`}>
-            Be judgy,<br />
+            Be judgy...<br />
             <span className={styles.heroLine2}>
               {typewriterText}
               {showCursor && <span className={styles.cursor} />}
@@ -559,18 +553,6 @@ export default function MarketingHomepage() {
           </div>
         </div>
       </section>
-
-      {/* ── LOGO BAND ── */}
-      <div className={styles.logoBand}>
-        <div className={styles.logoLbl}>Trusted by arts organizations</div>
-        <div className={styles.logoTrackWrap}>
-          <div className={styles.logoTrack}>
-            {dupes.map((org, i) => (
-              <div key={`${org}-${i}`} className={styles.logoItem}>{org}</div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* ── CLARITY ── */}
       <div className={`${styles.sec} ${styles.bgWhite}`} style={{ textAlign: 'center', paddingTop: 80, paddingBottom: 80 }}>
