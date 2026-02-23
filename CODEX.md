@@ -178,3 +178,22 @@ git push origin codex/ui-redesign   # triggers Vercel preview deploy
 ```
 
 The `npm run build` script runs `prisma generate` then `next build`. ESLint is enforced at build time — no unused vars, no missing deps.
+
+---
+
+## Known Gotcha — Route Conflicts
+
+**Do NOT create `app/(marketing)/page.tsx`.** The root route `/` is handled by
+`app/page.tsx`. Creating any other file that resolves to `/` causes a Next.js
+prerender failure and breaks the Vercel deployment. This already happened once
+(commit `8f83258` fixed it). The `app/(marketing)/` route group directory was
+removed — do not recreate it unless you add a distinct layout file there first.
+
+## Logged-In User Redirect
+
+`app/page.tsx` previously redirected authenticated users (`getServerSession`)
+straight to `/dashboard`. Codex removed that check when fixing the route
+conflict. Logged-in users who visit `/` will now see the marketing homepage.
+This is a UX (not security) regression — middleware still guards all
+`/dashboard` routes. Restore the redirect if needed, but note it requires
+`getServerSession` (server-side data fetch) in `app/page.tsx`.
