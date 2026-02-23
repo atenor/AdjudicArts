@@ -73,12 +73,6 @@
   font-weight: 700;
 }
 
-.helperText {
-  margin: -0.2rem 0 0;
-  font-size: 0.72rem;
-  color: #6e628f;
-}
-
 .scoreGrid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -119,6 +113,27 @@
   font-size: 0.84rem;
   font-style: italic;
   resize: vertical;
+}
+
+.quickNote {
+  width: 100%;
+  border: 1px solid rgba(70, 43, 124, 0.14);
+  border-radius: 7px;
+  background: rgba(243, 238, 248, 0.55);
+  color: #2d2448;
+  padding: 0.5rem 0.62rem;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  height: 2.1rem;
+}
+
+.quickNote::placeholder {
+  color: #8a7fa8;
+}
+
+.quickNote:focus {
+  outline: 2px solid rgba(70, 43, 124, 0.22);
+  outline-offset: 1px;
 }
 
 .comment:focus {

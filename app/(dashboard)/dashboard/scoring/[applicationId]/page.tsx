@@ -188,7 +188,7 @@ export default async function ScoreApplicationPage({
             <StickyVideoPlayer videoUrls={videoUrls} />
 
             {visibleVideoTitles.length > 0 ? (
-              <section className={styles.sidebarCard}>
+              <section className={`${styles.sidebarCard} ${styles.desktopOnly}`}>
                 <h2 className={styles.sidebarTitle}>Video Titles</h2>
                 <ol className={styles.videoTitleList}>
                   {visibleVideoTitles.map((video) => (
@@ -200,7 +200,7 @@ export default async function ScoreApplicationPage({
               </section>
             ) : null}
 
-            <section className={styles.sidebarCard}>
+            <section className={`${styles.sidebarCard} ${styles.desktopOnly}`}>
               <h2 className={styles.sidebarTitle}>Queue Navigation</h2>
               <p className={styles.navMeta}>
                 {currentIndex >= 0

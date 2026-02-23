@@ -227,11 +227,9 @@ export default function ScoringForm({
             </div>
 
             <div className={styles.stack}>
-              <p className={styles.label}>Comment (optional)</p>
-              <p className={styles.helperText}>Quick note</p>
-              <textarea
+              <input
                 id={`comment-${criterion.id}`}
-                className={styles.comment}
+                className={styles.quickNote}
                 value={comments[criterion.id]}
                 onChange={(e) =>
                   setComments((current) => ({
@@ -239,7 +237,8 @@ export default function ScoringForm({
                     [criterion.id]: e.target.value,
                   }))
                 }
-                rows={3}
+                placeholder="Quick note"
+                aria-label={`Quick note for ${criterion.name}`}
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
