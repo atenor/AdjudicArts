@@ -22,7 +22,7 @@ const TYPEWRITER_LINES = [
   'for festivals.',
   'for any adjudication.',
 ];
-const TERMINAL_LINE = 'for any adjudication.';
+const ENDING_MESSAGE = "we'll handle the rest.";
 const RESTART_DELAY_MS = 10_000;
 
 const LOGO_ORGS = [
@@ -312,7 +312,7 @@ export default function MarketingHomepage() {
   const [annVisible, setAnnVisible] = useState(true);
   const [activeDiscipline, setActiveDiscipline] = useState(0);
   const [activeTourTab, setActiveTourTab] = useState(0);
-  const [typewriterText, setTypewriterText] = useState('We\'ll handle the rest.');
+  const [typewriterText, setTypewriterText] = useState('');
   const [showCursor, setShowCursor] = useState(true);
 
 
@@ -336,7 +336,7 @@ export default function MarketingHomepage() {
     const tick = () => {
       if (cancelled) return;
       const line = TYPEWRITER_LINES[lineIndex];
-      const isLastLine = line === TERMINAL_LINE;
+      const isLastLine = lineIndex === TYPEWRITER_LINES.length - 1;
 
       if (!deleting) {
         charIndex++;
@@ -344,8 +344,9 @@ export default function MarketingHomepage() {
 
         if (charIndex === line.length) {
           if (isLastLine) {
-            // Terminal line reached — stop cursor, hold, then restart after 10s
+            // Terminal line reached — immediately show ending message, then restart after hold.
             setShowCursor(false);
+            setTypewriterText(ENDING_MESSAGE);
             restartTimer = setTimeout(() => {
               if (!cancelled) {
                 setTypewriterText('');
