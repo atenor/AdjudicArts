@@ -10,6 +10,7 @@ import { getApplicationById } from "@/lib/db/applications";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import AdvanceApplicationStatusButtons from "@/components/applications/advance-application-status-buttons";
 import DeleteApplicationButton from "@/components/applications/delete-application-button";
+import ApplicationProfileEditor from "@/components/applications/application-profile-editor";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import { parseRepertoireEntries } from "@/lib/repertoire";
@@ -98,6 +99,16 @@ function findRaw(raw: RawCsv | null, candidates: string[]) {
   return null;
 }
 
+function getAdminProfileNote(notes: string | null | undefined) {
+  if (!notes) return "";
+  try {
+    const parsed = JSON.parse(notes) as { adminProfileNote?: string };
+    return typeof parsed.adminProfileNote === "string" ? parsed.adminProfileNote : "";
+  } catch {
+    return "";
+  }
+}
+
 function DetailTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
@@ -132,6 +143,7 @@ export default async function ApplicationDetailPage({
   const timeline = deriveStatusTimeline(application.status);
   const repertoirePieces = parseRepertoireEntries(application.repertoire);
   const rawCsv = getImportedRawCsv(application.notes);
+  const adminProfileNote = getAdminProfileNote(application.notes);
   const age = getAge(application.dateOfBirth);
 
   const division =
@@ -299,6 +311,12 @@ export default async function ApplicationDetailPage({
         </div>
 
         <aside className="space-y-5">
+          <ApplicationProfileEditor
+            applicationId={application.id}
+            initialChapter={application.chapter ?? ""}
+            initialAdminNote={adminProfileNote}
+          />
+
           <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
             <h2 className="text-lg font-semibold text-[#1e1538]">Status & Actions</h2>
             <div className="mt-3 space-y-3">

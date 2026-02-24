@@ -343,3 +343,109 @@ export async function deleteApplicationsByIds(ids: string[], organizationId: str
     skipped: uniqueIds.length - existingIds.length,
   };
 }
+
+type ApplicationProfileUpdateInput = {
+  id: string;
+  organizationId: string;
+  chapter?: string | null;
+  adminNote?: string | null;
+  actor?: string | null;
+};
+
+function parseNotesObject(notes: string | null): Record<string, unknown> {
+  if (!notes || notes.trim().length === 0) return {};
+  try {
+    const parsed = JSON.parse(notes) as unknown;
+    if (typeof parsed === "object" && parsed !== null) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    return { voicePart: notes };
+  }
+  return {};
+}
+
+export async function updateApplicationProfile(input: ApplicationProfileUpdateInput) {
+  const existing = await prisma.application.findFirst({
+    where: { id: input.id, organizationId: input.organizationId },
+    select: { id: true, chapter: true, notes: true },
+  });
+
+  if (!existing) return null;
+
+  const notesObject = parseNotesObject(existing.notes);
+  const nextChapter = input.chapter?.trim() ?? null;
+  const nextAdminNote = input.adminNote?.trim() ?? null;
+  const actor = input.actor?.trim() || "admin";
+
+  if (nextAdminNote) {
+    notesObject.adminProfileNote = nextAdminNote;
+  } else {
+    delete notesObject.adminProfileNote;
+  }
+
+  if (typeof nextChapter === "string" && nextChapter !== (existing.chapter ?? null)) {
+    const chapterHistory = Array.isArray(notesObject.chapterAssignmentHistory)
+      ? [...notesObject.chapterAssignmentHistory]
+      : [];
+    chapterHistory.push({
+      at: new Date().toISOString(),
+      by: actor,
+      from: existing.chapter ?? "No chapter",
+      to: nextChapter,
+      note: nextAdminNote ?? "",
+    });
+    notesObject.chapterAssignmentHistory = chapterHistory;
+  }
+
+  return prisma.application.update({
+    where: { id: existing.id },
+    data: {
+      chapter: nextChapter,
+      notes: JSON.stringify(notesObject),
+    },
+    include: {
+      applicant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+        },
+      },
+      scores: {
+        include: {
+          criteria: {
+            select: {
+              id: true,
+              name: true,
+              order: true,
+              rubric: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          judge: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: [{ criteria: { order: "asc" } }, { judge: { name: "asc" } }],
+      },
+    },
+  });
+}
