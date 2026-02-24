@@ -90,3 +90,9 @@
   font-size: 0.82rem;
   color: #8a7fa8;
 }
+
+@media (max-width: 979px) {
+  .frameWrap {
+    max-height: clamp(8.5rem, 22vh, 11rem);
+  }
+}
