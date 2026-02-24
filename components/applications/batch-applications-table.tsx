@@ -182,8 +182,8 @@ export default function BatchApplicationsTable({
           ))}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[#d7cde9] bg-white">
-          <div className="grid grid-cols-[auto_1fr_auto] border-b bg-[#f8f4ff] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#6d5b91]">
+        <div className="overflow-hidden rounded-xl border border-[#d7cde9] bg-[#f9f6ff]">
+          <div className="grid grid-cols-[auto_1fr_auto] border-b border-[#d9cfea] bg-[#efe8fb] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#5a4b80]">
             <span>Applicant</span>
             <span>Details</span>
             <span className="text-right">Action</span>
@@ -191,7 +191,7 @@ export default function BatchApplicationsTable({
           {applications.map((application) => (
             <div
               key={application.id}
-              className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b px-3 py-2 last:border-b-0 hover:bg-[#faf7ff]"
+              className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-[#e2d9f1] px-3 py-2 odd:bg-white even:bg-[#f6f1ff] last:border-b-0 hover:bg-[#ece4fb]"
             >
               <div className="flex items-center gap-2">
                 {canBatchDelete ? (
@@ -211,16 +211,16 @@ export default function BatchApplicationsTable({
               </div>
 
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#1e1538]">
+                <p className="truncate text-sm font-semibold text-[#1f163a]">
                   {application.applicantName}
                 </p>
-                <p className="truncate text-xs text-[#425173]">
+                <p className="truncate text-xs font-medium text-[#3f4b6f]">
                   {application.divisionLabel ?? "Division —"}
                   {typeof application.age === "number" ? ` • Age ${application.age}` : ""}
                   {" · "}
                   {application.chapter ?? "Chapter pending"}
                 </p>
-                <p className="truncate text-xs text-[#6d5b91]">
+                <p className="truncate text-xs text-[#625482]">
                   {application.voicePartLabel} · {application.eventName} · {application.submittedLabel}
                 </p>
               </div>
