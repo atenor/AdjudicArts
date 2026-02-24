@@ -56,6 +56,24 @@ function valueOrDash(value: string | null | undefined) {
   return value;
 }
 
+function getImportedRawCsv(notes: string | null | undefined) {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes) as {
+      importProfile?: {
+        rawCsv?: Record<string, string>;
+      };
+    };
+    if (!parsed.importProfile?.rawCsv) return null;
+    const entries = Object.entries(parsed.importProfile.rawCsv).filter(
+      ([key, value]) => key.trim().length > 0 && String(value).trim().length > 0
+    );
+    return entries.length > 0 ? entries : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function ApplicationDetailPage({
   params,
 }: {
@@ -69,6 +87,7 @@ export default async function ApplicationDetailPage({
   if (!application) notFound();
   const timeline = deriveStatusTimeline(application.status);
   const repertoirePieces = parseRepertoireEntries(application.repertoire);
+  const importedRawCsvEntries = getImportedRawCsv(application.notes);
 
   return (
     <div className="space-y-8">
@@ -282,6 +301,33 @@ export default async function ApplicationDetailPage({
           </p>
         </div>
       </section>
+
+      {importedRawCsvEntries ? (
+        <section className="space-y-3 rounded-lg border p-4">
+          <h2 className="font-medium">Imported CSV Fields</h2>
+          <p className="text-xs text-muted-foreground">
+            Raw values captured at import time for this applicant record.
+          </p>
+          <div className="max-h-96 overflow-auto rounded border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30 text-left">
+                  <th className="px-3 py-2 font-medium text-muted-foreground">Column</th>
+                  <th className="px-3 py-2 font-medium text-muted-foreground">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {importedRawCsvEntries.map(([key, value]) => (
+                  <tr key={key} className="border-b last:border-b-0 align-top">
+                    <td className="px-3 py-2 font-medium">{key}</td>
+                    <td className="px-3 py-2 whitespace-pre-wrap break-words">{value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-3 rounded-lg border p-4">
         <h2 className="font-medium">Status Timeline</h2>
