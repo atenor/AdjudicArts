@@ -11,7 +11,6 @@ export default function FavouriteButton() {
       aria-label={active ? "Remove from favourites" : "Mark as favourite"}
       onClick={() => setActive((v) => !v)}
       style={{
-        background: "none",
         border: "none",
         cursor: "pointer",
         padding: "0.18rem 0.3rem",
