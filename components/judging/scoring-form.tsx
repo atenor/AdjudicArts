@@ -192,10 +192,13 @@ export default function ScoringForm({
             <div>
               <p className={styles.criterionTitle}>
                 {criterion.order}. {criterion.name}
+                {criterion.description ? (
+                  <span className={styles.criterionInlineHelp}>
+                    {" "}
+                    ({criterion.description})
+                  </span>
+                ) : null}
               </p>
-              {criterion.description ? (
-                <p className={styles.criterionDescription}>{criterion.description}</p>
-              ) : null}
             </div>
 
             <div className={styles.stack}>
