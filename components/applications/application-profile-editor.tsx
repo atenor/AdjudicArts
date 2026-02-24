@@ -80,48 +80,34 @@ export default function ApplicationProfileEditor({
 
   return (
     <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
-      <h2 className="text-lg font-semibold text-[#1e1538]">Profile Notes & Chapter Edit</h2>
+      <h2 className="text-lg font-semibold text-[#1e1538]">Profile Editor</h2>
       <div className="mt-3 space-y-3">
-        <div className="space-y-1.5">
-          <label htmlFor="applicant-name" className="text-sm font-medium text-[#5f4d87]">
-            Applicant Name
-          </label>
-          <Input
-            id="applicant-name"
-            value={applicantName}
-            onChange={(event) => setApplicantName(event.target.value)}
-            placeholder="First Last"
-            className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="chapter" className="text-sm font-medium text-[#5f4d87]">
-            Chapter
-          </label>
-          <Input
-            id="chapter"
-            value={chapter}
-            onChange={(event) => setChapter(event.target.value)}
-            placeholder="Example: Washington DC Chapter"
-            className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="admin-note" className="text-sm font-medium text-[#5f4d87]">
-            Admin Note
-          </label>
-          <Textarea
-            id="admin-note"
-            value={adminNote}
-            onChange={(event) => setAdminNote(event.target.value)}
-            placeholder="Example: Applicant had no chapter and was assigned sponsorship by DC chapter."
-            className="min-h-[110px] border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-          />
-          <p className="text-xs text-[#7b6e9d]">
-            Use this to document reassignment notes (ex: no chapter to sponsored chapter).
-          </p>
+        <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
+          <p className="text-sm font-semibold text-[#5f4d87]">Chapter Assignment</p>
+          <div className="space-y-1.5">
+            <label htmlFor="applicant-name" className="text-sm font-medium text-[#5f4d87]">
+              Applicant Name
+            </label>
+            <Input
+              id="applicant-name"
+              value={applicantName}
+              onChange={(event) => setApplicantName(event.target.value)}
+              placeholder="First Last"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="chapter" className="text-sm font-medium text-[#5f4d87]">
+              Chapter
+            </label>
+            <Input
+              id="chapter"
+              value={chapter}
+              onChange={(event) => setChapter(event.target.value)}
+              placeholder="Example: Washington DC Chapter"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+          </div>
         </div>
 
         <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
@@ -168,6 +154,19 @@ export default function ApplicationProfileEditor({
               className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
+          <label htmlFor="admin-note" className="text-sm font-semibold text-[#5f4d87]">
+            General Admin Notes
+          </label>
+          <Textarea
+            id="admin-note"
+            value={adminNote}
+            onChange={(event) => setAdminNote(event.target.value)}
+            placeholder="General profile notes (sponsorship, special handling, follow-ups, etc.)"
+            className="min-h-[120px] border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]"
+          />
         </div>
 
         <Button
