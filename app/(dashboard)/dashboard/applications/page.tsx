@@ -33,6 +33,24 @@ function formatDate(date: Date) {
   });
 }
 
+function calculateAge(dateOfBirth: Date | null) {
+  if (!dateOfBirth) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dateOfBirth.getFullYear();
+  const monthDelta = now.getMonth() - dateOfBirth.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < dateOfBirth.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
+function formatDivision(age: number | null) {
+  if (age === null) return "Division —";
+  if (age >= 16 && age <= 18) return "Division 16-18";
+  if (age >= 19 && age <= 22) return "Division 19-22";
+  return "Division —";
+}
+
 export default async function ApplicationsPage({
   searchParams,
 }: {
@@ -52,16 +70,22 @@ export default async function ApplicationsPage({
     statusFilter
   );
 
-  const serializedApplications = applications.map((application) => ({
-    id: application.id,
-    applicantName: application.applicant.name,
-    applicantEmail: application.applicant.email,
-    voicePartLabel: formatVoicePart(application.notes),
-    eventName: application.event.name,
-    status: application.status,
-    submittedLabel: formatDate(application.submittedAt),
-    headshotUrl: getDisplayHeadshot(application.headshot, application.id),
-  }));
+  const serializedApplications = applications.map((application) => {
+    const age = calculateAge(application.dateOfBirth);
+    return {
+      age,
+      divisionLabel: formatDivision(age),
+      chapter: application.chapter ?? "Chapter pending",
+      id: application.id,
+      applicantName: application.applicant.name,
+      applicantEmail: application.applicant.email,
+      voicePartLabel: formatVoicePart(application.notes),
+      eventName: application.event.name,
+      status: application.status,
+      submittedLabel: formatDate(application.submittedAt),
+      headshotUrl: getDisplayHeadshot(application.headshot, application.id),
+    };
+  });
 
   const canBatchDelete = session.user.role === "ADMIN";
 

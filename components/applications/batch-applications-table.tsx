@@ -5,20 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ApplicationStatus } from "@prisma/client";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 type ApplicationRow = {
   id: string;
   applicantName: string;
   applicantEmail: string;
   voicePartLabel: string;
+  divisionLabel?: string;
+  age?: number | null;
+  chapter?: string;
   eventName: string;
   status: ApplicationStatus;
   submittedLabel: string;
@@ -99,90 +94,89 @@ export default function BatchApplicationsTable({
     <div className="space-y-3">
       {canBatchDelete && (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[#6d5b91]">
             {selectedCount} selected
           </p>
           <button
             type="button"
             onClick={deleteSelected}
             disabled={selectedCount === 0 || isDeleting}
-            className="inline-flex items-center rounded border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center rounded-xl border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDeleting ? "Deleting..." : "Delete selected"}
           </button>
         </div>
       )}
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {canBatchDelete && (
-              <TableHead className="w-10">
-                <input
-                  type="checkbox"
-                  aria-label="Select all applications"
-                  checked={allSelected}
-                  onChange={(event) => toggleAll(event.target.checked)}
-                  className="h-4 w-4 rounded border-border"
-                />
-              </TableHead>
-            )}
-            <TableHead>Applicant</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Voice Part</TableHead>
-            <TableHead>Event</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Submitted</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {applications.map((application) => (
-            <TableRow key={application.id}>
-              {canBatchDelete && (
-                <TableCell>
-                  <input
-                    type="checkbox"
-                    aria-label={`Select ${application.applicantName}`}
-                    checked={selectedSet.has(application.id)}
-                    onChange={(event) => toggleOne(application.id, event.target.checked)}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                </TableCell>
-              )}
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={application.headshotUrl}
-                    alt={`${application.applicantName} headshot`}
-                    className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
-                    loading="lazy"
-                  />
-                  <Link
-                    href={`/dashboard/applications/${application.id}`}
-                    className="font-medium hover:underline"
-                  >
+      {canBatchDelete ? (
+        <label className="flex items-center gap-2 rounded-lg border border-[#d7cde9] bg-white px-3 py-2 text-sm text-[#4a3d6b]">
+          <input
+            type="checkbox"
+            aria-label="Select all applications"
+            checked={allSelected}
+            onChange={(event) => toggleAll(event.target.checked)}
+            className="h-4 w-4 rounded border-[#bca9df]"
+          />
+          Select all
+        </label>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {applications.map((application) => (
+          <article
+            key={application.id}
+            className="rounded-2xl border border-[#e7c65e] bg-[#fbf7ea] p-5 shadow-sm"
+          >
+            <div className="flex items-start gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={application.headshotUrl}
+                alt={`${application.applicantName} headshot`}
+                className="h-24 w-24 rounded-2xl border border-[#d7cde9] object-cover bg-white"
+                loading="lazy"
+              />
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="truncate text-2xl font-bold text-[#1e1538]">
                     {application.applicantName}
-                  </Link>
+                  </h3>
+                  {canBatchDelete ? (
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${application.applicantName}`}
+                      checked={selectedSet.has(application.id)}
+                      onChange={(event) => toggleOne(application.id, event.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-[#bca9df]"
+                    />
+                  ) : null}
                 </div>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {application.applicantEmail}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {application.voicePartLabel}
-              </TableCell>
-              <TableCell className="text-sm">{application.eventName}</TableCell>
-              <TableCell>
-                <ApplicationStatusBadge status={application.status} />
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {application.submittedLabel}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+
+                <p className="mt-1 text-xl text-[#2e3558]">
+                  {application.divisionLabel ?? "Division —"}
+                  {typeof application.age === "number" ? ` • Age ${application.age}` : ""}
+                </p>
+                <p className="text-lg text-[#425173]">{application.chapter ?? "Chapter pending"}</p>
+                <p className="mt-1 text-base text-[#4e5f80]">{application.applicantEmail}</p>
+                <p className="mt-1 text-sm text-[#5f4d83]">
+                  {application.voicePartLabel} · {application.eventName}
+                </p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <ApplicationStatusBadge status={application.status} />
+                  <span className="text-xs text-[#6d5b91]">Submitted {application.submittedLabel}</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href={`/dashboard/applications/${application.id}`}
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#5b4bf3] to-[#4637e5] text-lg font-medium text-white shadow-sm transition hover:from-[#4f40dd] hover:to-[#3d30cc]"
+            >
+              Review Application
+            </Link>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
