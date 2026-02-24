@@ -355,6 +355,22 @@ export default function ImportApplicationsForm({
         </div>
         {(importStatus !== "idle" || isImporting) && (
           <div className="space-y-1 pt-1">
+            <div className="flex items-center justify-between text-xs">
+              <span
+                className={
+                  importStatus === "error"
+                    ? "text-destructive"
+                    : importStatus === "success"
+                      ? "text-emerald-700"
+                      : "text-muted-foreground"
+                }
+              >
+                {statusMessage ?? "Import in progress..."}
+              </span>
+              <span className="font-medium tabular-nums text-muted-foreground">
+                {Math.max(0, Math.min(100, Math.round(importProgress)))}%
+              </span>
+            </div>
             <div className="h-2 w-full overflow-hidden rounded bg-muted">
               <div
                 className={`h-full transition-all duration-300 ${
@@ -363,17 +379,6 @@ export default function ImportApplicationsForm({
                 style={{ width: `${importProgress}%` }}
               />
             </div>
-            <p
-              className={`text-xs ${
-                importStatus === "error"
-                  ? "text-destructive"
-                  : importStatus === "success"
-                    ? "text-emerald-700"
-                    : "text-muted-foreground"
-              }`}
-            >
-              {statusMessage ?? "Import in progress..."}
-            </p>
           </div>
         )}
         <div>
