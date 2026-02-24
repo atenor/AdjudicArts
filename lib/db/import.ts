@@ -262,15 +262,18 @@ export async function importApplicantFromRow(
   eventId: string,
   organizationId: string
 ): Promise<ImportResult> {
-  const firstName = getValue(row, ["First Name"]) ?? "";
-  const lastName = getValue(row, ["Last Name"]) ?? "";
-  const email = (getValue(row, ["Email Address"]) ?? "").toLowerCase();
+  const firstName = getValue(row, ["First Name", "First", "Given Name"]) ?? "";
+  const lastName = getValue(row, ["Last Name", "Last", "Surname", "Family Name"]) ?? "";
+  const fullNameFromCsv = getValue(row, ["Name", "Applicant Name", "Full Name"]);
+  const email = (
+    getValue(row, ["Email Address", "Email", "E-mail", "Email Address*"]) ?? ""
+  ).toLowerCase();
 
   if (!email) {
     throw new Error("Missing email address");
   }
 
-  const applicantName = `${firstName} ${lastName}`.trim() || email;
+  const applicantName = fullNameFromCsv ?? (`${firstName} ${lastName}`.trim() || email);
 
   let user = await prisma.user.findUnique({ where: { email } });
   let createdUser = false;
@@ -307,27 +310,54 @@ export async function importApplicantFromRow(
   const voicePart = normalizeVoicePart(
     getValue(row, ["Voice Part", "Voice Type", "Division", "Category", "Part"])
   );
-  const schoolName = getValue(row, ["School Name (If Applicable)"]);
-  const schoolCity = getValue(row, ["School City (If Applicable)"]);
-  const schoolState = getValue(row, ["School State (If Applicable)"]);
-  const highSchoolName = getValue(row, ["High School Name"]);
+  const schoolName = getValue(row, ["School Name (If Applicable)", "School Name"]);
+  const schoolCity = getValue(row, ["School City (If Applicable)", "School City"]);
+  const schoolState = getValue(row, ["School State (If Applicable)", "School State"]);
+  const highSchoolName = getValue(row, ["High School Name", "High School"]);
   const collegeName = getValue(row, ["If Yes - College/University Name", "College Name"]);
   const major = getValue(row, ["If in College: What is your major?", "Major"]);
-  const careerPlans = getValue(row, ["Tell Us About Your Future Career Plans"]);
-  const scholarshipUse = getValue(row, ["how do you plan to use the funds"]);
+  const careerPlans = getValue(row, [
+    "Tell Us About Your Future Career Plans",
+    "Career Plans",
+    "Future Plans",
+  ]);
+  const scholarshipUse = getValue(row, [
+    "how do you plan to use the funds",
+    "How do you plan to use the funds",
+    "Use of Funds",
+  ]);
   const video1Title = getValue(row, ["Video #1: Title and Composer", "Video 1 Title"]);
   const video2Title = getValue(row, ["Video #2: Title and Composer", "Video 2 Title"]);
   const video3Title = getValue(row, ["Video #3: Title and Composer", "Video 3 Title"]);
-  const youtubePlaylist = getValue(row, ["YouTube Playlist Link"]);
+  const youtubePlaylist = getValue(row, [
+    "YouTube Playlist Link",
+    "Youtube Playlist Link",
+    "Playlist Link",
+  ]);
   const explicitVideo1Url = getValue(row, ["Video 1 URL", "Video #1 URL"]);
   const explicitVideo2Url = getValue(row, ["Video 2 URL", "Video #2 URL"]);
   const explicitVideo3Url = getValue(row, ["Video 3 URL", "Video #3 URL"]);
   const headshot = toDriveThumbnail(
-    getValue(row, ["High-Quality Headshot", "Performance Photograph"])
+    getValue(row, [
+      "High-Quality Headshot",
+      "Performance Photograph",
+      "Headshot",
+      "Headshot URL",
+      "Photo URL",
+    ])
   );
-  const bio = getValue(row, ["150–200 Word Bio", "150-200 Word Bio"]);
-  const parentName = getValue(row, ["Parent/Guardian Name"]);
-  const parentEmail = getValue(row, ["Parent/Guardian Email"]);
+  const bio = getValue(row, [
+    "150–200 Word Bio",
+    "150-200 Word Bio",
+    "Bio",
+    "Biography",
+  ]);
+  const parentName = getValue(row, ["Parent/Guardian Name", "Parent Name", "Guardian Name"]);
+  const parentEmail = getValue(row, [
+    "Parent/Guardian Email",
+    "Parent Email",
+    "Guardian Email",
+  ]);
 
   const resolvedVideoUrls = await resolvePlaylistVideoUrls(youtubePlaylist);
   const mergedVideoUrls = [explicitVideo1Url, explicitVideo2Url, explicitVideo3Url]
