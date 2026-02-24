@@ -42,6 +42,20 @@ function deriveStatusTimeline(status: ApplicationStatus): ApplicationStatus[] {
   return STATUS_FLOW.slice(0, currentIndex + 1);
 }
 
+function formatDateOfBirth(value: Date | null) {
+  if (!value) return "—";
+  return value.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function valueOrDash(value: string | null | undefined) {
+  if (!value || value.trim().length === 0) return "—";
+  return value;
+}
+
 export default async function ApplicationDetailPage({
   params,
 }: {
@@ -135,6 +149,139 @@ export default async function ApplicationDetailPage({
           </div>
         </section>
       </div>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <h2 className="font-medium">Profile Information</h2>
+        <div className="grid gap-4 text-sm md:grid-cols-2">
+          <div className="space-y-1.5">
+            <p>
+              <span className="text-muted-foreground">Chapter:</span>{" "}
+              {valueOrDash(application.chapter)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Date of Birth:</span>{" "}
+              {formatDateOfBirth(application.dateOfBirth)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Gender:</span>{" "}
+              {valueOrDash(application.gender)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Phone:</span>{" "}
+              {valueOrDash(application.phone)}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <p>
+              <span className="text-muted-foreground">Address:</span>{" "}
+              {valueOrDash(application.address)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">City:</span>{" "}
+              {valueOrDash(application.city)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">State:</span>{" "}
+              {valueOrDash(application.state)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">ZIP:</span>{" "}
+              {valueOrDash(application.zip)}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <h2 className="font-medium">Education</h2>
+        <div className="grid gap-4 text-sm md:grid-cols-2">
+          <div className="space-y-1.5">
+            <p>
+              <span className="text-muted-foreground">School Name:</span>{" "}
+              {valueOrDash(application.schoolName)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">School City:</span>{" "}
+              {valueOrDash(application.schoolCity)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">School State:</span>{" "}
+              {valueOrDash(application.schoolState)}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <p>
+              <span className="text-muted-foreground">High School:</span>{" "}
+              {valueOrDash(application.highSchoolName)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">College/University:</span>{" "}
+              {valueOrDash(application.collegeName)}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Major:</span>{" "}
+              {valueOrDash(application.major)}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <h2 className="font-medium">Submission Narrative</h2>
+        <div className="space-y-2 text-sm">
+          <p>
+            <span className="text-muted-foreground">Career Plans:</span>{" "}
+            {valueOrDash(application.careerPlans)}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Scholarship Use:</span>{" "}
+            {valueOrDash(application.scholarshipUse)}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Bio:</span>{" "}
+            {valueOrDash(application.bio)}
+          </p>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <h2 className="font-medium">Parent / Guardian</h2>
+        <div className="grid gap-4 text-sm md:grid-cols-2">
+          <p>
+            <span className="text-muted-foreground">Name:</span>{" "}
+            {valueOrDash(application.parentName)}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Email:</span>{" "}
+            {valueOrDash(application.parentEmail)}
+          </p>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <h2 className="font-medium">Video Assets</h2>
+        <div className="space-y-2 text-sm">
+          <p>
+            <span className="text-muted-foreground">Video 1:</span>{" "}
+            {valueOrDash(application.video1Title)}
+            {application.video1Url ? ` — ${application.video1Url}` : ""}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Video 2:</span>{" "}
+            {valueOrDash(application.video2Title)}
+            {application.video2Url ? ` — ${application.video2Url}` : ""}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Video 3:</span>{" "}
+            {valueOrDash(application.video3Title)}
+            {application.video3Url ? ` — ${application.video3Url}` : ""}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Playlist:</span>{" "}
+            {valueOrDash(application.youtubePlaylist)}
+          </p>
+        </div>
+      </section>
 
       <section className="space-y-3 rounded-lg border p-4">
         <h2 className="font-medium">Status Timeline</h2>
