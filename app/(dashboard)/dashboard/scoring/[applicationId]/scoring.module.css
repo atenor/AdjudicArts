@@ -142,16 +142,18 @@
 }
 
 .repertoireItem {
-  display: grid;
-  gap: 0.16rem;
+  display: list-item;
+  margin-bottom: 0.16rem;
 }
 
 .repertoireTitle {
+  display: block;
   color: #1e1538;
   font-weight: 650;
 }
 
 .repertoireMeta {
+  display: block;
   color: #6e628f;
   font-size: 0.78rem;
 }
