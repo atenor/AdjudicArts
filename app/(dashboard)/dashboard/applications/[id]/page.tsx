@@ -60,6 +60,36 @@ function formatDate(value: Date | null) {
   });
 }
 
+function formatTraditionalPhone(value: string | null | undefined) {
+  if (!value) return "--";
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return "--";
+  if (trimmed.includes("@")) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  return trimmed;
+}
+
+function formatPhoneOrEmail(value: string | null | undefined) {
+  if (!value) return "--";
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return "--";
+  if (trimmed.includes("@")) return trimmed;
+
+  const parts = trimmed
+    .split(/[\/,;]/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  if (parts.length === 0) return "--";
+  return parts.map((part) => formatTraditionalPhone(part)).join(" / ");
+}
+
 function getAge(dateOfBirth: Date | null) {
   if (!dateOfBirth) return null;
   const now = new Date();
@@ -236,7 +266,7 @@ export default async function ApplicationDetailPage({
             <h2 className="text-lg font-bold tracking-wide text-[#5f7090]">CONTACT & PERSONAL</h2>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <DetailTile label="Email" value={valueOrDash(application.applicant.email)} />
-              <DetailTile label="Phone" value={valueOrDash(application.phone)} />
+              <DetailTile label="Phone" value={formatTraditionalPhone(application.phone)} />
               <DetailTile label="Date of Birth" value={formatDate(application.dateOfBirth)} />
               <DetailTile
                 label="Address"
@@ -247,7 +277,7 @@ export default async function ApplicationDetailPage({
                 }
               />
               <DetailTile label="Alt Contact" value={valueOrDash(altContact)} />
-              <DetailTile label="Alt Phone / Email" value={valueOrDash(altPhoneOrEmail)} />
+              <DetailTile label="Alt Phone / Email" value={formatPhoneOrEmail(altPhoneOrEmail)} />
             </div>
           </section>
 
