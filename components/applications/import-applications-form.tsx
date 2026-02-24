@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -43,6 +43,8 @@ type PurgeResult = {
   deletedApplicants: number;
 };
 
+type ImportStatus = "idle" | "running" | "success" | "error";
+
 export default function ImportApplicationsForm({
   events,
 }: {
@@ -58,16 +60,57 @@ export default function ImportApplicationsForm({
   const [previewTotal, setPreviewTotal] = useState<number | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [purgeResult, setPurgeResult] = useState<PurgeResult | null>(null);
+  const [importStatus, setImportStatus] = useState<ImportStatus>("idle");
+  const [importProgress, setImportProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [lastImportedSignature, setLastImportedSignature] = useState<string | null>(null);
+  const progressIntervalRef = useRef<number | null>(null);
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === selectedEventId) ?? null,
     [events, selectedEventId]
   );
 
+  const importSignature = useMemo(
+    () =>
+      `${selectedEventId}|${fileName}|${previewTotal ?? 0}|${previewRows[0]?.email ?? ""}|${
+        csvData.length
+      }`,
+    [selectedEventId, fileName, previewTotal, previewRows, csvData.length]
+  );
+
+  const alreadyImportedCurrentFile = lastImportedSignature === importSignature;
+
+  function stopProgressTicker() {
+    if (progressIntervalRef.current !== null) {
+      window.clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  }
+
+  function startProgressTicker() {
+    stopProgressTicker();
+    progressIntervalRef.current = window.setInterval(() => {
+      setImportProgress((current) => (current >= 92 ? current : current + 4));
+    }, 280);
+  }
+
+  useEffect(
+    () => () => {
+      stopProgressTicker();
+    },
+    []
+  );
+
   async function onPickFile(event: React.ChangeEvent<HTMLInputElement>) {
     setError(null);
     setResult(null);
     setPurgeResult(null);
+    setImportStatus("idle");
+    setStatusMessage(null);
+    setImportProgress(0);
+    stopProgressTicker();
+    setLastImportedSignature(null);
     setPreviewRows([]);
     setPreviewTotal(null);
 
@@ -89,6 +132,11 @@ export default function ImportApplicationsForm({
     setError(null);
     setResult(null);
     setPurgeResult(null);
+    setImportStatus("idle");
+    setStatusMessage(null);
+    setImportProgress(0);
+    stopProgressTicker();
+    setLastImportedSignature(null);
     setIsPreviewLoading(true);
 
     try {
@@ -123,6 +171,10 @@ export default function ImportApplicationsForm({
     setError(null);
     setResult(null);
     setPurgeResult(null);
+    setImportStatus("running");
+    setStatusMessage("Import in progress...");
+    setImportProgress(8);
+    startProgressTicker();
     setIsImporting(true);
 
     try {
@@ -139,13 +191,28 @@ export default function ImportApplicationsForm({
       const data = await response.json();
       if (!response.ok) {
         setError(data?.error?.formErrors?.[0] ?? data?.error ?? "Unable to import CSV.");
+        setImportStatus("error");
+        setImportProgress(100);
+        setStatusMessage("Import failed.");
         return;
       }
 
       setResult(data);
+      setImportStatus("success");
+      setImportProgress(100);
+      if ((data?.errors?.length ?? 0) > 0) {
+        setStatusMessage(`Import complete with ${data.errors.length} row error(s).`);
+      } else {
+        setStatusMessage("Import completed successfully.");
+      }
+      setLastImportedSignature(importSignature);
     } catch {
       setError("Unable to import CSV.");
+      setImportStatus("error");
+      setImportProgress(100);
+      setStatusMessage("Import failed.");
     } finally {
+      stopProgressTicker();
       setIsImporting(false);
     }
   }
@@ -160,6 +227,11 @@ export default function ImportApplicationsForm({
     setError(null);
     setResult(null);
     setPurgeResult(null);
+    setImportStatus("idle");
+    setStatusMessage(null);
+    setImportProgress(0);
+    stopProgressTicker();
+    setLastImportedSignature(null);
     setIsImporting(true);
 
     try {
@@ -223,13 +295,43 @@ export default function ImportApplicationsForm({
           <Button type="button" variant="outline" onClick={requestPreview} disabled={!csvData || isPreviewLoading}>
             {isPreviewLoading ? "Loading preview..." : "Preview"}
           </Button>
-          <Button type="button" onClick={importAll} disabled={!csvData || isImporting || previewRows.length === 0}>
+          <Button
+            type="button"
+            onClick={importAll}
+            disabled={!csvData || isImporting || previewRows.length === 0 || alreadyImportedCurrentFile}
+          >
             {isImporting ? "Importing..." : "Import All"}
           </Button>
           {fileName ? (
             <span className="text-muted-foreground">Selected: {fileName}</span>
           ) : null}
+          {alreadyImportedCurrentFile ? (
+            <span className="text-emerald-700">This file is already imported for this event.</span>
+          ) : null}
         </div>
+        {(importStatus !== "idle" || isImporting) && (
+          <div className="space-y-1 pt-1">
+            <div className="h-2 w-full overflow-hidden rounded bg-muted">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  importStatus === "error" ? "bg-destructive" : "bg-primary"
+                }`}
+                style={{ width: `${importProgress}%` }}
+              />
+            </div>
+            <p
+              className={`text-xs ${
+                importStatus === "error"
+                  ? "text-destructive"
+                  : importStatus === "success"
+                    ? "text-emerald-700"
+                    : "text-muted-foreground"
+              }`}
+            >
+              {statusMessage ?? "Import in progress..."}
+            </p>
+          </div>
+        )}
         <div>
           <Button
             type="button"
