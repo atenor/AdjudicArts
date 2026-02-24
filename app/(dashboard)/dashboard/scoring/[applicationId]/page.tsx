@@ -11,39 +11,12 @@ import {
 } from "@/lib/db/scores";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
+import { parseRepertoireEntries } from "@/lib/repertoire";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
 import FavouriteButton from "@/components/judging/favourite-button";
 import styles from "./scoring.module.css";
-
-function parseRepertoire(repertoire: string | null) {
-  if (!repertoire) return [];
-
-  const normalized = repertoire.replace(/\r/g, "").trim();
-  if (!normalized) return [];
-
-  if (normalized.includes("\n")) {
-    return normalized
-      .split("\n")
-      .map((piece) => piece.trim())
-      .filter(Boolean);
-  }
-
-  const byComposer = normalized
-    .split(/\),\s*/)
-    .map((piece, index, pieces) =>
-      index < pieces.length - 1 ? `${piece})` : piece
-    )
-    .map((piece) => piece.trim())
-    .filter(Boolean);
-  if (byComposer.length > 1) return byComposer;
-
-  return normalized
-    .split(/\s*;\s*/)
-    .map((piece) => piece.trim())
-    .filter(Boolean);
-}
 
 export default async function ScoreApplicationPage({
   params,
@@ -77,7 +50,7 @@ export default async function ScoreApplicationPage({
     videoTitles,
   } = scoringContext;
 
-  const repertoirePieces = parseRepertoire(application.repertoire);
+  const repertoirePieces = parseRepertoireEntries(application.repertoire);
   const visibleVideoTitles = videoTitles
     .map((title, index) => ({
       label: `Video ${index + 1}`,
@@ -161,7 +134,18 @@ export default async function ScoreApplicationPage({
               ) : (
                 <ol className={styles.repertoire}>
                   {repertoirePieces.map((piece, index) => (
-                    <li key={`${piece}-${index}`}>{piece}</li>
+                    <li key={`${piece.raw}-${index}`} className={styles.repertoireItem}>
+                      <span className={styles.repertoireTitle}>{piece.title}</span>
+                      {piece.composer || piece.poet || piece.detail ? (
+                        <span className={styles.repertoireMeta}>
+                          {piece.composer ? `Composer: ${piece.composer}` : ""}
+                          {piece.poet ? `${piece.composer ? " · " : ""}Poet: ${piece.poet}` : ""}
+                          {piece.detail
+                            ? `${piece.composer || piece.poet ? " · " : ""}${piece.detail}`
+                            : ""}
+                        </span>
+                      ) : null}
+                    </li>
                   ))}
                 </ol>
               )}

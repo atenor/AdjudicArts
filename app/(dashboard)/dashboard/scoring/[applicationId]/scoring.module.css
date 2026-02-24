@@ -134,8 +134,23 @@
   padding-left: 1.2rem;
   color: #4a3d6b;
   display: grid;
-  gap: 0.32rem;
+  gap: 0.5rem;
   font-size: 0.9rem;
+}
+
+.repertoireItem {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.repertoireTitle {
+  color: #1e1538;
+  font-weight: 650;
+}
+
+.repertoireMeta {
+  color: #6e628f;
+  font-size: 0.78rem;
 }
 
 .backLink {

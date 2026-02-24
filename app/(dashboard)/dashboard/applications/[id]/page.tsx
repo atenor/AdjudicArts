@@ -12,6 +12,7 @@ import AdvanceApplicationStatusButtons from "@/components/applications/advance-a
 import DeleteApplicationButton from "@/components/applications/delete-application-button";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
+import { parseRepertoireEntries } from "@/lib/repertoire";
 
 const STATUS_FLOW: ApplicationStatus[] = [
   "SUBMITTED",
@@ -21,34 +22,6 @@ const STATUS_FLOW: ApplicationStatus[] = [
   "NATIONAL_APPROVED",
   "DECIDED",
 ];
-
-function parseRepertoire(repertoire: string | null) {
-  if (!repertoire) return [];
-
-  const normalized = repertoire.replace(/\r/g, "").trim();
-  if (!normalized) return [];
-
-  if (normalized.includes("\n")) {
-    return normalized
-      .split("\n")
-      .map((piece) => piece.trim())
-      .filter(Boolean);
-  }
-
-  const byComposer = normalized
-    .split(/\),\s*/)
-    .map((piece, index, pieces) =>
-      index < pieces.length - 1 ? `${piece})` : piece
-    )
-    .map((piece) => piece.trim())
-    .filter(Boolean);
-  if (byComposer.length > 1) return byComposer;
-
-  return normalized
-    .split(/\s*;\s*/)
-    .map((piece) => piece.trim())
-    .filter(Boolean);
-}
 
 function deriveStatusTimeline(status: ApplicationStatus): ApplicationStatus[] {
   if (status === "CHAPTER_REJECTED") {
@@ -81,7 +54,7 @@ export default async function ApplicationDetailPage({
   const application = await getApplicationById(params.id, session.user.organizationId);
   if (!application) notFound();
   const timeline = deriveStatusTimeline(application.status);
-  const repertoirePieces = parseRepertoire(application.repertoire);
+  const repertoirePieces = parseRepertoireEntries(application.repertoire);
 
   return (
     <div className="space-y-8">
@@ -119,9 +92,20 @@ export default async function ApplicationDetailPage({
             {repertoirePieces.length === 0 ? (
               <p className="text-sm text-muted-foreground">—</p>
             ) : (
-              <ol className="list-decimal pl-5 space-y-1 text-sm">
+              <ol className="list-decimal pl-5 space-y-2 text-sm">
                 {repertoirePieces.map((piece, index) => (
-                  <li key={`${piece}-${index}`}>{piece}</li>
+                  <li key={`${piece.raw}-${index}`}>
+                    <p className="font-medium">{piece.title}</p>
+                    {piece.composer || piece.poet || piece.detail ? (
+                      <p className="text-xs text-muted-foreground">
+                        {piece.composer ? `Composer: ${piece.composer}` : ""}
+                        {piece.poet ? `${piece.composer ? " · " : ""}Poet: ${piece.poet}` : ""}
+                        {piece.detail
+                          ? `${piece.composer || piece.poet ? " · " : ""}${piece.detail}`
+                          : ""}
+                      </p>
+                    ) : null}
+                  </li>
                 ))}
               </ol>
             )}
