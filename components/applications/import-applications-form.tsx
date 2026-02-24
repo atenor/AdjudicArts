@@ -338,7 +338,7 @@ export default function ImportApplicationsForm({
           <Button
             type="button"
             onClick={importAll}
-            disabled={!csvData || isImporting || previewRows.length === 0}
+            disabled={!csvData || isImporting}
           >
             {isImporting
               ? "Importing..."
