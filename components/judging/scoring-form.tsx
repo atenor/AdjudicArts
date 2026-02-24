@@ -65,8 +65,9 @@ export default function ScoringForm({
     const filled = numericScores.length;
     const max = criteria.length * 10;
     const average = filled > 0 ? total / filled : 0;
+    const normalizedTotal = max > 0 ? Math.round((total / max) * 100) : 0;
 
-    return { total, filled, max, average };
+    return { total, filled, max, average, normalizedTotal };
   }, [criteria, values]);
 
   const aggregatedNotes = useMemo(
@@ -181,7 +182,7 @@ export default function ScoringForm({
             Filled {scoreSummary.filled}/{criteria.length} · Avg {scoreSummary.average.toFixed(2)}
           </p>
         </div>
-        <p className={styles.summaryTotal}>{scoreSummary.total.toFixed(1)}</p>
+        <p className={styles.summaryTotal}>{scoreSummary.normalizedTotal}/100</p>
       </div>
 
       {criteria.map((criterion) => {
@@ -191,41 +192,39 @@ export default function ScoringForm({
           <section key={criterion.id} className={styles.criterion}>
             <div>
               <p className={styles.criterionTitle}>
-                {criterion.order}. {criterion.name}
+                <span className={styles.criterionName}>
+                  {criterion.order}. {criterion.name}
+                </span>
                 {criterion.description ? (
                   <span className={styles.criterionInlineHelp}>
-                    {" "}
                     ({criterion.description})
                   </span>
                 ) : null}
               </p>
             </div>
 
-            <div className={styles.stack}>
-              <p className={styles.label}>Score (tap 0-10)</p>
-              <div className={styles.scoreGrid}>
-                {SCORE_OPTIONS.map((score) => {
-                  const isSelected = selectedValue === score;
-                  const isFilled = selectedValue !== null && score <= selectedValue;
-                  return (
-                    <button
-                      key={`${criterion.id}-${score}`}
-                      type="button"
-                      className={`${styles.scoreChip} ${isFilled ? styles.scoreChipFilled : ""} ${
-                        isSelected ? styles.scoreChipSelected : ""
-                      }`}
-                      onClick={() =>
-                        setValues((current) => ({
-                          ...current,
-                          [criterion.id]: String(score),
-                        }))
-                      }
-                    >
-                      {score}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className={styles.scoreGrid}>
+              {SCORE_OPTIONS.map((score) => {
+                const isSelected = selectedValue === score;
+                const isFilled = selectedValue !== null && score <= selectedValue;
+                return (
+                  <button
+                    key={`${criterion.id}-${score}`}
+                    type="button"
+                    className={`${styles.scoreChip} ${isFilled ? styles.scoreChipFilled : ""} ${
+                      isSelected ? styles.scoreChipSelected : ""
+                    }`}
+                    onClick={() =>
+                      setValues((current) => ({
+                        ...current,
+                        [criterion.id]: String(score),
+                      }))
+                    }
+                  >
+                    {score}
+                  </button>
+                );
+              })}
             </div>
 
             <div className={styles.stack}>
