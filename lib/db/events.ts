@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { EventStatus } from "@prisma/client";
+import { EventStatus, Role } from "@prisma/client";
 
 export async function listEventsByOrg(organizationId: string) {
   return prisma.event.findMany({
@@ -66,19 +66,64 @@ export async function deleteEventById(id: string, organizationId: string) {
   });
   if (!event) return null;
 
-  const applicationCount = await prisma.application.count({
-    where: { eventId: event.id, organizationId },
-  });
-
-  if (applicationCount > 0) {
-    return {
-      ok: false as const,
-      reason: "EVENT_HAS_APPLICATIONS",
-      applicationCount,
-    };
-  }
-
   await prisma.$transaction(async (tx) => {
+    const applications = await tx.application.findMany({
+      where: { eventId: event.id, organizationId },
+      select: { id: true, applicantId: true },
+    });
+    const applicationIds = applications.map((application) => application.id);
+    const applicantIds = Array.from(
+      new Set(applications.map((application) => application.applicantId))
+    );
+
+    let deletedScores = 0;
+    let deletedApplications = 0;
+    let deletedApplicants = 0;
+
+    if (applicationIds.length > 0) {
+      const scoreDeleteResult = await tx.score.deleteMany({
+        where: { organizationId, applicationId: { in: applicationIds } },
+      });
+      deletedScores = scoreDeleteResult.count;
+
+      const applicationDeleteResult = await tx.application.deleteMany({
+        where: { organizationId, id: { in: applicationIds } },
+      });
+      deletedApplications = applicationDeleteResult.count;
+    }
+
+    if (applicantIds.length > 0) {
+      const applicantsWithOtherApplications = await tx.application.groupBy({
+        by: ["applicantId"],
+        where: {
+          organizationId,
+          applicantId: { in: applicantIds },
+        },
+        _count: { applicantId: true },
+      });
+
+      const applicantIdsWithOtherApplications = new Set(
+        applicantsWithOtherApplications
+          .filter((row) => row._count.applicantId > 0)
+          .map((row) => row.applicantId)
+      );
+
+      const orphanApplicantIds = applicantIds.filter(
+        (applicantId) => !applicantIdsWithOtherApplications.has(applicantId)
+      );
+
+      if (orphanApplicantIds.length > 0) {
+        const deletedApplicantRows = await tx.user.deleteMany({
+          where: {
+            organizationId,
+            role: Role.APPLICANT,
+            id: { in: orphanApplicantIds },
+          },
+        });
+        deletedApplicants = deletedApplicantRows.count;
+      }
+    }
+
     const rounds = await tx.round.findMany({
       where: { eventId: event.id, organizationId },
       select: { id: true },
@@ -104,6 +149,13 @@ export async function deleteEventById(id: string, organizationId: string) {
     }
 
     await tx.event.delete({ where: { id: event.id } });
+
+    return {
+      deletedScores,
+      deletedApplications,
+      deletedApplicants,
+      deletedRounds: roundIds.length,
+    };
   });
 
   return {

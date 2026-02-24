@@ -96,16 +96,6 @@ export async function DELETE(
   if (!deleted) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
-  if (!deleted.ok) {
-    return Response.json(
-      {
-        error: "Cannot delete event with existing applications. Purge participants first.",
-        code: deleted.reason,
-        applicationCount: deleted.applicationCount,
-      },
-      { status: 409 }
-    );
-  }
 
   return Response.json({ ok: true });
 }

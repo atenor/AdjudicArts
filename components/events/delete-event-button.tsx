@@ -11,7 +11,7 @@ export default function DeleteEventButton({ eventId }: { eventId: string }) {
 
   async function onDelete() {
     const ok = window.confirm(
-      "Delete this event? You can only delete events with no participant applications."
+      "Delete this event and all related data? This will permanently remove participant applications, scores, rounds, and assignments for this event."
     );
     if (!ok) return;
 
@@ -25,16 +25,14 @@ export default function DeleteEventButton({ eventId }: { eventId: string }) {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(
-          payload?.error ?? "Unable to delete event. Remove participants first."
-        );
+        setError(payload?.error ?? "Unable to delete event.");
         return;
       }
 
       router.push("/dashboard/events");
       router.refresh();
     } catch {
-      setError("Unable to delete event. Remove participants first.");
+      setError("Unable to delete event.");
     } finally {
       setIsDeleting(false);
     }
