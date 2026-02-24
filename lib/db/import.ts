@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { parse } from "csv-parse/sync";
 import { randomUUID } from "crypto";
 import { prisma } from "../prisma";
+import { buildApplicationMetadata } from "@/lib/application-metadata";
 
 type CsvRow = Record<string, string>;
 
@@ -38,6 +39,27 @@ function getValue(row: CsvRow, keys: string[]): string | null {
   }
 
   return null;
+}
+
+function normalizeVoicePart(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  const map: Record<string, string> = {
+    soprano: "soprano",
+    mezzo: "mezzo",
+    "mezzo-soprano": "mezzo",
+    tenor: "tenor",
+    baritone: "baritone",
+    bass: "bass",
+  };
+
+  return map[normalized] ?? normalized;
+}
+
+function compactCsvProfile(row: CsvRow) {
+  return Object.fromEntries(
+    Object.entries(row).filter(([, value]) => clean(value) !== null)
+  );
 }
 
 function parseDate(value: string | null): Date | null {
@@ -157,7 +179,7 @@ export function getApplicantPreview(rows: CsvRow[], limit = 5) {
     firstName: getValue(row, ["First Name"]) ?? "",
     lastName: getValue(row, ["Last Name"]) ?? "",
     email: getValue(row, ["Email Address"]) ?? "",
-    chapter: getValue(row, ["Choose Your Chapter"]) ?? "",
+    chapter: getValue(row, ["Choose Your Chapter", "Chapter"]) ?? "",
     playlist: getValue(row, ["YouTube Playlist Link"]) ?? "",
   }));
 }
@@ -274,14 +296,17 @@ export async function importApplicantFromRow(
     });
   }
 
-  const chapter = getValue(row, ["Choose Your Chapter"]);
-  const dateOfBirth = parseDate(getValue(row, ["Date of Birth"]));
-  const gender = getValue(row, ["Gender"]);
-  const phone = getValue(row, ["Phone"]);
-  const address = getValue(row, ["Street Address"]);
+  const chapter = getValue(row, ["Choose Your Chapter", "Chapter"]);
+  const dateOfBirth = parseDate(getValue(row, ["Date of Birth", "DOB", "Birth Date"]));
+  const gender = getValue(row, ["Gender", "Pronouns"]);
+  const phone = getValue(row, ["Phone", "Phone Number"]);
+  const address = getValue(row, ["Street Address", "Address"]);
   const city = getValue(row, ["City"]);
-  const state = getValue(row, ["State"]);
-  const zip = getValue(row, ["Zip"]);
+  const state = getValue(row, ["State", "Province"]);
+  const zip = getValue(row, ["Zip", "Postal Code"]);
+  const voicePart = normalizeVoicePart(
+    getValue(row, ["Voice Part", "Voice Type", "Division", "Category", "Part"])
+  );
   const schoolName = getValue(row, ["School Name (If Applicable)"]);
   const schoolCity = getValue(row, ["School City (If Applicable)"]);
   const schoolState = getValue(row, ["School State (If Applicable)"]);
@@ -290,10 +315,13 @@ export async function importApplicantFromRow(
   const major = getValue(row, ["If in College: What is your major?", "Major"]);
   const careerPlans = getValue(row, ["Tell Us About Your Future Career Plans"]);
   const scholarshipUse = getValue(row, ["how do you plan to use the funds"]);
-  const video1Title = getValue(row, ["Video #1: Title and Composer"]);
-  const video2Title = getValue(row, ["Video #2: Title and Composer"]);
-  const video3Title = getValue(row, ["Video #3: Title and Composer"]);
+  const video1Title = getValue(row, ["Video #1: Title and Composer", "Video 1 Title"]);
+  const video2Title = getValue(row, ["Video #2: Title and Composer", "Video 2 Title"]);
+  const video3Title = getValue(row, ["Video #3: Title and Composer", "Video 3 Title"]);
   const youtubePlaylist = getValue(row, ["YouTube Playlist Link"]);
+  const explicitVideo1Url = getValue(row, ["Video 1 URL", "Video #1 URL"]);
+  const explicitVideo2Url = getValue(row, ["Video 2 URL", "Video #2 URL"]);
+  const explicitVideo3Url = getValue(row, ["Video 3 URL", "Video #3 URL"]);
   const headshot = toDriveThumbnail(
     getValue(row, ["High-Quality Headshot", "Performance Photograph"])
   );
@@ -302,11 +330,40 @@ export async function importApplicantFromRow(
   const parentEmail = getValue(row, ["Parent/Guardian Email"]);
 
   const resolvedVideoUrls = await resolvePlaylistVideoUrls(youtubePlaylist);
-  const [video1Url, video2Url, video3Url] = resolvedVideoUrls;
+  const mergedVideoUrls = [explicitVideo1Url, explicitVideo2Url, explicitVideo3Url]
+    .map((url) => clean(url))
+    .filter((url): url is string => Boolean(url));
+  if (mergedVideoUrls.length === 0) {
+    mergedVideoUrls.push(...resolvedVideoUrls);
+  }
+  const [video1Url, video2Url, video3Url] = mergedVideoUrls;
 
-  const repertoire = [video1Title, video2Title, video3Title]
+  const repertoireFromVideos = [video1Title, video2Title, video3Title]
     .filter((title): title is string => Boolean(title))
     .join("\n");
+  const repertoire =
+    clean(
+      getValue(row, ["Repertoire", "Program", "Song List", "Pieces", "Titles"])
+    ) ?? clean(repertoireFromVideos);
+
+  const metadataSeed = JSON.parse(
+    buildApplicationMetadata({
+      voicePart: voicePart ?? undefined,
+      videoUrls: [video1Url, video2Url, video3Url].filter(
+        (url): url is string => Boolean(url)
+      ),
+    })
+  ) as Record<string, unknown>;
+  const notes = JSON.stringify({
+    ...metadataSeed,
+    importProfile: {
+      chapter,
+      applicantName,
+      parentName,
+      parentEmail,
+      rawCsv: compactCsvProfile(row),
+    },
+  });
 
   const applicationData = {
     organizationId,
@@ -339,7 +396,8 @@ export async function importApplicantFromRow(
     bio,
     parentName,
     parentEmail,
-    repertoire: clean(repertoire),
+    repertoire,
+    notes,
   };
 
   const existingApplication = await prisma.application.findFirst({
