@@ -14,18 +14,24 @@ export default function FavouriteButton() {
         background: "none",
         border: "none",
         cursor: "pointer",
-        padding: "0.1rem 0.2rem",
+        padding: "0.18rem 0.3rem",
         lineHeight: 1,
         display: "inline-flex",
         alignItems: "center",
+        borderRadius: "999px",
+        boxShadow: active
+          ? "0 0 0 1px rgba(201,168,76,0.4), 0 2px 10px rgba(201,168,76,0.22)"
+          : "0 0 0 1px rgba(201,168,76,0.24)",
+        background: active ? "rgba(201,168,76,0.14)" : "rgba(201,168,76,0.06)",
+        transition: "all 160ms ease",
       }}
     >
       <svg
-        width="18"
-        height="18"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
-        fill={active ? "#C9A84C" : "none"}
-        stroke={active ? "#C9A84C" : "rgba(201,168,76,0.55)"}
+        fill={active ? "#E0C070" : "none"}
+        stroke={active ? "#C9A84C" : "rgba(201,168,76,0.9)"}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
