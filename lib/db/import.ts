@@ -306,7 +306,13 @@ export async function importApplicantFromRow(
   const state = getValue(row, ["State", "Province"]);
   const zip = getValue(row, ["Zip", "Postal Code"]);
   const voicePart = normalizeVoicePart(
-    getValue(row, ["Voice Part", "Voice Type", "Division", "Category", "Part"])
+    getValue(row, [
+      "Voice Part",
+      "Voice Type",
+      "Division",
+      "Division / Voice Part",
+      "Category / Voice Part",
+    ])
   );
   const schoolName = getValue(row, ["School Name (If Applicable)", "School Name"]);
   const schoolCity = getValue(row, ["School City (If Applicable)", "School City"]);
@@ -364,6 +370,13 @@ export async function importApplicantFromRow(
   if (mergedVideoUrls.length === 0) {
     mergedVideoUrls.push(...resolvedVideoUrls);
   }
+
+  if (youtubePlaylist && mergedVideoUrls.length < 3) {
+    throw new Error(
+      "Could not resolve 3 video submissions from the YouTube playlist. Verify playlist visibility and API key setup."
+    );
+  }
+
   const [video1Url, video2Url, video3Url] = mergedVideoUrls;
 
   const repertoireFromVideos = [video1Title, video2Title, video3Title]
