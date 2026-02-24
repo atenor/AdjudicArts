@@ -45,6 +45,39 @@ type PurgeResult = {
 
 type ImportStatus = "idle" | "running" | "success" | "error";
 
+function extractApiError(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== "object") return fallback;
+  const obj = payload as Record<string, unknown>;
+  const error = obj.error;
+
+  if (typeof error === "string" && error.trim().length > 0) return error;
+  if (error && typeof error === "object") {
+    const errorObj = error as Record<string, unknown>;
+    const formErrors = errorObj.formErrors;
+    if (Array.isArray(formErrors)) {
+      const first = formErrors.find(
+        (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+      );
+      if (first) return first;
+    }
+
+    const fieldErrors = errorObj.fieldErrors;
+    if (fieldErrors && typeof fieldErrors === "object") {
+      for (const value of Object.values(fieldErrors as Record<string, unknown>)) {
+        if (Array.isArray(value)) {
+          const first = value.find(
+            (entry): entry is string =>
+              typeof entry === "string" && entry.trim().length > 0
+          );
+          if (first) return first;
+        }
+      }
+    }
+  }
+
+  return fallback;
+}
+
 export default function ImportApplicationsForm({
   events,
 }: {
@@ -152,7 +185,7 @@ export default function ImportApplicationsForm({
 
       const data = await response.json();
       if (!response.ok) {
-        setError(data?.error?.formErrors?.[0] ?? data?.error ?? "Unable to preview CSV.");
+        setError(extractApiError(data, "Unable to preview CSV."));
         return;
       }
 
@@ -190,10 +223,11 @@ export default function ImportApplicationsForm({
 
       const data = await response.json();
       if (!response.ok) {
-        setError(data?.error?.formErrors?.[0] ?? data?.error ?? "Unable to import CSV.");
+        const message = extractApiError(data, "Unable to import CSV.");
+        setError(message);
         setImportStatus("error");
         setImportProgress(100);
-        setStatusMessage("Import failed.");
+        setStatusMessage(`Import failed: ${message}`);
         return;
       }
 
@@ -210,7 +244,7 @@ export default function ImportApplicationsForm({
       setError("Unable to import CSV.");
       setImportStatus("error");
       setImportProgress(100);
-      setStatusMessage("Import failed.");
+      setStatusMessage("Import failed: network or server error.");
     } finally {
       stopProgressTicker();
       setIsImporting(false);
@@ -246,7 +280,7 @@ export default function ImportApplicationsForm({
 
       const data = await response.json();
       if (!response.ok) {
-        setError(data?.error ?? "Unable to purge event applications.");
+        setError(extractApiError(data, "Unable to purge event applications."));
         return;
       }
       setPurgeResult(data);
@@ -387,9 +421,14 @@ export default function ImportApplicationsForm({
       {result ? (
         <div className="space-y-2 rounded-lg border p-4">
           <h3 className="font-medium">Import Results</h3>
-          <p className="text-sm">
+          <p className={`text-sm ${result.errors.length > 0 ? "text-amber-700" : ""}`}>
             {result.imported} imported, {result.errors.length} errors
           </p>
+          {result.imported === 0 ? (
+            <p className="text-sm text-destructive font-medium">
+              No rows were imported. Review the row errors below.
+            </p>
+          ) : null}
           <p className="text-sm text-muted-foreground">
             Created users: {result.createdUsers} | Created applications: {result.createdApplications} | Updated applications: {result.updatedApplications}
           </p>
