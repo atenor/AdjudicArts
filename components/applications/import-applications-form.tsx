@@ -200,6 +200,12 @@ export default function ImportApplicationsForm({
 
   async function importAll() {
     if (!csvData || !selectedEventId) return;
+    if (alreadyImportedCurrentFile) {
+      const confirmed = window.confirm(
+        "This file already appears to have been imported for this event. Import again anyway?"
+      );
+      if (!confirmed) return;
+    }
 
     setError(null);
     setResult(null);
@@ -332,9 +338,13 @@ export default function ImportApplicationsForm({
           <Button
             type="button"
             onClick={importAll}
-            disabled={!csvData || isImporting || previewRows.length === 0 || alreadyImportedCurrentFile}
+            disabled={!csvData || isImporting || previewRows.length === 0}
           >
-            {isImporting ? "Importing..." : "Import All"}
+            {isImporting
+              ? "Importing..."
+              : alreadyImportedCurrentFile
+                ? "Import Again"
+                : "Import All"}
           </Button>
           {fileName ? (
             <span className="text-muted-foreground">Selected: {fileName}</span>
