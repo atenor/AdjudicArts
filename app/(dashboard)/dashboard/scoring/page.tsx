@@ -13,8 +13,13 @@ import ApplicationStatusBadge from "@/components/applications/application-status
 import { Badge } from "@/components/ui/badge";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
+import HeadshotPreview from "@/components/shared/headshot-preview";
 
-export default async function ScoringQueuePage() {
+export default async function ScoringQueuePage({
+  searchParams,
+}: {
+  searchParams: { view?: string };
+}) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   if (!hasRole(session, "CHAPTER_JUDGE", "NATIONAL_JUDGE")) {
@@ -29,14 +34,38 @@ export default async function ScoringQueuePage() {
 
   const totalApplications = queue.reduce((sum, round) => sum + round.totalCount, 0);
   const totalScored = queue.reduce((sum, round) => sum + round.scoredCount, 0);
+  const view = searchParams.view === "compact" ? "compact" : "detailed";
 
   return (
     <div className="min-w-0 space-y-6">
-      <div className="space-y-1">
+      <div className="space-y-2">
         <h1 className="text-2xl font-semibold">Scoring Queue</h1>
         <p className="text-sm text-muted-foreground">
           {totalScored} of {totalApplications} applications scored
         </p>
+        <div className="flex items-center gap-2 pt-1">
+          <span className="text-sm text-muted-foreground">View:</span>
+          <Link
+            href="/dashboard/scoring?view=detailed"
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              view === "detailed"
+                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
+                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+            }`}
+          >
+            Detailed
+          </Link>
+          <Link
+            href="/dashboard/scoring?view=compact"
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              view === "compact"
+                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
+                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+            }`}
+          >
+            Compact
+          </Link>
+        </div>
       </div>
 
       {queue.length === 0 ? (
@@ -88,37 +117,51 @@ export default async function ScoringQueuePage() {
                           </div>
                           <div className="divide-y">
                             {applications.map((application) => (
-                              <Link
+                              <div
                                 key={application.id}
-                                href={`/dashboard/scoring/${application.id}`}
                                 className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30"
                               >
                                 <div className="flex min-w-0 items-center gap-2">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
+                                  <HeadshotPreview
                                     src={getDisplayHeadshot(application.headshot, application.id)}
                                     alt={`${application.applicant.name} headshot`}
-                                    className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
-                                    loading="lazy"
+                                    triggerClassName={
+                                      view === "compact"
+                                        ? "h-11 w-11 rounded-full object-cover border border-border/70 bg-muted"
+                                        : "h-12 w-12 rounded-full object-cover border border-border/70 bg-muted"
+                                    }
                                   />
                                   <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold">
+                                    <Link
+                                      href={`/dashboard/scoring/${application.id}`}
+                                      className="truncate text-sm font-semibold hover:underline"
+                                    >
                                       {application.applicant.name}
-                                    </p>
-                                    <p className="truncate text-xs text-muted-foreground">
-                                      {application.chapter || "No chapter"}
-                                    </p>
+                                    </Link>
+                                    {view === "detailed" ? (
+                                      <p className="truncate text-xs text-muted-foreground">
+                                        {application.chapter || "No chapter"}
+                                      </p>
+                                    ) : null}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <ApplicationStatusBadge status={application.status} />
+                                  {view === "detailed" ? (
+                                    <ApplicationStatusBadge status={application.status} />
+                                  ) : null}
                                   {application.isScored ? (
                                     <Badge variant="default">Scored</Badge>
                                   ) : (
                                     <Badge variant="secondary">Pending</Badge>
                                   )}
+                                  <Link
+                                    href={`/dashboard/scoring/${application.id}`}
+                                    className="rounded-md border border-[#cfc3e3] px-2 py-1 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
+                                  >
+                                    Open
+                                  </Link>
                                 </div>
-                              </Link>
+                              </div>
                             ))}
                           </div>
                         </article>

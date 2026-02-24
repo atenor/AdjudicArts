@@ -11,6 +11,7 @@ import ApplicationStatusBadge from "@/components/applications/application-status
 import AdvanceApplicationStatusButtons from "@/components/applications/advance-application-status-buttons";
 import DeleteApplicationButton from "@/components/applications/delete-application-button";
 import ApplicationProfileEditor from "@/components/applications/application-profile-editor";
+import HeadshotPreview from "@/components/shared/headshot-preview";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import { parseRepertoireEntries } from "@/lib/repertoire";
@@ -186,22 +187,14 @@ export default async function ApplicationDetailPage({
 
       <section className="rounded-xl border border-[#d8cce9] bg-white p-4 shadow-sm">
         <div className="grid gap-4 md:grid-cols-[6.5rem,1fr]">
-          <Link
-            href={headshotUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="group block"
-            title="Open full-size headshot"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="group block" title="Open larger headshot">
+            <HeadshotPreview
               src={headshotUrl}
               alt={`${application.applicant.name} headshot`}
-              className="h-32 w-24 rounded-xl border border-[#cbb7e8] object-cover shadow-sm transition group-hover:scale-[1.02]"
-              loading="lazy"
+              triggerClassName="h-32 w-24 rounded-xl border border-[#cbb7e8] object-cover shadow-sm transition group-hover:scale-[1.02]"
             />
             <p className="mt-2 text-xs font-medium text-[#7f6aa9]">Open full-size photo</p>
-          </Link>
+          </div>
 
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">

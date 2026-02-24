@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ApplicationStatus } from "@prisma/client";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
+import HeadshotPreview from "@/components/shared/headshot-preview";
 
 type ApplicationRow = {
   id: string;
@@ -128,12 +129,10 @@ export default function BatchApplicationsTable({
             className="rounded-xl border border-[#d7cde9] bg-[#f8f4ff] p-4 shadow-sm transition hover:border-[#b9a4df] hover:shadow-md"
           >
             <div className="flex items-start gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <HeadshotPreview
                 src={application.headshotUrl}
                 alt={`${application.applicantName} headshot`}
-                className="h-16 w-16 rounded-xl border border-[#cab7e6] object-cover bg-white"
-                loading="lazy"
+                triggerClassName="h-20 w-20 rounded-xl border border-[#cab7e6] object-cover bg-white"
               />
 
               <div className="min-w-0 flex-1">
