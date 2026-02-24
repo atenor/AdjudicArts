@@ -217,7 +217,7 @@
   .mobileTopVideo {
     display: grid;
     position: sticky;
-    top: 66px;
+    top: env(safe-area-inset-top, 0px);
     z-index: 40;
   }
 
