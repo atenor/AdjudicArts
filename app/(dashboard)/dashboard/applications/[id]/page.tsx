@@ -150,7 +150,7 @@ export default async function ApplicationDetailPage({
               </ol>
             )}
             <p>
-              <span className="text-muted-foreground">Submitted:</span>{" "}
+              <span className="text-muted-foreground">Application Submitted:</span>{" "}
               {application.submittedAt.toLocaleString("en-US")}
             </p>
           </div>
@@ -246,20 +246,26 @@ export default async function ApplicationDetailPage({
       </section>
 
       <section className="space-y-3 rounded-lg border p-4">
-        <h2 className="font-medium">Submission Narrative</h2>
-        <div className="space-y-2 text-sm">
-          <p>
-            <span className="text-muted-foreground">Career Plans:</span>{" "}
-            {valueOrDash(application.careerPlans)}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Scholarship Use:</span>{" "}
-            {valueOrDash(application.scholarshipUse)}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Bio:</span>{" "}
-            {valueOrDash(application.bio)}
-          </p>
+        <h2 className="font-medium">Application Narrative</h2>
+        <div className="grid gap-3 md:grid-cols-3">
+          <article className="space-y-2 rounded-md border p-3">
+            <h3 className="text-sm font-semibold">Future Career Plans</h3>
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {valueOrDash(application.careerPlans)}
+            </p>
+          </article>
+          <article className="space-y-2 rounded-md border p-3">
+            <h3 className="text-sm font-semibold">Scholarship Use</h3>
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {valueOrDash(application.scholarshipUse)}
+            </p>
+          </article>
+          <article className="space-y-2 rounded-md border p-3">
+            <h3 className="text-sm font-semibold">Bio</h3>
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {valueOrDash(application.bio)}
+            </p>
+          </article>
         </div>
       </section>
 
