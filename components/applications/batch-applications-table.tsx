@@ -109,7 +109,7 @@ export default function BatchApplicationsTable({
       )}
 
       {canBatchDelete ? (
-        <label className="flex items-center gap-2 rounded-lg border border-[#d7cde9] bg-white px-3 py-2 text-sm text-[#4a3d6b]">
+        <label className="flex items-center gap-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] px-3 py-2 text-sm text-[#4a3d6b]">
           <input
             type="checkbox"
             aria-label="Select all applications"
@@ -125,14 +125,14 @@ export default function BatchApplicationsTable({
         {applications.map((application) => (
           <article
             key={application.id}
-            className="rounded-xl border border-[#e7c65e] bg-[#fbf7ea] p-4 shadow-sm"
+            className="rounded-xl border border-[#d7cde9] bg-[#f8f4ff] p-4 shadow-sm transition hover:border-[#b9a4df] hover:shadow-md"
           >
             <div className="flex items-start gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={application.headshotUrl}
                 alt={`${application.applicantName} headshot`}
-                className="h-16 w-16 rounded-xl border border-[#d7cde9] object-cover bg-white"
+                className="h-16 w-16 rounded-xl border border-[#cab7e6] object-cover bg-white"
                 loading="lazy"
               />
 
@@ -147,10 +147,10 @@ export default function BatchApplicationsTable({
                       aria-label={`Select ${application.applicantName}`}
                       checked={selectedSet.has(application.id)}
                       onChange={(event) => toggleOne(application.id, event.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-[#bca9df]"
-                    />
-                  ) : null}
-                </div>
+                    className="mt-1 h-4 w-4 rounded border-[#bca9df] text-[#5f2ec8]"
+                  />
+                ) : null}
+              </div>
 
                 <p className="mt-0.5 text-base text-[#2e3558]">
                   {application.divisionLabel ?? "Division —"}
@@ -170,7 +170,7 @@ export default function BatchApplicationsTable({
 
             <Link
               href={`/dashboard/applications/${application.id}`}
-              className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#5b4bf3] to-[#4637e5] text-sm font-medium text-white shadow-sm transition hover:from-[#4f40dd] hover:to-[#3d30cc]"
+              className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#5f2ec8] to-[#462b7c] text-sm font-medium text-white shadow-sm transition hover:from-[#5327b2] hover:to-[#3e256f]"
             >
               Review Application
             </Link>
