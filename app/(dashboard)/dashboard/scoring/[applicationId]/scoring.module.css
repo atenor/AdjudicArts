@@ -15,10 +15,6 @@
   gap: 0.9rem;
 }
 
-.mobileTopVideo {
-  display: none;
-}
-
 .right {
   min-width: 0;
   display: grid;
@@ -226,14 +222,17 @@
 
 @media (max-width: 979px) {
   .right {
-    display: none;
-  }
-
-  .mobileTopVideo {
     display: grid;
+    order: -1;
     position: sticky;
     top: env(safe-area-inset-top, 0px);
     z-index: 40;
+  }
+
+  .stickyPanel {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
   }
 
   .desktopOnly {
