@@ -1,6 +1,7 @@
 .form {
   display: grid;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .summaryBand {
@@ -44,6 +45,7 @@
   padding: 0.7rem;
   display: grid;
   gap: 0.6rem;
+  min-width: 0;
 }
 
 .criterionTitle {
@@ -52,10 +54,11 @@
   font-size: 1rem;
   font-weight: 800;
   line-height: 1.2;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
   gap: 0.35rem;
-  white-space: nowrap;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -79,6 +82,7 @@
 .stack {
   display: grid;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .label {
@@ -95,6 +99,7 @@
   flex-wrap: nowrap;
   gap: 0.3rem;
   overflow-x: auto;
+  max-width: 100%;
   padding-bottom: 0.2rem;
   margin-top: 0.05rem;
   scrollbar-width: thin;
@@ -126,6 +131,8 @@
 
 .quickNote {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid rgba(70, 43, 124, 0.28);
   border-radius: 7px;
   background: #ffffff;
@@ -149,6 +156,8 @@
 
 .noteBox {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid rgba(70, 43, 124, 0.28);
   border-radius: 7px;
   background: #ffffff;
