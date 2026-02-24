@@ -58,6 +58,13 @@ export default async function ApplicationDetailPage({
 
   return (
     <div className="space-y-8">
+      <Link
+        href="/dashboard/applications"
+        className="inline-block text-sm text-muted-foreground hover:underline"
+      >
+        ← Back to applications
+      </Link>
+
       <div className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -165,12 +172,6 @@ export default async function ApplicationDetailPage({
         )}
       </section>
 
-      <Link
-        href="/dashboard/applications"
-        className="inline-block text-sm text-muted-foreground hover:underline"
-      >
-        ← Back to applications
-      </Link>
     </div>
   );
 }
