@@ -24,9 +24,11 @@ type ApplicationRow = {
 export default function BatchApplicationsTable({
   applications,
   canBatchDelete,
+  viewMode = "cards",
 }: {
   applications: ApplicationRow[];
   canBatchDelete: boolean;
+  viewMode?: "cards" | "list";
 }) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -122,60 +124,120 @@ export default function BatchApplicationsTable({
         </label>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {applications.map((application) => (
-          <article
-            key={application.id}
-            className="rounded-xl border border-[#d7cde9] bg-[#f8f4ff] p-4 shadow-sm transition hover:border-[#b9a4df] hover:shadow-md"
-          >
-            <div className="flex items-start gap-3">
-              <HeadshotPreview
-                src={application.headshotUrl}
-                alt={`${application.applicantName} headshot`}
-                triggerClassName="h-20 w-20 rounded-xl border border-[#cab7e6] object-cover bg-white"
-              />
+      {viewMode === "cards" ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {applications.map((application) => (
+            <article
+              key={application.id}
+              className="rounded-xl border border-[#d7cde9] bg-[#f8f4ff] p-4 shadow-sm transition hover:border-[#b9a4df] hover:shadow-md"
+            >
+              <div className="flex items-start gap-3">
+                <HeadshotPreview
+                  src={application.headshotUrl}
+                  alt={`${application.applicantName} headshot`}
+                  triggerClassName="h-20 w-20 rounded-xl border border-[#cab7e6] object-cover bg-white"
+                />
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="truncate text-xl font-semibold text-[#1e1538]">
-                    {application.applicantName}
-                  </h3>
-                  {canBatchDelete ? (
-                    <input
-                      type="checkbox"
-                      aria-label={`Select ${application.applicantName}`}
-                      checked={selectedSet.has(application.id)}
-                      onChange={(event) => toggleOne(application.id, event.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-[#bca9df] text-[#5f2ec8]"
-                  />
-                ) : null}
-              </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="truncate text-xl font-semibold text-[#1e1538]">
+                      {application.applicantName}
+                    </h3>
+                    {canBatchDelete ? (
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${application.applicantName}`}
+                        checked={selectedSet.has(application.id)}
+                        onChange={(event) => toggleOne(application.id, event.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-[#bca9df] text-[#5f2ec8]"
+                      />
+                    ) : null}
+                  </div>
 
-                <p className="mt-0.5 text-base text-[#2e3558]">
-                  {application.divisionLabel ?? "Division —"}
-                  {typeof application.age === "number" ? ` • Age ${application.age}` : ""}
-                </p>
-                <p className="text-sm text-[#425173]">{application.chapter ?? "Chapter pending"}</p>
-                <p className="mt-0.5 text-sm text-[#4e5f80]">{application.applicantEmail}</p>
-                <p className="mt-0.5 text-xs text-[#5f4d83]">
-                  {application.voicePartLabel} · {application.eventName}
-                </p>
-                <div className="mt-1.5 flex items-center justify-between gap-2">
-                  <ApplicationStatusBadge status={application.status} />
-                  <span className="text-xs text-[#6d5b91]">Submitted {application.submittedLabel}</span>
+                  <p className="mt-0.5 text-base text-[#2e3558]">
+                    {application.divisionLabel ?? "Division —"}
+                    {typeof application.age === "number" ? ` • Age ${application.age}` : ""}
+                  </p>
+                  <p className="text-sm text-[#425173]">{application.chapter ?? "Chapter pending"}</p>
+                  <p className="mt-0.5 text-sm text-[#4e5f80]">{application.applicantEmail}</p>
+                  <p className="mt-0.5 text-xs text-[#5f4d83]">
+                    {application.voicePartLabel} · {application.eventName}
+                  </p>
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <ApplicationStatusBadge status={application.status} />
+                    <span className="text-xs text-[#6d5b91]">
+                      Submitted {application.submittedLabel}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <Link
-              href={`/dashboard/applications/${application.id}`}
-              className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#5f2ec8] to-[#462b7c] text-sm font-medium text-white shadow-sm transition hover:from-[#5327b2] hover:to-[#3e256f]"
+              <Link
+                href={`/dashboard/applications/${application.id}`}
+                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#5f2ec8] to-[#462b7c] text-sm font-medium text-white shadow-sm transition hover:from-[#5327b2] hover:to-[#3e256f]"
+              >
+                Review Application
+              </Link>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-[#d7cde9] bg-white">
+          <div className="grid grid-cols-[auto_1fr_auto] border-b bg-[#f8f4ff] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#6d5b91]">
+            <span>Applicant</span>
+            <span>Details</span>
+            <span className="text-right">Action</span>
+          </div>
+          {applications.map((application) => (
+            <div
+              key={application.id}
+              className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b px-3 py-2 last:border-b-0 hover:bg-[#faf7ff]"
             >
-              Review Application
-            </Link>
-          </article>
-        ))}
-      </div>
+              <div className="flex items-center gap-2">
+                {canBatchDelete ? (
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${application.applicantName}`}
+                    checked={selectedSet.has(application.id)}
+                    onChange={(event) => toggleOne(application.id, event.target.checked)}
+                    className="h-4 w-4 rounded border-[#bca9df] text-[#5f2ec8]"
+                  />
+                ) : null}
+                <HeadshotPreview
+                  src={application.headshotUrl}
+                  alt={`${application.applicantName} headshot`}
+                  triggerClassName="h-12 w-12 rounded-lg border border-[#cab7e6] object-cover bg-white"
+                />
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#1e1538]">
+                  {application.applicantName}
+                </p>
+                <p className="truncate text-xs text-[#425173]">
+                  {application.divisionLabel ?? "Division —"}
+                  {typeof application.age === "number" ? ` • Age ${application.age}` : ""}
+                  {" · "}
+                  {application.chapter ?? "Chapter pending"}
+                </p>
+                <p className="truncate text-xs text-[#6d5b91]">
+                  {application.voicePartLabel} · {application.eventName} · {application.submittedLabel}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <ApplicationStatusBadge status={application.status} />
+                <Link
+                  href={`/dashboard/applications/${application.id}`}
+                  className="rounded-md border border-[#c7b7e5] px-2 py-1 text-xs font-medium text-[#4a3d6b] hover:bg-[#f4effb]"
+                >
+                  Open
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -54,7 +54,7 @@ function formatDivision(age: number | null) {
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: { status?: string; view?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
@@ -64,6 +64,15 @@ export default async function ApplicationsPage({
     searchParams.status && STATUS_OPTIONS.includes(searchParams.status as ApplicationStatus)
       ? (searchParams.status as ApplicationStatus)
       : undefined;
+  const viewMode = searchParams.view === "list" ? "list" : "cards";
+
+  function buildApplicationsHref(status?: ApplicationStatus, view = viewMode) {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (view && view !== "cards") params.set("view", view);
+    const query = params.toString();
+    return query ? `/dashboard/applications?${query}` : "/dashboard/applications";
+  }
 
   const applications = await listApplicationsByOrg(
     session.user.organizationId,
@@ -91,32 +100,58 @@ export default async function ApplicationsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Applications</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Status:</span>
-          <div className="flex flex-wrap gap-1.5">
-            <Link
-              href="/dashboard/applications"
-              className={`text-sm px-2 py-1 rounded border ${
-                !statusFilter ? "bg-muted border-muted-foreground/20" : "hover:bg-muted/60"
-              }`}
-            >
-              All
-            </Link>
-            {STATUS_OPTIONS.map((status) => (
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Status:</span>
+            <div className="flex flex-wrap gap-1.5">
               <Link
-                key={status}
-                href={`/dashboard/applications?status=${status}`}
+                href={buildApplicationsHref(undefined)}
                 className={`text-sm px-2 py-1 rounded border ${
-                  statusFilter === status
-                    ? "bg-muted border-muted-foreground/20"
-                    : "hover:bg-muted/60"
+                  !statusFilter ? "bg-muted border-muted-foreground/20" : "hover:bg-muted/60"
                 }`}
               >
-                {status.replaceAll("_", " ").toLowerCase()}
+                All
               </Link>
-            ))}
+              {STATUS_OPTIONS.map((status) => (
+                <Link
+                  key={status}
+                  href={buildApplicationsHref(status)}
+                  className={`text-sm px-2 py-1 rounded border ${
+                    statusFilter === status
+                      ? "bg-muted border-muted-foreground/20"
+                      : "hover:bg-muted/60"
+                  }`}
+                >
+                  {status.replaceAll("_", " ").toLowerCase()}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">View:</span>
+            <Link
+              href={buildApplicationsHref(statusFilter, "cards")}
+              className={`text-sm px-2 py-1 rounded border ${
+                viewMode === "cards"
+                  ? "bg-muted border-muted-foreground/20"
+                  : "hover:bg-muted/60"
+              }`}
+            >
+              Cards
+            </Link>
+            <Link
+              href={buildApplicationsHref(statusFilter, "list")}
+              className={`text-sm px-2 py-1 rounded border ${
+                viewMode === "list"
+                  ? "bg-muted border-muted-foreground/20"
+                  : "hover:bg-muted/60"
+              }`}
+            >
+              List
+            </Link>
           </div>
         </div>
       </div>
@@ -131,6 +166,7 @@ export default async function ApplicationsPage({
         <BatchApplicationsTable
           applications={serializedApplications}
           canBatchDelete={canBatchDelete}
+          viewMode={viewMode}
         />
       )}
     </div>
