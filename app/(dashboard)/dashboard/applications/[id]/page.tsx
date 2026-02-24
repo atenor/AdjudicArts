@@ -111,9 +111,9 @@ function getAdminProfileNote(notes: string | null | undefined) {
 
 function DetailTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
+    <div className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-2.5">
       <p className="text-xs font-semibold tracking-wide text-[#7b6e9d]">{label}</p>
-      <p className="mt-1 text-base leading-snug text-[#1e1538]">{value}</p>
+      <p className="mt-0.5 text-sm leading-snug text-[#1e1538]">{value}</p>
     </div>
   );
 }
@@ -171,7 +171,7 @@ export default async function ApplicationDetailPage({
   const headshotUrl = getDisplayHeadshot(application.headshot, application.id);
 
   return (
-    <div className="space-y-5 pb-8">
+    <div className="space-y-4 pb-6">
       <div className="flex items-center justify-between">
         <Link
           href="/dashboard/applications"
@@ -184,8 +184,8 @@ export default async function ApplicationDetailPage({
         </p>
       </div>
 
-      <section className="rounded-xl border border-[#d8cce9] bg-white p-5 shadow-sm">
-        <div className="grid gap-5 md:grid-cols-[8rem,1fr]">
+      <section className="rounded-xl border border-[#d8cce9] bg-white p-4 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-[6.5rem,1fr]">
           <Link
             href={headshotUrl}
             target="_blank"
@@ -197,27 +197,27 @@ export default async function ApplicationDetailPage({
             <img
               src={headshotUrl}
               alt={`${application.applicant.name} headshot`}
-              className="h-40 w-32 rounded-2xl border border-[#cbb7e8] object-cover shadow-sm transition group-hover:scale-[1.02]"
+              className="h-32 w-24 rounded-xl border border-[#cbb7e8] object-cover shadow-sm transition group-hover:scale-[1.02]"
               loading="lazy"
             />
             <p className="mt-2 text-xs font-medium text-[#7f6aa9]">Open full-size photo</p>
           </Link>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight text-[#1a1735]">
+              <h1 className="text-2xl font-bold tracking-tight text-[#1a1735]">
                 {application.applicant.name}
               </h1>
-              <span className="text-2xl text-[#c7b7e5]">☆</span>
+              <span className="text-xl text-[#c7b7e5]">☆</span>
             </div>
 
-            <p className="text-lg text-[#5f7090]">
+            <p className="text-base text-[#5f7090]">
               {valueOrDash(application.chapter)} Chapter
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <BadgePill className="bg-[#e9ddff] text-[#5f2ec8]">{division}</BadgePill>
-              {age !== null ? <span className="text-lg text-[#5f7090]">Age {age}</span> : null}
+              {age !== null ? <span className="text-base text-[#5f7090]">Age {age}</span> : null}
               {citizenship ? (
                 <BadgePill className="bg-[#d6f6e8] text-[#0d7b5f]">{citizenship}</BadgePill>
               ) : null}
@@ -226,16 +226,16 @@ export default async function ApplicationDetailPage({
               ) : null}
             </div>
 
-            <p className="text-lg text-[#5f7090]">{valueOrDash(hometown)}</p>
+            <p className="text-base text-[#5f7090]">{valueOrDash(hometown)}</p>
             <p className="text-sm text-[#7c6b9f]">{application.applicant.email}</p>
           </div>
         </div>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[1.55fr,0.95fr]">
-        <div className="space-y-5">
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
-            <h2 className="text-2xl font-bold tracking-wide text-[#5f7090]">CONTACT & PERSONAL</h2>
+      <div className="grid gap-4 xl:grid-cols-[1.55fr,0.95fr]">
+        <div className="space-y-4">
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
+            <h2 className="text-lg font-bold tracking-wide text-[#5f7090]">CONTACT & PERSONAL</h2>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <DetailTile label="Email" value={valueOrDash(application.applicant.email)} />
               <DetailTile label="Phone" value={valueOrDash(application.phone)} />
@@ -253,8 +253,8 @@ export default async function ApplicationDetailPage({
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
-            <h2 className="text-2xl font-bold tracking-wide text-[#5f7090]">EDUCATION</h2>
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
+            <h2 className="text-lg font-bold tracking-wide text-[#5f7090]">EDUCATION</h2>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <DetailTile label="School" value={valueOrDash(application.schoolName)} />
               <DetailTile label="Major" value={valueOrDash(application.major)} />
@@ -276,29 +276,29 @@ export default async function ApplicationDetailPage({
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
-            <h2 className="text-2xl font-bold tracking-wide text-[#5f7090]">BIO</h2>
-            <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-[#33435e]">
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
+            <h2 className="text-lg font-bold tracking-wide text-[#5f7090]">BIO</h2>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#33435e]">
               {valueOrDash(application.bio)}
             </p>
 
-            <h3 className="mt-6 text-xl font-bold tracking-wide text-[#5f7090]">CAREER PLANS</h3>
-            <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-[#33435e]">
+            <h3 className="mt-5 text-base font-bold tracking-wide text-[#5f7090]">CAREER PLANS</h3>
+            <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-[#33435e]">
               {valueOrDash(application.careerPlans)}
             </p>
 
-            <h3 className="mt-6 text-xl font-bold tracking-wide text-[#5f7090]">USE OF FUNDS</h3>
-            <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-[#33435e]">
+            <h3 className="mt-5 text-base font-bold tracking-wide text-[#5f7090]">USE OF FUNDS</h3>
+            <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-[#33435e]">
               {valueOrDash(application.scholarshipUse)}
             </p>
           </section>
 
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
-            <h2 className="text-2xl font-bold tracking-wide text-[#5f7090]">REPERTOIRE</h2>
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
+            <h2 className="text-lg font-bold tracking-wide text-[#5f7090]">REPERTOIRE</h2>
             {repertoirePieces.length === 0 ? (
-              <p className="mt-2 text-base text-[#6a7894]">No repertoire provided.</p>
+              <p className="mt-2 text-sm text-[#6a7894]">No repertoire provided.</p>
             ) : (
-              <ul className="mt-2 list-disc space-y-1.5 pl-6 text-base leading-relaxed text-[#33435e]">
+              <ul className="mt-2 list-disc space-y-1 pl-6 text-sm leading-relaxed text-[#33435e]">
                 {repertoirePieces.map((piece, index) => (
                   <li key={`${piece.raw}-${index}`}> 
                     {piece.title}
@@ -310,14 +310,14 @@ export default async function ApplicationDetailPage({
           </section>
         </div>
 
-        <aside className="space-y-5">
+        <aside className="space-y-4">
           <ApplicationProfileEditor
             applicationId={application.id}
             initialChapter={application.chapter ?? ""}
             initialAdminNote={adminProfileNote}
           />
 
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
             <h2 className="text-lg font-semibold text-[#1e1538]">Status & Actions</h2>
             <div className="mt-3 space-y-3">
               <ApplicationStatusBadge status={application.status} />
@@ -329,7 +329,7 @@ export default async function ApplicationDetailPage({
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
             <h2 className="text-lg font-semibold text-[#1e1538]">Videos</h2>
             <div className="mt-3 space-y-3">
               {videoItems.length === 0 ? (
@@ -368,7 +368,7 @@ export default async function ApplicationDetailPage({
             ) : null}
           </section>
 
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
             <h2 className="text-lg font-semibold text-[#1e1538]">Timeline</h2>
             <ol className="mt-3 space-y-2 text-sm">
               {timeline.map((status, index) => (
@@ -380,7 +380,7 @@ export default async function ApplicationDetailPage({
             </ol>
           </section>
 
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
+          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
             <h2 className="text-lg font-semibold text-[#1e1538]">Scores</h2>
             {application.scores.length === 0 ? (
               <p className="mt-3 text-sm text-[#6d5b91]">No scores submitted yet.</p>
