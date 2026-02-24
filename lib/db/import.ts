@@ -57,9 +57,7 @@ function normalizeVoicePart(value: string | null): string | null {
 }
 
 function compactCsvProfile(row: CsvRow) {
-  return Object.fromEntries(
-    Object.entries(row).filter(([, value]) => clean(value) !== null)
-  );
+  return Object.fromEntries(Object.entries(row));
 }
 
 function parseDate(value: string | null): Date | null {
@@ -473,6 +471,13 @@ export async function importApplicantsFromRows(input: {
   organizationId: string;
 }) {
   const errors: Array<{ row: number; email?: string; message: string }> = [];
+  const rowResults: Array<{
+    row: number;
+    email?: string;
+    applicantName?: string;
+    status: "imported" | "error";
+    message: string;
+  }> = [];
   let imported = 0;
   let createdUsers = 0;
   let createdApplications = 0;
@@ -492,14 +497,34 @@ export async function importApplicantsFromRows(input: {
       if (result.createdUser) createdUsers += 1;
       if (result.createdApplication) createdApplications += 1;
       if (result.updatedApplication) updatedApplications += 1;
+
+      rowResults.push({
+        row: index + 2,
+        email: result.email,
+        applicantName: result.applicantName,
+        status: "imported",
+        message: result.createdApplication
+          ? "Created application"
+          : result.updatedApplication
+            ? "Updated existing application"
+            : "Imported",
+      });
     } catch (error) {
       const email = clean(
         getValue(row, ["Email Address", "email"])
       ) ?? undefined;
+      const message =
+        error instanceof Error ? error.message : "Unknown import error";
       errors.push({
         row: index + 2,
         email,
-        message: error instanceof Error ? error.message : "Unknown import error",
+        message,
+      });
+      rowResults.push({
+        row: index + 2,
+        email,
+        status: "error",
+        message,
       });
     }
   }
@@ -511,5 +536,6 @@ export async function importApplicantsFromRows(input: {
     createdApplications,
     updatedApplications,
     errors,
+    rowResults,
   };
 }

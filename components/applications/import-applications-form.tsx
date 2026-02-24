@@ -20,13 +20,7 @@ type ImportableEvent = {
   closeAt: Date | null;
 };
 
-type PreviewRow = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  chapter: string;
-  playlist: string;
-};
+type PreviewRow = Record<string, string>;
 
 type ImportResult = {
   totalRows: number;
@@ -35,6 +29,13 @@ type ImportResult = {
   createdApplications: number;
   updatedApplications: number;
   errors: Array<{ row: number; email?: string; message: string }>;
+  rowResults?: Array<{
+    row: number;
+    email?: string;
+    applicantName?: string;
+    status: "imported" | "error";
+    message: string;
+  }>;
 };
 
 type PurgeResult = {
@@ -106,11 +107,21 @@ export default function ImportApplicationsForm({
 
   const importSignature = useMemo(
     () =>
-      `${selectedEventId}|${fileName}|${previewTotal ?? 0}|${previewRows[0]?.email ?? ""}|${
+      `${selectedEventId}|${fileName}|${previewTotal ?? 0}|${JSON.stringify(
+        previewRows[0] ?? {}
+      )}|${
         csvData.length
       }`,
     [selectedEventId, fileName, previewTotal, previewRows, csvData.length]
   );
+
+  const previewColumns = useMemo(() => {
+    const set = new Set<string>();
+    previewRows.forEach((row) => {
+      Object.keys(row).forEach((key) => set.add(key));
+    });
+    return Array.from(set);
+  }, [previewRows]);
 
   const alreadyImportedCurrentFile = lastImportedSignature === importSignature;
 
@@ -301,7 +312,7 @@ export default function ImportApplicationsForm({
       <div className="space-y-2 rounded-lg border p-4">
         <h2 className="font-medium">Upload CSV</h2>
         <p className="text-sm text-muted-foreground">
-          Choose a target event, upload a CSV, preview the first 5 rows, then import.
+          Choose a target event, upload a CSV, preview all rows, then import.
         </p>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -397,30 +408,34 @@ export default function ImportApplicationsForm({
           <div className="flex items-center justify-between">
             <h3 className="font-medium">Preview</h3>
             <span className="text-sm text-muted-foreground">
-              Showing first {previewRows.length} of {previewTotal ?? previewRows.length}
+              Showing all {previewRows.length} row(s)
             </span>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Chapter</TableHead>
-                <TableHead>Playlist</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {previewRows.map((row, index) => (
-                <TableRow key={`${row.email}-${index}`}>
-                  <TableCell>{`${row.firstName} ${row.lastName}`.trim()}</TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>{row.chapter || "—"}</TableCell>
-                  <TableCell className="max-w-[24rem] truncate">{row.playlist || "—"}</TableCell>
+          <div className="max-h-[28rem] overflow-auto rounded border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Row</TableHead>
+                  {previewColumns.map((column) => (
+                    <TableHead key={column}>{column}</TableHead>
+                  ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {previewRows.map((row, index) => (
+                  <TableRow key={`preview-row-${index + 2}`}>
+                    <TableCell className="font-medium">{index + 2}</TableCell>
+                    {previewColumns.map((column) => (
+                      <TableCell key={`${column}-${index}`} className="max-w-[20rem] truncate">
+                        {row[column] || "—"}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : null}
 
@@ -439,7 +454,38 @@ export default function ImportApplicationsForm({
             Created users: {result.createdUsers} | Created applications: {result.createdApplications} | Updated applications: {result.updatedApplications}
           </p>
 
-          {result.errors.length > 0 ? (
+          {result.rowResults && result.rowResults.length > 0 ? (
+            <div className="max-h-[28rem] overflow-auto rounded border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Row</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Detail</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.rowResults.map((entry) => (
+                    <TableRow key={`result-row-${entry.row}-${entry.email ?? entry.message}`}>
+                      <TableCell>{entry.row}</TableCell>
+                      <TableCell
+                        className={
+                          entry.status === "imported" ? "text-emerald-700 font-medium" : "text-destructive font-medium"
+                        }
+                      >
+                        {entry.status}
+                      </TableCell>
+                      <TableCell>{entry.applicantName || "—"}</TableCell>
+                      <TableCell>{entry.email || "—"}</TableCell>
+                      <TableCell>{entry.message}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : result.errors.length > 0 ? (
             <div className="max-h-64 overflow-y-auto rounded border p-2">
               <ul className="space-y-1 text-sm">
                 {result.errors.map((entry, index) => (

@@ -5,7 +5,6 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/auth-guards";
 import {
-  getApplicantPreview,
   getImportableEvents,
   importApplicantsFromRows,
   parseApplicantCsv,
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
   if (mode === "preview") {
     return Response.json({
       totalRows: rows.length,
-      preview: getApplicantPreview(rows, 5),
+      preview: rows,
     });
   }
 
