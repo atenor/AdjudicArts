@@ -14,6 +14,8 @@ import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import { parseRepertoireEntries } from "@/lib/repertoire";
 
+type RawCsv = Record<string, string>;
+
 const STATUS_FLOW: ApplicationStatus[] = [
   "SUBMITTED",
   "CHAPTER_REVIEW",
@@ -42,7 +44,12 @@ function deriveStatusTimeline(status: ApplicationStatus): ApplicationStatus[] {
   return STATUS_FLOW.slice(0, currentIndex + 1);
 }
 
-function formatDateOfBirth(value: Date | null) {
+function valueOrDash(value: string | null | undefined) {
+  if (!value || value.trim().length === 0) return "--";
+  return value;
+}
+
+function formatDate(value: Date | null) {
   if (!value) return "--";
   return value.toLocaleDateString("en-US", {
     month: "short",
@@ -51,35 +58,62 @@ function formatDateOfBirth(value: Date | null) {
   });
 }
 
-function valueOrDash(value: string | null | undefined) {
-  if (!value || value.trim().length === 0) return "--";
-  return value;
+function getAge(dateOfBirth: Date | null) {
+  if (!dateOfBirth) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dateOfBirth.getFullYear();
+  const beforeBirthday =
+    now.getMonth() < dateOfBirth.getMonth() ||
+    (now.getMonth() === dateOfBirth.getMonth() && now.getDate() < dateOfBirth.getDate());
+  if (beforeBirthday) age -= 1;
+  return age >= 0 ? age : null;
 }
 
-function getImportedRawCsv(notes: string | null | undefined) {
+function getImportedRawCsv(notes: string | null | undefined): RawCsv | null {
   if (!notes) return null;
   try {
     const parsed = JSON.parse(notes) as {
       importProfile?: {
-        rawCsv?: Record<string, string>;
+        rawCsv?: RawCsv;
       };
     };
-    if (!parsed.importProfile?.rawCsv) return null;
-    const entries = Object.entries(parsed.importProfile.rawCsv).filter(
-      ([key, value]) => key.trim().length > 0 && String(value).trim().length > 0
-    );
-    return entries.length > 0 ? entries : null;
+    return parsed.importProfile?.rawCsv ?? null;
   } catch {
     return null;
   }
 }
 
-function KeyValue({ label, value }: { label: string; value: string }) {
+function findRaw(raw: RawCsv | null, candidates: string[]) {
+  if (!raw) return null;
+  const entries = Object.entries(raw);
+  for (const [key, value] of entries) {
+    const normalized = key.toLowerCase();
+    if (
+      candidates.some((candidate) => normalized.includes(candidate.toLowerCase())) &&
+      value.trim().length > 0
+    ) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function DetailTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[9rem,1fr] gap-2 py-1 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium break-words">{value}</span>
+    <div className="rounded-xl border border-[#d7cde9] bg-[#f8f4ff] p-4">
+      <p className="text-sm font-medium text-[#7b6e9d]">{label}</p>
+      <p className="mt-1 text-xl leading-snug text-[#1e1538]">{value}</p>
     </div>
+  );
+}
+
+function BadgePill({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-4 py-1.5 text-lg font-semibold ${className}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -97,227 +131,250 @@ export default async function ApplicationDetailPage({
 
   const timeline = deriveStatusTimeline(application.status);
   const repertoirePieces = parseRepertoireEntries(application.repertoire);
-  const importedRawCsvEntries = getImportedRawCsv(application.notes);
+  const rawCsv = getImportedRawCsv(application.notes);
+  const age = getAge(application.dateOfBirth);
+
+  const division =
+    findRaw(rawCsv, ["division", "age group", "category", "voice part"]) ??
+    formatVoicePart(application.notes);
+  const citizenship = findRaw(rawCsv, ["citizen", "citizenship", "resident"]);
+  const mediaRelease = findRaw(rawCsv, ["media release", "photo release", "release"]);
+  const hometown =
+    findRaw(rawCsv, ["hometown", "home city"]) ||
+    [application.city, application.state].filter(Boolean).join(", ");
+
+  const altContact =
+    findRaw(rawCsv, ["alt contact", "alternate contact", "emergency contact"]) ||
+    application.parentName;
+  const altPhoneOrEmail =
+    findRaw(rawCsv, ["alt phone", "alternate phone", "parent phone", "guardian phone"]) ||
+    application.parentEmail;
+
+  const videoItems = [
+    { title: application.video1Title, url: application.video1Url },
+    { title: application.video2Title, url: application.video2Url },
+    { title: application.video3Title, url: application.video3Url },
+  ].filter((item) => item.title || item.url);
+
+  const headshotUrl = getDisplayHeadshot(application.headshot, application.id);
 
   return (
-    <div className="space-y-6 pb-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6 pb-10">
+      <div className="flex items-center justify-between">
         <Link
           href="/dashboard/applications"
-          className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent"
+          className="inline-flex items-center rounded-lg border border-[#cfc3e3] bg-white px-3 py-2 text-sm font-medium text-[#5f4d87] hover:bg-[#f4effb]"
         >
           ← Back to applications
         </Link>
-        <div className="text-sm text-muted-foreground">
+        <p className="text-sm text-[#776696]">
           Application Submitted: {application.submittedAt.toLocaleString("en-US")}
-        </div>
+        </p>
       </div>
 
-      <section className="rounded-xl border bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={getDisplayHeadshot(application.headshot, application.id)}
-            alt={`${application.applicant.name} headshot`}
-            className="h-20 w-20 rounded-full border object-cover"
-            loading="lazy"
-          />
-          <div className="min-w-0 flex-1 space-y-1">
-            <h1 className="truncate text-3xl font-bold tracking-tight">{application.applicant.name}</h1>
-            <p className="truncate text-sm text-muted-foreground">{application.applicant.email}</p>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <ApplicationStatusBadge status={application.status} />
-              <span className="rounded-full border px-2 py-0.5 text-muted-foreground">
-                {formatVoicePart(application.notes)}
-              </span>
-              {application.chapter ? (
-                <span className="rounded-full border px-2 py-0.5 text-muted-foreground">
-                  {application.chapter}
-                </span>
+      <section className="rounded-2xl border border-[#d8cce9] bg-white p-6 shadow-sm">
+        <div className="grid gap-6 md:grid-cols-[10.5rem,1fr]">
+          <Link
+            href={headshotUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="group block"
+            title="Open full-size headshot"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={headshotUrl}
+              alt={`${application.applicant.name} headshot`}
+              className="h-[13rem] w-[10.5rem] rounded-3xl border-2 border-[#cbb7e8] object-cover shadow-md transition group-hover:scale-[1.02]"
+              loading="lazy"
+            />
+            <p className="mt-2 text-xs font-medium text-[#7f6aa9]">Open full-size photo</p>
+          </Link>
+
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-5xl font-extrabold tracking-tight text-[#1a1735]">
+                {application.applicant.name}
+              </h1>
+              <span className="text-4xl text-[#c7b7e5]">☆</span>
+            </div>
+
+            <p className="text-2xl text-[#5f7090]">
+              {valueOrDash(application.chapter)} Chapter
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <BadgePill className="bg-[#e9ddff] text-[#5f2ec8]">{division}</BadgePill>
+              {age !== null ? <span className="text-4xl text-[#5f7090]">Age {age}</span> : null}
+              {citizenship ? (
+                <BadgePill className="bg-[#d6f6e8] text-[#0d7b5f]">{citizenship}</BadgePill>
+              ) : null}
+              {mediaRelease ? (
+                <BadgePill className="bg-[#ccf5ef] text-[#0b7c74]">{mediaRelease}</BadgePill>
               ) : null}
             </div>
-          </div>
-          <div className="min-w-[14rem] rounded-lg border bg-muted/30 p-3 text-sm">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Event</p>
-            <Link href={`/dashboard/events/${application.event.id}`} className="font-semibold hover:underline">
-              {application.event.name}
-            </Link>
+
+            <p className="text-4xl text-[#5f7090]">{valueOrDash(hometown)}</p>
+            <p className="text-lg text-[#7c6b9f]">{application.applicant.email}</p>
           </div>
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr,1fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.55fr,0.95fr]">
         <div className="space-y-6">
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Repertoire</h2>
-            {repertoirePieces.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No repertoire provided.</p>
-            ) : (
-              <ol className="list-decimal space-y-3 pl-5">
-                {repertoirePieces.map((piece, index) => (
-                  <li key={`${piece.raw}-${index}`}>
-                    <p className="font-semibold">{piece.title}</p>
-                    {piece.composer || piece.poet || piece.detail ? (
-                      <p className="text-sm text-muted-foreground">
-                        {piece.composer ? `Composer: ${piece.composer}` : ""}
-                        {piece.poet ? `${piece.composer ? " · " : ""}Poet: ${piece.poet}` : ""}
-                        {piece.detail ? `${piece.composer || piece.poet ? " · " : ""}${piece.detail}` : ""}
-                      </p>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Application Narrative</h2>
-            <div className="grid gap-3 md:grid-cols-3">
-              <article className="rounded-lg border p-3">
-                <h3 className="mb-2 text-sm font-semibold">Future Career Plans</h3>
-                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {valueOrDash(application.careerPlans)}
-                </p>
-              </article>
-              <article className="rounded-lg border p-3">
-                <h3 className="mb-2 text-sm font-semibold">Scholarship Use</h3>
-                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {valueOrDash(application.scholarshipUse)}
-                </p>
-              </article>
-              <article className="rounded-lg border p-3">
-                <h3 className="mb-2 text-sm font-semibold">Bio</h3>
-                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {valueOrDash(application.bio)}
-                </p>
-              </article>
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-4xl font-bold tracking-wide text-[#5f7090]">CONTACT & PERSONAL</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <DetailTile label="Email" value={valueOrDash(application.applicant.email)} />
+              <DetailTile label="Phone" value={valueOrDash(application.phone)} />
+              <DetailTile label="Date of Birth" value={formatDate(application.dateOfBirth)} />
+              <DetailTile
+                label="Address"
+                value={
+                  [application.address, application.city, application.state, application.zip]
+                    .filter((part) => part && part.trim().length > 0)
+                    .join(", ") || "--"
+                }
+              />
+              <DetailTile label="Alt Contact" value={valueOrDash(altContact)} />
+              <DetailTile label="Alt Phone / Email" value={valueOrDash(altPhoneOrEmail)} />
             </div>
           </section>
 
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Imported CSV Fields</h2>
-            {!importedRawCsvEntries ? (
-              <p className="text-sm text-muted-foreground">No raw CSV payload captured for this record.</p>
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-4xl font-bold tracking-wide text-[#5f7090]">EDUCATION</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <DetailTile label="School" value={valueOrDash(application.schoolName)} />
+              <DetailTile label="Major" value={valueOrDash(application.major)} />
+              <DetailTile
+                label="Status"
+                value={
+                  findRaw(rawCsv, ["status", "enrollment", "student status", "in college"]) ||
+                  "--"
+                }
+              />
+              <DetailTile
+                label="High School / College"
+                value={
+                  [application.highSchoolName, application.collegeName]
+                    .filter((part) => part && part.trim().length > 0)
+                    .join(" / ") || "--"
+                }
+              />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-4xl font-bold tracking-wide text-[#5f7090]">BIO</h2>
+            <p className="mt-3 whitespace-pre-wrap text-xl leading-relaxed text-[#33435e]">
+              {valueOrDash(application.bio)}
+            </p>
+
+            <h3 className="mt-8 text-3xl font-bold tracking-wide text-[#5f7090]">CAREER PLANS</h3>
+            <p className="mt-2 whitespace-pre-wrap text-xl leading-relaxed text-[#33435e]">
+              {valueOrDash(application.careerPlans)}
+            </p>
+
+            <h3 className="mt-8 text-3xl font-bold tracking-wide text-[#5f7090]">USE OF FUNDS</h3>
+            <p className="mt-2 whitespace-pre-wrap text-xl leading-relaxed text-[#33435e]">
+              {valueOrDash(application.scholarshipUse)}
+            </p>
+          </section>
+
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-4xl font-bold tracking-wide text-[#5f7090]">REPERTOIRE</h2>
+            {repertoirePieces.length === 0 ? (
+              <p className="mt-3 text-xl text-[#6a7894]">No repertoire provided.</p>
             ) : (
-              <div className="max-h-80 overflow-auto rounded-lg border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/30 text-left">
-                      <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Column</th>
-                      <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importedRawCsvEntries.map(([key, value]) => (
-                      <tr key={key} className="border-b align-top last:border-b-0">
-                        <td className="px-3 py-2 font-medium">{key}</td>
-                        <td className="px-3 py-2 whitespace-pre-wrap break-words">{value}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="mt-3 list-disc space-y-2 pl-7 text-4 leading-relaxed text-[#33435e]">
+                {repertoirePieces.map((piece, index) => (
+                  <li key={`${piece.raw}-${index}`}> 
+                    {piece.title}
+                    {piece.composer ? ` - ${piece.composer}` : ""}
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Status & Actions</h2>
-            <div className="space-y-3">
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-lg font-semibold text-[#1e1538]">Status & Actions</h2>
+            <div className="mt-3 space-y-3">
               <ApplicationStatusBadge status={application.status} />
               <AdvanceApplicationStatusButtons
                 applicationId={application.id}
                 currentStatus={application.status}
               />
-              <div className="pt-1">
-                <DeleteApplicationButton applicationId={application.id} />
-              </div>
+              <DeleteApplicationButton applicationId={application.id} />
             </div>
           </section>
 
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Profile Details</h2>
-            <KeyValue label="Date of Birth" value={formatDateOfBirth(application.dateOfBirth)} />
-            <KeyValue label="Gender" value={valueOrDash(application.gender)} />
-            <KeyValue label="Phone" value={valueOrDash(application.phone)} />
-            <KeyValue label="Address" value={valueOrDash(application.address)} />
-            <KeyValue label="City" value={valueOrDash(application.city)} />
-            <KeyValue label="State" value={valueOrDash(application.state)} />
-            <KeyValue label="ZIP" value={valueOrDash(application.zip)} />
-          </section>
-
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Education</h2>
-            <KeyValue label="School" value={valueOrDash(application.schoolName)} />
-            <KeyValue label="School City" value={valueOrDash(application.schoolCity)} />
-            <KeyValue label="School State" value={valueOrDash(application.schoolState)} />
-            <KeyValue label="High School" value={valueOrDash(application.highSchoolName)} />
-            <KeyValue label="College" value={valueOrDash(application.collegeName)} />
-            <KeyValue label="Major" value={valueOrDash(application.major)} />
-          </section>
-
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Parent / Guardian</h2>
-            <KeyValue label="Name" value={valueOrDash(application.parentName)} />
-            <KeyValue label="Email" value={valueOrDash(application.parentEmail)} />
-          </section>
-
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Video Assets</h2>
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="text-muted-foreground">Video 1:</span>{" "}
-                {valueOrDash(application.video1Title)}
-                {application.video1Url ? ` — ${application.video1Url}` : ""}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Video 2:</span>{" "}
-                {valueOrDash(application.video2Title)}
-                {application.video2Url ? ` — ${application.video2Url}` : ""}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Video 3:</span>{" "}
-                {valueOrDash(application.video3Title)}
-                {application.video3Url ? ` — ${application.video3Url}` : ""}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Playlist:</span>{" "}
-                {valueOrDash(application.youtubePlaylist)}
-              </p>
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-lg font-semibold text-[#1e1538]">Videos</h2>
+            <div className="mt-3 space-y-3">
+              {videoItems.length === 0 ? (
+                <p className="text-sm text-[#6d5b91]">No video links found.</p>
+              ) : (
+                videoItems.map((video, index) => (
+                  <div key={`video-${index}`} className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
+                    <p className="text-sm font-semibold text-[#4a3d6b]">
+                      {video.title || `Video ${index + 1}`}
+                    </p>
+                    {video.url ? (
+                      <a
+                        href={video.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block truncate text-sm text-[#5f2ec8] underline"
+                      >
+                        {video.url}
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-sm text-[#6d5b91]">No URL</p>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
+            {application.youtubePlaylist ? (
+              <a
+                href={application.youtubePlaylist}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex rounded-lg border border-[#c7b7e5] px-3 py-2 text-sm font-semibold text-[#4a3d6b] hover:bg-[#f4effb]"
+              >
+                Open YouTube Playlist
+              </a>
+            ) : null}
           </section>
 
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Status Timeline</h2>
-            <ol className="space-y-2 text-sm">
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-lg font-semibold text-[#1e1538]">Timeline</h2>
+            <ol className="mt-3 space-y-2 text-sm">
               {timeline.map((status, index) => (
                 <li key={`${status}-${index}`} className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  <span className="h-2 w-2 rounded-full bg-[#6a42b8]" />
                   <ApplicationStatusBadge status={status} />
                 </li>
               ))}
             </ol>
           </section>
 
-          <section className="rounded-xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold">Scores</h2>
+          <section className="rounded-2xl border border-[#d8cce9] bg-white p-5">
+            <h2 className="text-lg font-semibold text-[#1e1538]">Scores</h2>
             {application.scores.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No scores submitted yet.</p>
+              <p className="mt-3 text-sm text-[#6d5b91]">No scores submitted yet.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="mt-3 space-y-2">
                 {application.scores.map((score) => (
-                  <div
-                    key={score.id}
-                    className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{score.criteria.name}</p>
-                      <p className="truncate text-muted-foreground">
-                        {score.judge.name} ({score.judge.role.toLowerCase()})
-                      </p>
-                    </div>
-                    <p className="font-semibold">{score.value.toFixed(1)} / 10</p>
+                  <div key={score.id} className="rounded-lg border border-[#d7cde9] p-2 text-sm">
+                    <p className="font-semibold text-[#2b2350]">{score.criteria.name}</p>
+                    <p className="text-[#6d5b91]">
+                      {score.judge.name} ({score.judge.role.toLowerCase()})
+                    </p>
+                    <p className="font-semibold text-[#2b2350]">{score.value.toFixed(1)} / 10</p>
                   </div>
                 ))}
               </div>
