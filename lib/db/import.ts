@@ -41,6 +41,20 @@ function getValue(row: CsvRow, keys: string[]): string | null {
   return null;
 }
 
+function getExactValue(row: CsvRow, keys: string[]): string | null {
+  const normalizedRow = new Map(
+    Object.entries(row).map(([key, value]) => [key.trim().toLowerCase(), value])
+  );
+
+  for (const key of keys) {
+    const value = normalizedRow.get(key.trim().toLowerCase());
+    const cleaned = clean(value);
+    if (cleaned) return cleaned;
+  }
+
+  return null;
+}
+
 function normalizeVoicePart(value: string | null): string | null {
   if (!value) return null;
   const normalized = value.trim().toLowerCase();
@@ -262,7 +276,8 @@ export async function importApplicantFromRow(
 ): Promise<ImportResult> {
   const firstName = getValue(row, ["First Name", "First", "Given Name"]) ?? "";
   const lastName = getValue(row, ["Last Name", "Last", "Surname", "Family Name"]) ?? "";
-  const fullNameFromCsv = getValue(row, ["Name", "Applicant Name", "Full Name"]);
+  // Avoid fuzzy "Name" matching so we don't accidentally grab "First Name" only.
+  const fullNameFromCsv = getExactValue(row, ["Name", "Applicant Name", "Full Name"]);
   const email = (
     getValue(row, ["Email Address", "Email", "E-mail", "Email Address*"]) ?? ""
   ).toLowerCase();
