@@ -347,8 +347,15 @@ export async function deleteApplicationsByIds(ids: string[], organizationId: str
 type ApplicationProfileUpdateInput = {
   id: string;
   organizationId: string;
+  applicantName?: string | null;
   chapter?: string | null;
   adminNote?: string | null;
+  video1Title?: string | null;
+  video1Url?: string | null;
+  video2Title?: string | null;
+  video2Url?: string | null;
+  video3Title?: string | null;
+  video3Url?: string | null;
   actor?: string | null;
 };
 
@@ -368,7 +375,7 @@ function parseNotesObject(notes: string | null): Record<string, unknown> {
 export async function updateApplicationProfile(input: ApplicationProfileUpdateInput) {
   const existing = await prisma.application.findFirst({
     where: { id: input.id, organizationId: input.organizationId },
-    select: { id: true, chapter: true, notes: true },
+    select: { id: true, chapter: true, notes: true, applicantId: true },
   });
 
   if (!existing) return null;
@@ -376,6 +383,7 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
   const notesObject = parseNotesObject(existing.notes);
   const nextChapter = input.chapter?.trim() ?? null;
   const nextAdminNote = input.adminNote?.trim() ?? null;
+  const nextApplicantName = input.applicantName?.trim() ?? null;
   const actor = input.actor?.trim() || "admin";
 
   if (nextAdminNote) {
@@ -398,54 +406,69 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
     notesObject.chapterAssignmentHistory = chapterHistory;
   }
 
-  return prisma.application.update({
-    where: { id: existing.id },
-    data: {
-      chapter: nextChapter,
-      notes: JSON.stringify(notesObject),
-    },
-    include: {
-      applicant: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
+  return prisma.$transaction(async (tx) => {
+    if (nextApplicantName) {
+      await tx.user.update({
+        where: { id: existing.applicantId },
+        data: { name: nextApplicantName },
+      });
+    }
+
+    return tx.application.update({
+      where: { id: existing.id },
+      data: {
+        chapter: nextChapter,
+        notes: JSON.stringify(notesObject),
+        video1Title: input.video1Title?.trim() || null,
+        video1Url: input.video1Url?.trim() || null,
+        video2Title: input.video2Title?.trim() || null,
+        video2Url: input.video2Url?.trim() || null,
+        video3Title: input.video3Title?.trim() || null,
+        video3Url: input.video3Url?.trim() || null,
       },
-      event: {
-        select: {
-          id: true,
-          name: true,
-          status: true,
+      include: {
+        applicant: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
         },
-      },
-      scores: {
-        include: {
-          criteria: {
-            select: {
-              id: true,
-              name: true,
-              order: true,
-              rubric: {
-                select: {
-                  id: true,
-                  name: true,
+        event: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
+        scores: {
+          include: {
+            criteria: {
+              select: {
+                id: true,
+                name: true,
+                order: true,
+                rubric: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
-          },
-          judge: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
+            judge: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
             },
           },
+          orderBy: [{ criteria: { order: "asc" } }, { judge: { name: "asc" } }],
         },
-        orderBy: [{ criteria: { order: "asc" } }, { judge: { name: "asc" } }],
       },
-    },
+    });
   });
 }

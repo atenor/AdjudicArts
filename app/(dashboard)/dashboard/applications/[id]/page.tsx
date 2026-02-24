@@ -152,6 +152,9 @@ export default async function ApplicationDetailPage({
     formatVoicePart(application.notes);
   const citizenship = findRaw(rawCsv, ["citizen", "citizenship", "resident"]);
   const mediaRelease = findRaw(rawCsv, ["media release", "photo release", "release"]);
+  const hasMediaConsent =
+    mediaRelease !== null &&
+    /(yes|agree|consent|approved|true)/i.test(mediaRelease);
   const hometown =
     findRaw(rawCsv, ["hometown", "home city"]) ||
     [application.city, application.state].filter(Boolean).join(", ");
@@ -215,7 +218,9 @@ export default async function ApplicationDetailPage({
                 <BadgePill className="bg-[#d6f6e8] text-[#0d7b5f]">{citizenship}</BadgePill>
               ) : null}
               {mediaRelease ? (
-                <BadgePill className="bg-[#ccf5ef] text-[#0b7c74]">{mediaRelease}</BadgePill>
+                <BadgePill className="bg-[#ccf5ef] text-[#0b7c74]">
+                  {hasMediaConsent ? "Media Release: Consented" : "Media Release: Review"}
+                </BadgePill>
               ) : null}
             </div>
 
@@ -306,8 +311,15 @@ export default async function ApplicationDetailPage({
         <aside className="space-y-4">
           <ApplicationProfileEditor
             applicationId={application.id}
+            initialApplicantName={application.applicant.name}
             initialChapter={application.chapter ?? ""}
             initialAdminNote={adminProfileNote}
+            initialVideo1Title={application.video1Title ?? ""}
+            initialVideo1Url={application.video1Url ?? ""}
+            initialVideo2Title={application.video2Title ?? ""}
+            initialVideo2Url={application.video2Url ?? ""}
+            initialVideo3Title={application.video3Title ?? ""}
+            initialVideo3Url={application.video3Url ?? ""}
           />
 
           <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
@@ -324,6 +336,16 @@ export default async function ApplicationDetailPage({
 
           <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
             <h2 className="text-lg font-semibold text-[#1e1538]">Videos</h2>
+            {application.youtubePlaylist ? (
+              <a
+                href={application.youtubePlaylist}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex rounded-lg border border-[#4d2d91] bg-[#5f2ec8] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5327b2]"
+              >
+                Open YouTube Playlist
+              </a>
+            ) : null}
             <div className="mt-3 space-y-3">
               {videoItems.length === 0 ? (
                 <p className="text-sm text-[#6d5b91]">No video links found.</p>
@@ -349,15 +371,12 @@ export default async function ApplicationDetailPage({
                 ))
               )}
             </div>
-            {application.youtubePlaylist ? (
-              <a
-                href={application.youtubePlaylist}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex rounded-lg border border-[#c7b7e5] px-3 py-2 text-sm font-semibold text-[#4a3d6b] hover:bg-[#f4effb]"
-              >
-                Open YouTube Playlist
-              </a>
+            {hasMediaConsent ? (
+              <p className="mt-3 text-xs text-[#3e7c67]">
+                Media Release: Applicant consented to recording/photo use.
+              </p>
+            ) : mediaRelease ? (
+              <p className="mt-3 text-xs text-[#6d5b91]">Media Release: {mediaRelease}</p>
             ) : null}
           </section>
 

@@ -11,8 +11,15 @@ import {
 } from "@/lib/db/applications";
 
 const patchSchema = z.object({
+  applicantName: z.string().trim().min(1).optional(),
   chapter: z.string().trim().min(1).optional(),
   adminNote: z.string().trim().optional(),
+  video1Title: z.string().trim().optional(),
+  video1Url: z.string().trim().optional(),
+  video2Title: z.string().trim().optional(),
+  video2Url: z.string().trim().optional(),
+  video3Title: z.string().trim().optional(),
+  video3Url: z.string().trim().optional(),
 });
 
 export async function GET(
@@ -94,8 +101,15 @@ export async function PATCH(
   const updated = await updateApplicationProfile({
     id: params.id,
     organizationId: session.user.organizationId,
+    applicantName: parsed.data.applicantName,
     chapter: parsed.data.chapter,
     adminNote: parsed.data.adminNote,
+    video1Title: parsed.data.video1Title,
+    video1Url: parsed.data.video1Url,
+    video2Title: parsed.data.video2Title,
+    video2Url: parsed.data.video2Url,
+    video3Title: parsed.data.video3Title,
+    video3Url: parsed.data.video3Url,
     actor: session.user.email ?? session.user.name ?? "admin",
   });
 

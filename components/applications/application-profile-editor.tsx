@@ -8,16 +8,37 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function ApplicationProfileEditor({
   applicationId,
+  initialApplicantName,
   initialChapter,
   initialAdminNote,
+  initialVideo1Title,
+  initialVideo1Url,
+  initialVideo2Title,
+  initialVideo2Url,
+  initialVideo3Title,
+  initialVideo3Url,
 }: {
   applicationId: string;
+  initialApplicantName: string;
   initialChapter: string;
   initialAdminNote: string;
+  initialVideo1Title: string;
+  initialVideo1Url: string;
+  initialVideo2Title: string;
+  initialVideo2Url: string;
+  initialVideo3Title: string;
+  initialVideo3Url: string;
 }) {
   const router = useRouter();
+  const [applicantName, setApplicantName] = useState(initialApplicantName);
   const [chapter, setChapter] = useState(initialChapter);
   const [adminNote, setAdminNote] = useState(initialAdminNote);
+  const [video1Title, setVideo1Title] = useState(initialVideo1Title);
+  const [video1Url, setVideo1Url] = useState(initialVideo1Url);
+  const [video2Title, setVideo2Title] = useState(initialVideo2Title);
+  const [video2Url, setVideo2Url] = useState(initialVideo2Url);
+  const [video3Title, setVideo3Title] = useState(initialVideo3Title);
+  const [video3Url, setVideo3Url] = useState(initialVideo3Url);
   const [isSaving, setIsSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [showSaved, setShowSaved] = useState(false);
@@ -31,8 +52,15 @@ export default function ApplicationProfileEditor({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          applicantName: applicantName.trim(),
           chapter: chapter.trim(),
           adminNote: adminNote.trim(),
+          video1Title: video1Title.trim(),
+          video1Url: video1Url.trim(),
+          video2Title: video2Title.trim(),
+          video2Url: video2Url.trim(),
+          video3Title: video3Title.trim(),
+          video3Url: video3Url.trim(),
         }),
       });
 
@@ -54,6 +82,19 @@ export default function ApplicationProfileEditor({
     <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
       <h2 className="text-lg font-semibold text-[#1e1538]">Profile Notes & Chapter Edit</h2>
       <div className="mt-3 space-y-3">
+        <div className="space-y-1.5">
+          <label htmlFor="applicant-name" className="text-sm font-medium text-[#5f4d87]">
+            Applicant Name
+          </label>
+          <Input
+            id="applicant-name"
+            value={applicantName}
+            onChange={(event) => setApplicantName(event.target.value)}
+            placeholder="First Last"
+            className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+          />
+        </div>
+
         <div className="space-y-1.5">
           <label htmlFor="chapter" className="text-sm font-medium text-[#5f4d87]">
             Chapter
@@ -81,6 +122,52 @@ export default function ApplicationProfileEditor({
           <p className="text-xs text-[#7b6e9d]">
             Use this to document reassignment notes (ex: no chapter to sponsored chapter).
           </p>
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
+          <p className="text-sm font-semibold text-[#5f4d87]">Video Order Corrections</p>
+          <p className="text-xs text-[#7b6e9d]">
+            If imports come in out of order, edit Video 1/2/3 titles and URLs here.
+          </p>
+
+          <div className="grid gap-2 md:grid-cols-2">
+            <Input
+              value={video1Title}
+              onChange={(event) => setVideo1Title(event.target.value)}
+              placeholder="Video 1 title"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+            <Input
+              value={video1Url}
+              onChange={(event) => setVideo1Url(event.target.value)}
+              placeholder="Video 1 URL"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+            <Input
+              value={video2Title}
+              onChange={(event) => setVideo2Title(event.target.value)}
+              placeholder="Video 2 title"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+            <Input
+              value={video2Url}
+              onChange={(event) => setVideo2Url(event.target.value)}
+              placeholder="Video 2 URL"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+            <Input
+              value={video3Title}
+              onChange={(event) => setVideo3Title(event.target.value)}
+              placeholder="Video 3 title"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+            <Input
+              value={video3Url}
+              onChange={(event) => setVideo3Url(event.target.value)}
+              placeholder="Video 3 URL"
+              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+            />
+          </div>
         </div>
 
         <Button
