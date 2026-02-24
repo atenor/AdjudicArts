@@ -121,24 +121,24 @@ export default function BatchApplicationsTable({
         </label>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {applications.map((application) => (
           <article
             key={application.id}
-            className="rounded-2xl border border-[#e7c65e] bg-[#fbf7ea] p-5 shadow-sm"
+            className="rounded-xl border border-[#e7c65e] bg-[#fbf7ea] p-4 shadow-sm"
           >
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={application.headshotUrl}
                 alt={`${application.applicantName} headshot`}
-                className="h-24 w-24 rounded-2xl border border-[#d7cde9] object-cover bg-white"
+                className="h-16 w-16 rounded-xl border border-[#d7cde9] object-cover bg-white"
                 loading="lazy"
               />
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="truncate text-2xl font-bold text-[#1e1538]">
+                  <h3 className="truncate text-xl font-semibold text-[#1e1538]">
                     {application.applicantName}
                   </h3>
                   {canBatchDelete ? (
@@ -152,16 +152,16 @@ export default function BatchApplicationsTable({
                   ) : null}
                 </div>
 
-                <p className="mt-1 text-xl text-[#2e3558]">
+                <p className="mt-0.5 text-base text-[#2e3558]">
                   {application.divisionLabel ?? "Division —"}
                   {typeof application.age === "number" ? ` • Age ${application.age}` : ""}
                 </p>
-                <p className="text-lg text-[#425173]">{application.chapter ?? "Chapter pending"}</p>
-                <p className="mt-1 text-base text-[#4e5f80]">{application.applicantEmail}</p>
-                <p className="mt-1 text-sm text-[#5f4d83]">
+                <p className="text-sm text-[#425173]">{application.chapter ?? "Chapter pending"}</p>
+                <p className="mt-0.5 text-sm text-[#4e5f80]">{application.applicantEmail}</p>
+                <p className="mt-0.5 text-xs text-[#5f4d83]">
                   {application.voicePartLabel} · {application.eventName}
                 </p>
-                <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="mt-1.5 flex items-center justify-between gap-2">
                   <ApplicationStatusBadge status={application.status} />
                   <span className="text-xs text-[#6d5b91]">Submitted {application.submittedLabel}</span>
                 </div>
@@ -170,7 +170,7 @@ export default function BatchApplicationsTable({
 
             <Link
               href={`/dashboard/applications/${application.id}`}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#5b4bf3] to-[#4637e5] text-lg font-medium text-white shadow-sm transition hover:from-[#4f40dd] hover:to-[#3d30cc]"
+              className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#5b4bf3] to-[#4637e5] text-sm font-medium text-white shadow-sm transition hover:from-[#4f40dd] hover:to-[#3d30cc]"
             >
               Review Application
             </Link>
