@@ -248,3 +248,98 @@ export async function deleteApplicationById(id: string, organizationId: string) 
 
   return result;
 }
+
+export async function deleteApplicationsByIds(ids: string[], organizationId: string) {
+  const uniqueIds = Array.from(new Set(ids));
+  if (uniqueIds.length === 0) {
+    return {
+      deletedApplications: 0,
+      deletedScores: 0,
+      deletedApplicants: 0,
+      skipped: 0,
+    };
+  }
+
+  const existing = await prisma.application.findMany({
+    where: {
+      organizationId,
+      id: { in: uniqueIds },
+    },
+    select: {
+      id: true,
+      applicantId: true,
+    },
+  });
+
+  if (existing.length === 0) {
+    return {
+      deletedApplications: 0,
+      deletedScores: 0,
+      deletedApplicants: 0,
+      skipped: uniqueIds.length,
+    };
+  }
+
+  const existingIds = existing.map((application) => application.id);
+  const applicantIds = Array.from(
+    new Set(existing.map((application) => application.applicantId))
+  );
+
+  const result = await prisma.$transaction(async (tx) => {
+    const deletedScores = await tx.score.deleteMany({
+      where: {
+        organizationId,
+        applicationId: { in: existingIds },
+      },
+    });
+
+    const deletedApplications = await tx.application.deleteMany({
+      where: {
+        organizationId,
+        id: { in: existingIds },
+      },
+    });
+
+    const remainingCounts = await tx.application.groupBy({
+      by: ["applicantId"],
+      where: {
+        organizationId,
+        applicantId: { in: applicantIds },
+      },
+      _count: { applicantId: true },
+    });
+
+    const applicantsWithRemainingApps = new Set(
+      remainingCounts
+        .filter((row) => row._count.applicantId > 0)
+        .map((row) => row.applicantId)
+    );
+
+    const orphanApplicantIds = applicantIds.filter(
+      (applicantId) => !applicantsWithRemainingApps.has(applicantId)
+    );
+
+    let deletedApplicants = 0;
+    if (orphanApplicantIds.length > 0) {
+      const deletedApplicantRows = await tx.user.deleteMany({
+        where: {
+          organizationId,
+          role: Role.APPLICANT,
+          id: { in: orphanApplicantIds },
+        },
+      });
+      deletedApplicants = deletedApplicantRows.count;
+    }
+
+    return {
+      deletedScores: deletedScores.count,
+      deletedApplications: deletedApplications.count,
+      deletedApplicants,
+    };
+  });
+
+  return {
+    ...result,
+    skipped: uniqueIds.length - existingIds.length,
+  };
+}

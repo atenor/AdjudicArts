@@ -10,17 +10,9 @@ import { ApplicationStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
 import { listApplicationsByOrg } from "@/lib/db/applications";
-import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import BatchApplicationsTable from "@/components/applications/batch-applications-table";
 
 const STATUS_OPTIONS: ApplicationStatus[] = [
   "SUBMITTED",
@@ -60,6 +52,19 @@ export default async function ApplicationsPage({
     statusFilter
   );
 
+  const serializedApplications = applications.map((application) => ({
+    id: application.id,
+    applicantName: application.applicant.name,
+    applicantEmail: application.applicant.email,
+    voicePartLabel: formatVoicePart(application.notes),
+    eventName: application.event.name,
+    status: application.status,
+    submittedLabel: formatDate(application.submittedAt),
+    headshotUrl: getDisplayHeadshot(application.headshot, application.id),
+  }));
+
+  const canBatchDelete = session.user.role === "ADMIN";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -92,61 +97,17 @@ export default async function ApplicationsPage({
         </div>
       </div>
 
-      {applications.length === 0 ? (
+      {serializedApplications.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {statusFilter
             ? "No applications found for the selected filter."
             : "No applications have been submitted yet."}
         </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Applicant</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Voice Part</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Submitted</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {applications.map((application) => (
-              <TableRow key={application.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getDisplayHeadshot(application.headshot, application.id)}
-                      alt={`${application.applicant.name} headshot`}
-                      className="h-9 w-9 rounded-full object-cover border border-border/70 bg-muted"
-                      loading="lazy"
-                    />
-                    <Link
-                      href={`/dashboard/applications/${application.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {application.applicant.name}
-                    </Link>
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {application.applicant.email}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatVoicePart(application.notes)}
-                </TableCell>
-                <TableCell className="text-sm">{application.event.name}</TableCell>
-                <TableCell>
-                  <ApplicationStatusBadge status={application.status} />
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatDate(application.submittedAt)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <BatchApplicationsTable
+          applications={serializedApplications}
+          canBatchDelete={canBatchDelete}
+        />
       )}
     </div>
   );
