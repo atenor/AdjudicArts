@@ -112,6 +112,10 @@ export default async function ScoreApplicationPage({
     <div className={styles.page}>
       <div className={styles.grid}>
         <div className={styles.left}>
+          <div className={styles.mobileTopVideo}>
+            <StickyVideoPlayer videoUrls={videoUrls} />
+          </div>
+
           <section className={styles.applicantHeader}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
