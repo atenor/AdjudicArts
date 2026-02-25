@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 
 function getLastNDays(n: number) {
   const dates: Date[] = [];
@@ -11,6 +11,42 @@ function getLastNDays(n: number) {
     dates.push(d);
   }
   return dates;
+}
+
+function normalizeChapter(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function chapterMatchKey(value: string | null | undefined) {
+  const normalized = normalizeChapter(value);
+  if (!normalized) return "";
+
+  const withoutParens = normalized.replace(/\(.*?\)/g, " ").replace(/\s+/g, " ").trim();
+  const base = withoutParens.split(/[–—-]/)[0]?.trim() ?? withoutParens;
+  return base.replace(/\bchapter\b/g, "").replace(/\s+/g, " ").trim();
+}
+
+function buildChapterWhere(chapter: string): Prisma.ApplicationWhereInput {
+  const normalizedChapter = normalizeChapter(chapter);
+  const key = chapterMatchKey(chapter);
+  if (!normalizedChapter) return { id: "__none__" };
+
+  if (key.length < 3) {
+    return {
+      chapter: { equals: normalizedChapter, mode: "insensitive" },
+    };
+  }
+
+  return {
+    OR: [
+      {
+        chapter: { equals: normalizedChapter, mode: "insensitive" },
+      },
+      {
+        chapter: { contains: key, mode: "insensitive" },
+      },
+    ],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -127,18 +163,20 @@ export async function getChapterChairDashboardStats(
     };
   }
 
+  const chapterWhere = buildChapterWhere(chapterName);
+
   const [totalApplicantsForChapter, pendingApprovalsForChapter, chapterAdjudicationCount, recentPendingApprovals] =
     await Promise.all([
       prisma.application.count({
         where: {
           organizationId,
-          chapter: { equals: chapterName, mode: "insensitive" },
+          ...chapterWhere,
         },
       }),
       prisma.application.count({
         where: {
           organizationId,
-          chapter: { equals: chapterName, mode: "insensitive" },
+          ...chapterWhere,
           status: { in: ["SUBMITTED_PENDING_APPROVAL", "SUBMITTED"] },
         },
       }),
@@ -151,11 +189,10 @@ export async function getChapterChairDashboardStats(
       prisma.application.findMany({
         where: {
           organizationId,
-          chapter: { equals: chapterName, mode: "insensitive" },
+          ...chapterWhere,
           status: { in: ["SUBMITTED_PENDING_APPROVAL", "SUBMITTED"] },
         },
         orderBy: { submittedAt: "asc" },
-        take: 5,
         include: {
           applicant: { select: { name: true } },
           event: { select: { id: true, name: true } },
