@@ -102,11 +102,15 @@ function extractDriveId(url: string): string | null {
   }
 }
 
-function toDriveThumbnail(url: string | null): string | null {
+function toHeadshotUrl(url: string | null): string | null {
   if (!url) return null;
   const id = extractDriveId(url);
-  if (!id) return null;
-  return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+  if (id) {
+    // Use the original Drive file (not the w400 thumbnail) to preserve resolution.
+    return `https://drive.google.com/uc?export=view&id=${id}`;
+  }
+  // Keep non-Drive image URLs unchanged.
+  return url;
 }
 
 function extractPlaylistId(url: string | null): string | null {
@@ -356,7 +360,7 @@ export async function importApplicantFromRow(
   const explicitVideo1Url = getValue(row, ["Video 1 URL", "Video #1 URL"]);
   const explicitVideo2Url = getValue(row, ["Video 2 URL", "Video #2 URL"]);
   const explicitVideo3Url = getValue(row, ["Video 3 URL", "Video #3 URL"]);
-  const headshot = toDriveThumbnail(
+  const headshot = toHeadshotUrl(
     getValue(row, [
       "High-Quality Headshot",
       "Performance Photograph",

@@ -25,7 +25,7 @@ export default function HeadshotPreview({
           <img src={src} alt={alt} className={triggerClassName} loading="lazy" />
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-[760px] p-3">
+      <DialogContent className="max-w-[980px] p-3">
         <DialogHeader>
           <DialogTitle>{alt}</DialogTitle>
         </DialogHeader>
@@ -33,7 +33,7 @@ export default function HeadshotPreview({
         <img
           src={src}
           alt={alt}
-          className="mx-auto h-auto w-auto max-h-[72vh] max-w-[680px] rounded-lg object-contain"
+          className="mx-auto h-auto w-auto max-h-[78vh] max-w-[920px] rounded-lg object-contain"
         />
       </DialogContent>
     </Dialog>
