@@ -1,8 +1,224 @@
 import { prisma } from "@/lib/prisma";
-import { ApplicationStatus, Role } from "@prisma/client";
+import { ApplicationStatus, Prisma, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { buildApplicationMetadata } from "@/lib/application-metadata";
+
+export const PENDING_APPROVAL_STATUSES: ApplicationStatus[] = [
+  "SUBMITTED_PENDING_APPROVAL",
+  "SUBMITTED",
+];
+
+export const CHAPTER_ADJUDICATION_STATUSES: ApplicationStatus[] = [
+  "CHAPTER_ADJUDICATION",
+  "CHAPTER_REVIEW",
+];
+
+export const NATIONAL_FINALS_STATUSES: ApplicationStatus[] = [
+  "NATIONAL_FINALS",
+  "NATIONAL_REVIEW",
+];
+
+function normalizeChapter(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function isChapterMatch(
+  applicationChapter: string | null | undefined,
+  userChapter: string | null | undefined
+) {
+  const app = normalizeChapter(applicationChapter);
+  const user = normalizeChapter(userChapter);
+  return app.length > 0 && user.length > 0 && app === user;
+}
+
+function isInStatusSet(status: ApplicationStatus, statuses: ApplicationStatus[]) {
+  return statuses.includes(status);
+}
+
+export function getAllowedApplicationStatusesForRole(role: Role): ApplicationStatus[] {
+  if (role === "ADMIN" || role === "NATIONAL_CHAIR") {
+    return [
+      "SUBMITTED_PENDING_APPROVAL",
+      "CHAPTER_ADJUDICATION",
+      "NATIONAL_FINALS",
+      "SUBMITTED",
+      "CHAPTER_REVIEW",
+      "CHAPTER_APPROVED",
+      "CHAPTER_REJECTED",
+      "NATIONAL_REVIEW",
+      "NATIONAL_APPROVED",
+      "NATIONAL_REJECTED",
+      "DECIDED",
+    ];
+  }
+  if (role === "CHAPTER_CHAIR") {
+    return [...PENDING_APPROVAL_STATUSES, ...CHAPTER_ADJUDICATION_STATUSES];
+  }
+  if (role === "CHAPTER_JUDGE") {
+    return [...CHAPTER_ADJUDICATION_STATUSES];
+  }
+  if (role === "NATIONAL_JUDGE") {
+    return [...NATIONAL_FINALS_STATUSES];
+  }
+  return [];
+}
+
+export function canViewApplicationByRole(input: {
+  role: Role;
+  status: ApplicationStatus;
+  applicationChapter?: string | null;
+  userChapter?: string | null;
+}) {
+  if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") return true;
+
+  if (input.role === "CHAPTER_CHAIR") {
+    if (isInStatusSet(input.status, CHAPTER_ADJUDICATION_STATUSES)) return true;
+    if (isInStatusSet(input.status, PENDING_APPROVAL_STATUSES)) {
+      return isChapterMatch(input.applicationChapter, input.userChapter);
+    }
+    return false;
+  }
+
+  if (input.role === "CHAPTER_JUDGE") {
+    return isInStatusSet(input.status, CHAPTER_ADJUDICATION_STATUSES);
+  }
+
+  if (input.role === "NATIONAL_JUDGE") {
+    return isInStatusSet(input.status, NATIONAL_FINALS_STATUSES);
+  }
+
+  return false;
+}
+
+function buildVisibilityWhere(input: {
+  role: Role;
+  userChapter?: string | null;
+  status?: ApplicationStatus;
+}): Prisma.ApplicationWhereInput {
+  const statusFilter = input.status;
+
+  if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") {
+    return statusFilter ? { status: statusFilter } : {};
+  }
+
+  if (input.role === "CHAPTER_JUDGE") {
+    if (statusFilter && !isInStatusSet(statusFilter, CHAPTER_ADJUDICATION_STATUSES)) {
+      return { id: "__none__" };
+    }
+    return statusFilter
+      ? { status: statusFilter }
+      : { status: { in: CHAPTER_ADJUDICATION_STATUSES } };
+  }
+
+  if (input.role === "NATIONAL_JUDGE") {
+    if (statusFilter && !isInStatusSet(statusFilter, NATIONAL_FINALS_STATUSES)) {
+      return { id: "__none__" };
+    }
+    return statusFilter
+      ? { status: statusFilter }
+      : { status: { in: NATIONAL_FINALS_STATUSES } };
+  }
+
+  if (input.role === "CHAPTER_CHAIR") {
+    const normalizedUserChapter = normalizeChapter(input.userChapter);
+    if (statusFilter) {
+      if (isInStatusSet(statusFilter, CHAPTER_ADJUDICATION_STATUSES)) {
+        return { status: statusFilter };
+      }
+      if (isInStatusSet(statusFilter, PENDING_APPROVAL_STATUSES)) {
+        if (!normalizedUserChapter) return { id: "__none__" };
+        return {
+          status: statusFilter,
+          chapter: {
+            equals: normalizedUserChapter,
+            mode: "insensitive",
+          },
+        };
+      }
+      return { id: "__none__" };
+    }
+
+    const clauses: Prisma.ApplicationWhereInput[] = [
+      { status: { in: CHAPTER_ADJUDICATION_STATUSES } },
+    ];
+
+    if (normalizedUserChapter) {
+      clauses.push({
+        status: { in: PENDING_APPROVAL_STATUSES },
+        chapter: {
+          equals: normalizedUserChapter,
+          mode: "insensitive",
+        },
+      });
+    }
+
+    return { OR: clauses };
+  }
+
+  return { id: "__none__" };
+}
+
+export function canAdvanceApplicationStatusByRole(input: {
+  role: Role;
+  currentStatus: ApplicationStatus;
+  nextStatus: ApplicationStatus;
+  applicationChapter?: string | null;
+  userChapter?: string | null;
+}) {
+  const fromPending = isInStatusSet(input.currentStatus, PENDING_APPROVAL_STATUSES);
+  if (!fromPending) {
+    return input.role === "ADMIN" || input.role === "NATIONAL_CHAIR";
+  }
+
+  const isPendingApprovalAction =
+    input.nextStatus === "CHAPTER_ADJUDICATION" ||
+    input.nextStatus === "CHAPTER_REJECTED" ||
+    input.nextStatus === "SUBMITTED_PENDING_APPROVAL";
+
+  if (!isPendingApprovalAction) return false;
+  if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") return true;
+  if (input.role === "CHAPTER_CHAIR") {
+    return isChapterMatch(input.applicationChapter, input.userChapter);
+  }
+  return false;
+}
+
+const FORWARD_TO_NATIONALS_ELIGIBLE_STATUSES: ApplicationStatus[] = [
+  ...PENDING_APPROVAL_STATUSES,
+  ...CHAPTER_ADJUDICATION_STATUSES,
+  "CHAPTER_APPROVED",
+];
+
+export function canForwardApplicationToNationalsByRole(input: {
+  role: Role;
+  currentStatus: ApplicationStatus;
+  applicationChapter?: string | null;
+  userChapter?: string | null;
+}) {
+  if (
+    input.role !== "ADMIN" &&
+    input.role !== "NATIONAL_CHAIR" &&
+    input.role !== "CHAPTER_CHAIR"
+  ) {
+    return false;
+  }
+
+  if (!FORWARD_TO_NATIONALS_ELIGIBLE_STATUSES.includes(input.currentStatus)) {
+    return false;
+  }
+
+  if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") {
+    return true;
+  }
+
+  return canViewApplicationByRole({
+    role: input.role,
+    status: input.currentStatus,
+    applicationChapter: input.applicationChapter,
+    userChapter: input.userChapter,
+  });
+}
 
 export async function getPublicEventForApply(eventId: string) {
   return prisma.event.findUnique({
@@ -51,7 +267,7 @@ export async function createPublicApplication(data: {
       organizationId: data.organizationId,
       eventId: data.eventId,
       applicantId: user.id,
-      status: ApplicationStatus.SUBMITTED,
+      status: ApplicationStatus.SUBMITTED_PENDING_APPROVAL,
       repertoire: data.repertoire,
       notes: buildApplicationMetadata({
         voicePart: data.voicePart,
@@ -79,12 +295,26 @@ export async function hasExistingApplication(
 
 export async function listApplicationsByOrg(
   organizationId: string,
-  status?: ApplicationStatus
+  status?: ApplicationStatus,
+  visibility?: {
+    role: Role;
+    userChapter?: string | null;
+  }
 ) {
+  const visibilityWhere = visibility
+    ? buildVisibilityWhere({
+        role: visibility.role,
+        userChapter: visibility.userChapter,
+        status,
+      })
+    : status
+      ? { status }
+      : {};
+
   return prisma.application.findMany({
     where: {
       organizationId,
-      ...(status ? { status } : {}),
+      ...visibilityWhere,
     },
     include: {
       applicant: {
@@ -107,8 +337,15 @@ export async function listApplicationsByOrg(
   });
 }
 
-export async function getApplicationById(id: string, organizationId: string) {
-  return prisma.application.findFirst({
+export async function getApplicationById(
+  id: string,
+  organizationId: string,
+  visibility?: {
+    role: Role;
+    userChapter?: string | null;
+  }
+) {
+  const application = await prisma.application.findFirst({
     where: { id, organizationId },
     include: {
       applicant: {
@@ -154,6 +391,22 @@ export async function getApplicationById(id: string, organizationId: string) {
       },
     },
   });
+
+  if (!application) return null;
+  if (!visibility) return application;
+
+  if (
+    !canViewApplicationByRole({
+      role: visibility.role,
+      status: application.status,
+      applicationChapter: application.chapter,
+      userChapter: visibility.userChapter,
+    })
+  ) {
+    return null;
+  }
+
+  return application;
 }
 
 export async function getPublicApplicationById(id: string) {
@@ -199,6 +452,124 @@ export async function advanceApplicationStatus(
       },
     },
   });
+}
+
+export async function advanceApplicationStatusWithPermissions(input: {
+  id: string;
+  nextStatus: ApplicationStatus;
+  organizationId: string;
+  actorRole: Role;
+  actorChapter?: string | null;
+}) {
+  const existing = await prisma.application.findFirst({
+    where: { id: input.id, organizationId: input.organizationId },
+    select: { id: true, status: true, chapter: true },
+  });
+
+  if (!existing) {
+    return { reason: "NOT_FOUND" as const };
+  }
+
+  const allowed = canAdvanceApplicationStatusByRole({
+    role: input.actorRole,
+    currentStatus: existing.status,
+    nextStatus: input.nextStatus,
+    applicationChapter: existing.chapter,
+    userChapter: input.actorChapter,
+  });
+
+  if (!allowed) {
+    return { reason: "FORBIDDEN" as const };
+  }
+
+  const updated = await advanceApplicationStatus(
+    existing.id,
+    input.nextStatus,
+    input.organizationId
+  );
+
+  if (!updated) {
+    return { reason: "NOT_FOUND" as const };
+  }
+
+  return { reason: "OK" as const, updated };
+}
+
+type ForwardToNationalsBypassInput = {
+  id: string;
+  organizationId: string;
+  actorUserId: string;
+  actorRole: Role;
+  actorChapter?: string | null;
+  reason?: string | null;
+};
+
+export async function forwardApplicationToNationalsWithBypass(
+  input: ForwardToNationalsBypassInput
+) {
+  const existing = await prisma.application.findFirst({
+    where: { id: input.id, organizationId: input.organizationId },
+    select: { id: true, status: true, chapter: true, notes: true },
+  });
+
+  if (!existing) {
+    return { reason: "NOT_FOUND" as const };
+  }
+
+  const allowed = canForwardApplicationToNationalsByRole({
+    role: input.actorRole,
+    currentStatus: existing.status,
+    applicationChapter: existing.chapter,
+    userChapter: input.actorChapter,
+  });
+
+  if (!allowed) {
+    return { reason: "FORBIDDEN" as const };
+  }
+
+  const notesObject = parseNotesObject(existing.notes);
+  const timestamp = new Date().toISOString();
+  const normalizedReason = input.reason?.trim() || null;
+  const auditHistory = Array.isArray(notesObject.auditHistory)
+    ? [...notesObject.auditHistory]
+    : [];
+
+  auditHistory.push({
+    type: "FORWARDED_TO_NATIONALS_BYPASS_CHAPTER",
+    at: timestamp,
+    actorUserId: input.actorUserId,
+    actorRole: input.actorRole,
+    fromStatus: existing.status,
+    toStatus: "NATIONAL_FINALS",
+    reason: normalizedReason,
+  });
+
+  notesObject.auditHistory = auditHistory;
+  notesObject.chapterBypassForward = {
+    forwarded: true,
+    at: timestamp,
+    actorUserId: input.actorUserId,
+    actorRole: input.actorRole,
+    reason: normalizedReason,
+  };
+
+  const updated = await prisma.application.update({
+    where: { id: existing.id },
+    data: {
+      status: "NATIONAL_FINALS",
+      notes: JSON.stringify(notesObject),
+    },
+    include: {
+      applicant: {
+        select: { id: true, name: true, email: true },
+      },
+      event: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+
+  return { reason: "OK" as const, updated };
 }
 
 export async function deleteApplicationById(id: string, organizationId: string) {

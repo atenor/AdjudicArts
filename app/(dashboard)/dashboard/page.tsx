@@ -87,9 +87,9 @@ export default async function DashboardPage() {
           <StatCard title="Events" value={stats.totalEvents} />
           <StatCard title="Active" value={stats.openEvents} sub="open, review, or judging" />
           <StatCard
-            title="Pending Review"
+            title="Pending Approval"
             value={stats.pendingApplications}
-            sub="awaiting scoring or decision"
+            sub="awaiting approval to enter chapter adjudication"
           />
         </section>
 
@@ -103,8 +103,8 @@ export default async function DashboardPage() {
                 <div className={styles.analyticsRows}>
                   {[
                     { label: "Submitted", value: stats.statusBreakdown.submitted },
-                    { label: "Chapter Review", value: stats.statusBreakdown.chapterReview },
-                    { label: "National Review", value: stats.statusBreakdown.nationalReview },
+                    { label: "Chapter Adjudication", value: stats.statusBreakdown.chapterReview },
+                    { label: "National Finals", value: stats.statusBreakdown.nationalReview },
                     { label: "Decided", value: stats.statusBreakdown.decided },
                   ].map((item) => (
                     <div key={item.label} className={styles.analyticsRow}>
@@ -190,7 +190,10 @@ export default async function DashboardPage() {
   }
 
   if (hasRole(session, "CHAPTER_CHAIR")) {
-    const stats = await getChapterChairDashboardStats(user.organizationId);
+    const stats = await getChapterChairDashboardStats(
+      user.organizationId,
+      user.chapter
+    );
 
     return (
       <div className={styles.page}>
@@ -200,22 +203,31 @@ export default async function DashboardPage() {
         </header>
 
         <section className={styles.grid4}>
-          <StatCard title="Events in Review" value={stats.eventsInChapterReview} />
           <StatCard
-            title="Applications"
-            value={stats.applicationsInReview}
-            sub="currently at chapter review stage"
+            title="My Chapter Applicants"
+            value={stats.totalApplicantsForChapter}
+            sub={stats.chapterName ?? "No chapter assigned"}
+          />
+          <StatCard
+            title="Pending Approval"
+            value={stats.pendingApprovalsForChapter}
+            sub="in your chapter"
+          />
+          <StatCard
+            title="Chapter Adjudication"
+            value={stats.chapterAdjudicationCount}
+            sub="visible across chapters"
           />
         </section>
 
         <section className={styles.sectionCard}>
           <div className={styles.sectionTopBar} />
           <div className={styles.sectionBody}>
-            <h2 className={styles.sectionTitle}>Pending Review</h2>
-            {stats.recentApplications.length === 0 ? (
-              <p className={styles.muted}>No applications in chapter review right now.</p>
+            <h2 className={styles.sectionTitle}>Pending Approval (My Chapter)</h2>
+            {stats.recentPendingApprovals.length === 0 ? (
+              <p className={styles.muted}>No pending approvals in your chapter right now.</p>
             ) : (
-              stats.recentApplications.map((app) => {
+              stats.recentPendingApprovals.map((app) => {
                 const meta = parseApplicationMetadata(app.notes);
                 return (
                   <article className={styles.row} key={app.id}>
@@ -261,7 +273,11 @@ export default async function DashboardPage() {
       user.role
     );
 
-    const remaining = stats.totalToScore - stats.totalScored;
+    const remaining =
+      stats.totalToJudgeCurrentRound - stats.completedByJudgeCurrentRound;
+    const ctaLabel = stats.hasSavedWork
+      ? "Continue Being Judgy"
+      : "Start Being Judgy";
 
     return (
       <div className={styles.page}>
@@ -271,76 +287,34 @@ export default async function DashboardPage() {
         </header>
 
         <section className={styles.grid3}>
-          <StatCard title="Rounds" value={stats.roundCount} />
-          <StatCard title="Scored" value={stats.totalScored} sub={`of ${stats.totalToScore} total`} />
           <StatCard
-            title="Remaining"
-            value={remaining}
-            sub={remaining === 0 ? "all complete" : "to score"}
+            title="Current Round"
+            value={user.role === "CHAPTER_JUDGE" ? "Chapter" : "National"}
+            sub={stats.currentRoundLabel}
+          />
+          <StatCard title="To Judge" value={stats.totalToJudgeCurrentRound} />
+          <StatCard
+            title="Completed By You"
+            value={stats.completedByJudgeCurrentRound}
+            sub={`${remaining} remaining`}
           />
         </section>
 
-        <section className={styles.sectionCard}>
-          <div className={styles.sectionTopBar} />
-          <div className={styles.sectionBody}>
-            <h2 className={styles.sectionTitle}>Analytics</h2>
-            <div className={styles.analyticsGrid}>
-              <article className={styles.analyticsCard}>
-                <p className={styles.analyticsTitle}>Scoring Completion</p>
-                <div className={styles.completionSummary}>
-                  <span className={styles.completionPercent}>{stats.completionRate}%</span>
-                  <span className={styles.completionMeta}>complete</span>
-                </div>
-                <div className={styles.completionTrack}>
-                  <div
-                    className={styles.completionFill}
-                    style={{ width: `${stats.completionRate}%` }}
-                  />
-                </div>
-                <div className={styles.analyticsRows}>
-                  {[
-                    { label: "Fully Scored", value: stats.totalScored },
-                    { label: "Partially Scored", value: stats.partiallyScored },
-                    { label: "Untouched", value: stats.untouched },
-                    { label: "Touched (7d)", value: stats.scoredLast7Days },
-                  ].map((item) => (
-                    <div key={item.label} className={styles.analyticsRowCompact}>
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              <article className={styles.analyticsCard}>
-                <p className={styles.analyticsTitle}>Assigned Workload by Event</p>
-                {stats.assignedByEvent.length === 0 ? (
-                  <p className={styles.muted}>No active assignments yet.</p>
-                ) : (
-                  <div className={styles.analyticsRows}>
-                    {stats.assignedByEvent.map((item) => (
-                      <div key={item.eventName} className={styles.analyticsRow}>
-                        <div className={styles.analyticsRowLabel}>{item.eventName}</div>
-                        <div className={styles.analyticsBarWrap}>
-                          <div
-                            className={styles.analyticsBar}
-                            style={{ width: `${percentage(item.count, stats.totalToScore)}%` }}
-                          />
-                        </div>
-                        <div className={styles.analyticsValue}>{item.count}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </article>
-            </div>
-          </div>
+        <section className={styles.judgeCtaCard}>
+          <p className={styles.judgeCtaLabel}>Primary Action</p>
+          <Link href="/dashboard/scoring" className={styles.judgeCtaButton}>
+            {ctaLabel}
+          </Link>
+          <p className={styles.judgeCtaHint}>
+            Opens your judging list for {stats.currentRoundLabel.toLowerCase()}.
+          </p>
         </section>
 
         <section>
           <h2 className={styles.sectionTitle}>Quick Links</h2>
           <div className={styles.quickLinks}>
-            <QuickLink href="/dashboard/scoring" label="My Scoring Queue" />
+            <QuickLink href="/dashboard/scoring" label="My Judging List" />
+            <QuickLink href="/dashboard/notifications" label="Notifications" />
           </div>
         </section>
       </div>

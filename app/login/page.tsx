@@ -66,7 +66,7 @@ export default function LoginPage() {
             <span> continue being judgy.</span>
           </h1>
           <p className={styles.copy}>
-            Access event administration, chapter reviews, judge scoring, and final rankings in one place.
+            Access event administration, chapter adjudication, judge scoring, and final rankings in one place.
           </p>
         </div>
 

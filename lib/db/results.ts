@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ScoreRound } from "@prisma/client";
 import { parseApplicationMetadata } from "@/lib/application-metadata";
 
 export type RankedResult = {
@@ -63,6 +64,7 @@ export async function getRankedResultsForRound(
 
   const { criteria } = round.event.rubric;
   const judgeIds = round.judgeAssignments.map((a) => a.judgeId);
+  const scoreRound: ScoreRound = round.type === "CHAPTER" ? "CHAPTER" : "NATIONAL";
 
   if (judgeIds.length === 0 || criteria.length === 0) return [];
 
@@ -75,6 +77,7 @@ export async function getRankedResultsForRound(
       applicationId: { in: applicationIds },
       criteriaId: { in: criteria.map((c) => c.id) },
       judgeId: { in: judgeIds },
+      round: scoreRound,
     },
     select: {
       applicationId: true,

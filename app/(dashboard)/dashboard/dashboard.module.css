@@ -368,6 +368,51 @@
   font-weight: 800;
 }
 
+.judgeCtaCard {
+  border-radius: 12px;
+  border: 1px solid rgba(70, 43, 124, 0.14);
+  background: linear-gradient(180deg, rgba(243, 238, 248, 0.72), #ffffff);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.judgeCtaLabel {
+  margin: 0;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8a7fa8;
+}
+
+.judgeCtaButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 11.5rem;
+  text-decoration: none;
+  border-radius: 999px;
+  border: 1px solid #4d2d91;
+  background: linear-gradient(90deg, #5f2ec8 0%, #462b7c 100%);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.52rem 0.95rem;
+}
+
+.judgeCtaButton:hover {
+  background: linear-gradient(90deg, #5327b2 0%, #3e256f 100%);
+}
+
+.judgeCtaHint {
+  margin: 0;
+  color: #6e5e93;
+  font-size: 0.75rem;
+}
+
 @media (min-width: 860px) {
   .grid4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));

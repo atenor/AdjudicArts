@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Scoring Queue" };
+export const metadata: Metadata = { title: "Judging List" };
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -39,7 +39,7 @@ export default async function ScoringQueuePage({
   return (
     <div className="min-w-0 space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">Scoring Queue</h1>
+        <h1 className="text-2xl font-semibold">Judging List</h1>
         <p className="text-sm text-muted-foreground">
           {totalScored} of {totalApplications} applications scored
         </p>
@@ -70,7 +70,7 @@ export default async function ScoringQueuePage({
 
       {queue.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No assigned rounds are currently open for scoring.
+          No assigned rounds are currently open for judging.
         </p>
       ) : (
         <div className="space-y-6">
@@ -91,7 +91,7 @@ export default async function ScoringQueuePage({
 
               {roundQueue.applications.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No applications are currently in this scoring stage.
+                  No applications are currently in this adjudication stage.
                 </p>
               ) : (
                 (() => {

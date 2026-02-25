@@ -9,21 +9,27 @@ import Link from "next/link";
 import { ApplicationStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
-import { listApplicationsByOrg } from "@/lib/db/applications";
+import {
+  getAllowedApplicationStatusesForRole,
+  listApplicationsByOrg,
+} from "@/lib/db/applications";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import BatchApplicationsTable from "@/components/applications/batch-applications-table";
 
-const STATUS_OPTIONS: ApplicationStatus[] = [
-  "SUBMITTED",
-  "CHAPTER_REVIEW",
-  "CHAPTER_APPROVED",
-  "CHAPTER_REJECTED",
-  "NATIONAL_REVIEW",
-  "NATIONAL_APPROVED",
-  "NATIONAL_REJECTED",
-  "DECIDED",
-];
+const STATUS_LABELS: Record<ApplicationStatus, string> = {
+  SUBMITTED_PENDING_APPROVAL: "Submitted — Pending Approval",
+  CHAPTER_ADJUDICATION: "Chapter Adjudication",
+  NATIONAL_FINALS: "National Finals",
+  SUBMITTED: "Submitted — Pending Approval",
+  CHAPTER_REVIEW: "Chapter Adjudication",
+  CHAPTER_APPROVED: "Chapter Approved",
+  CHAPTER_REJECTED: "Chapter Rejected",
+  NATIONAL_REVIEW: "National Finals",
+  NATIONAL_APPROVED: "National Approved",
+  NATIONAL_REJECTED: "National Rejected",
+  DECIDED: "Decided",
+};
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", {
@@ -51,6 +57,25 @@ function formatDivision(age: number | null) {
   return "Division —";
 }
 
+function wasForwardedBypass(notes: string | null | undefined) {
+  if (!notes) return false;
+  try {
+    const parsed = JSON.parse(notes) as {
+      auditHistory?: unknown[];
+      chapterBypassForward?: { forwarded?: boolean };
+    };
+    if (parsed.chapterBypassForward?.forwarded) return true;
+    if (!Array.isArray(parsed.auditHistory)) return false;
+    return parsed.auditHistory.some((entry) => {
+      if (!entry || typeof entry !== "object") return false;
+      const audit = entry as Record<string, unknown>;
+      return audit.type === "FORWARDED_TO_NATIONALS_BYPASS_CHAPTER";
+    });
+  } catch {
+    return false;
+  }
+}
+
 export default async function ApplicationsPage({
   searchParams,
 }: {
@@ -58,10 +83,24 @@ export default async function ApplicationsPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (!hasRole(session, "ADMIN", "NATIONAL_CHAIR")) redirect("/dashboard");
+  if (
+    !hasRole(
+      session,
+      "ADMIN",
+      "NATIONAL_CHAIR",
+      "CHAPTER_CHAIR",
+      "CHAPTER_JUDGE",
+      "NATIONAL_JUDGE"
+    )
+  ) {
+    redirect("/dashboard");
+  }
+
+  const statusOptions = getAllowedApplicationStatusesForRole(session.user.role);
+  if (statusOptions.length === 0) redirect("/dashboard");
 
   const statusFilter =
-    searchParams.status && STATUS_OPTIONS.includes(searchParams.status as ApplicationStatus)
+    searchParams.status && statusOptions.includes(searchParams.status as ApplicationStatus)
       ? (searchParams.status as ApplicationStatus)
       : undefined;
   const viewMode = searchParams.view === "list" ? "list" : "cards";
@@ -76,7 +115,11 @@ export default async function ApplicationsPage({
 
   const applications = await listApplicationsByOrg(
     session.user.organizationId,
-    statusFilter
+    statusFilter,
+    {
+      role: session.user.role,
+      userChapter: session.user.chapter,
+    }
   );
 
   const serializedApplications = applications.map((application) => {
@@ -91,6 +134,7 @@ export default async function ApplicationsPage({
       voicePartLabel: formatVoicePart(application.notes),
       eventName: application.event.name,
       status: application.status,
+      isForwarded: wasForwardedBypass(application.notes),
       submittedLabel: formatDate(application.submittedAt),
       headshotUrl: getDisplayHeadshot(application.headshot, application.id),
     };
@@ -114,7 +158,7 @@ export default async function ApplicationsPage({
               >
                 All
               </Link>
-              {STATUS_OPTIONS.map((status) => (
+              {statusOptions.map((status) => (
                 <Link
                   key={status}
                   href={buildApplicationsHref(status)}
@@ -124,7 +168,7 @@ export default async function ApplicationsPage({
                       : "hover:bg-muted/60"
                   }`}
                 >
-                  {status.replaceAll("_", " ").toLowerCase()}
+                  {STATUS_LABELS[status]}
                 </Link>
               ))}
             </div>

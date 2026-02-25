@@ -9,16 +9,22 @@ function getResend() {
 const FROM_ADDRESS = "AdjudicArts <noreply@adjudicarts.dev>";
 
 const STATUS_MESSAGES: Record<ApplicationStatus, string> = {
+  SUBMITTED_PENDING_APPROVAL:
+    "Your application has been received and is awaiting approval.",
+  CHAPTER_ADJUDICATION:
+    "Your application is now in chapter adjudication.",
+  NATIONAL_FINALS:
+    "Your application has advanced to national finals.",
   SUBMITTED:
-    "Your application has been received and is awaiting review.",
+    "Your application has been received and is awaiting approval.",
   CHAPTER_REVIEW:
-    "Your application is currently under chapter review.",
+    "Your application is currently in chapter adjudication.",
   CHAPTER_APPROVED:
-    "Congratulations! Your application has been approved to advance to national review.",
+    "Congratulations! Your application has been approved to advance to national finals.",
   CHAPTER_REJECTED:
     "Thank you for applying. Unfortunately your application was not selected to advance at this time.",
   NATIONAL_REVIEW:
-    "Your application is under national review.",
+    "Your application is currently in national finals adjudication.",
   NATIONAL_APPROVED:
     "Congratulations! Your application has been approved.",
   NATIONAL_REJECTED:

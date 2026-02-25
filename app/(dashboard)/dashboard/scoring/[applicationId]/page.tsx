@@ -29,7 +29,7 @@ export default async function ScoreApplicationPage({
     redirect("/dashboard");
   }
 
-  const [scoringContext, queue] = await Promise.all([
+  const [scoringContext, judgingList] = await Promise.all([
     getScoringApplicationForJudge(
       params.applicationId,
       session.user.id,
@@ -58,7 +58,7 @@ export default async function ScoreApplicationPage({
     }))
     .slice(0, videoUrls.length);
 
-  const queueApplications = queue.flatMap((roundQueue) =>
+  const queueApplications = judgingList.flatMap((roundQueue) =>
     roundQueue.applications.map((queueApp) => ({
       id: queueApp.id,
       name: queueApp.applicant.name,
@@ -163,7 +163,7 @@ export default async function ScoreApplicationPage({
           </section>
 
           <Link href="/dashboard/scoring" className={styles.backLink}>
-            ← Back to scoring queue
+            ← Back to judging list
           </Link>
         </div>
 
@@ -185,12 +185,12 @@ export default async function ScoreApplicationPage({
             ) : null}
 
             <section className={`${styles.sidebarCard} ${styles.desktopOnly}`}>
-              <h2 className={styles.sidebarTitle}>Queue Navigation</h2>
-              <p className={styles.navMeta}>
-                {currentIndex >= 0
-                  ? `${currentIndex + 1} of ${queueApplications.length} applicants`
-                  : "Current applicant not found in queue order."}
-              </p>
+              <h2 className={styles.sidebarTitle}>Judging List Navigation</h2>
+                <p className={styles.navMeta}>
+                  {currentIndex >= 0
+                    ? `${currentIndex + 1} of ${queueApplications.length} applicants`
+                    : "Current applicant not found in judging list order."}
+                </p>
               <div className={styles.navLinks}>
                 {previousApplication ? (
                   <Link

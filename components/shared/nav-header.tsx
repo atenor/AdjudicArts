@@ -24,6 +24,7 @@ export default async function NavHeader() {
   const canViewScoring =
     session?.user.role === "CHAPTER_JUDGE" ||
     session?.user.role === "NATIONAL_JUDGE";
+  const canViewNotifications = Boolean(session?.user);
 
   return (
     <header className={styles.header}>
@@ -50,7 +51,12 @@ export default async function NavHeader() {
           )}
           {canViewScoring && (
             <Link href="/dashboard/scoring" className={styles.link}>
-              Scoring
+              Judging List
+            </Link>
+          )}
+          {canViewNotifications && (
+            <Link href="/dashboard/notifications" className={styles.link}>
+              Notifications
             </Link>
           )}
         </div>

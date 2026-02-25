@@ -81,6 +81,7 @@ export async function POST(
         applicationId: params.applicationId,
         criteriaId: score.criteriaId,
         judgeId: session.user.id,
+        round: scoringContext.scoreRound,
         value: score.value,
         comment:
           score.criteriaId === firstCriteriaId

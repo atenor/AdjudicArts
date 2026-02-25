@@ -6,17 +6,28 @@ import Link from "next/link";
 import { ApplicationStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
-import { getApplicationById } from "@/lib/db/applications";
+import {
+  canAdvanceApplicationStatusByRole,
+  canForwardApplicationToNationalsByRole,
+  getApplicationById,
+} from "@/lib/db/applications";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import AdvanceApplicationStatusButtons from "@/components/applications/advance-application-status-buttons";
 import DeleteApplicationButton from "@/components/applications/delete-application-button";
 import ApplicationProfileEditor from "@/components/applications/application-profile-editor";
+import ForwardToNationalsButton from "@/components/applications/forward-to-nationals-button";
 import HeadshotPreview from "@/components/shared/headshot-preview";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import { parseRepertoireEntries } from "@/lib/repertoire";
 
 type RawCsv = Record<string, string>;
+type BypassAuditEvent = {
+  at: string;
+  actorRole: string;
+  actorUserId: string;
+  reason: string | null;
+};
 
 const STATUS_FLOW: ApplicationStatus[] = [
   "SUBMITTED",
@@ -27,7 +38,22 @@ const STATUS_FLOW: ApplicationStatus[] = [
   "DECIDED",
 ];
 
+const NEW_STATUS_FLOW: ApplicationStatus[] = [
+  "SUBMITTED_PENDING_APPROVAL",
+  "CHAPTER_ADJUDICATION",
+  "NATIONAL_FINALS",
+];
+
 function deriveStatusTimeline(status: ApplicationStatus): ApplicationStatus[] {
+  if (status === "SUBMITTED_PENDING_APPROVAL") {
+    return [NEW_STATUS_FLOW[0]];
+  }
+  if (status === "CHAPTER_ADJUDICATION") {
+    return NEW_STATUS_FLOW.slice(0, 2);
+  }
+  if (status === "NATIONAL_FINALS") {
+    return NEW_STATUS_FLOW.slice(0, 3);
+  }
   if (status === "CHAPTER_REJECTED") {
     return ["SUBMITTED", "CHAPTER_REVIEW", "CHAPTER_REJECTED"];
   }
@@ -140,6 +166,52 @@ function getAdminProfileNote(notes: string | null | undefined) {
   }
 }
 
+function getBypassAuditEvent(notes: string | null | undefined): BypassAuditEvent | null {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes) as {
+      auditHistory?: unknown[];
+      chapterBypassForward?: {
+        at?: string;
+        actorRole?: string;
+        actorUserId?: string;
+        reason?: string | null;
+      };
+    };
+
+    if (Array.isArray(parsed.auditHistory)) {
+      for (let i = parsed.auditHistory.length - 1; i >= 0; i -= 1) {
+        const entry = parsed.auditHistory[i];
+        if (!entry || typeof entry !== "object") continue;
+        const audit = entry as Record<string, unknown>;
+        if (audit.type !== "FORWARDED_TO_NATIONALS_BYPASS_CHAPTER") continue;
+        return {
+          at: typeof audit.at === "string" ? audit.at : new Date().toISOString(),
+          actorRole: typeof audit.actorRole === "string" ? audit.actorRole : "UNKNOWN",
+          actorUserId: typeof audit.actorUserId === "string" ? audit.actorUserId : "UNKNOWN",
+          reason: typeof audit.reason === "string" ? audit.reason : null,
+        };
+      }
+    }
+
+    if (parsed.chapterBypassForward?.at) {
+      return {
+        at: parsed.chapterBypassForward.at,
+        actorRole: parsed.chapterBypassForward.actorRole ?? "UNKNOWN",
+        actorUserId: parsed.chapterBypassForward.actorUserId ?? "UNKNOWN",
+        reason:
+          typeof parsed.chapterBypassForward.reason === "string"
+            ? parsed.chapterBypassForward.reason
+            : null,
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function DetailTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-2.5">
@@ -159,6 +231,11 @@ function BadgePill({ children, className = "" }: { children: React.ReactNode; cl
   );
 }
 
+function chaptersMatch(left: string | null | undefined, right: string | null | undefined) {
+  return (left ?? "").trim().toLowerCase() !== "" &&
+    (left ?? "").trim().toLowerCase() === (right ?? "").trim().toLowerCase();
+}
+
 export default async function ApplicationDetailPage({
   params,
 }: {
@@ -166,15 +243,62 @@ export default async function ApplicationDetailPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (!hasRole(session, "ADMIN", "NATIONAL_CHAIR")) redirect("/dashboard");
+  if (
+    !hasRole(
+      session,
+      "ADMIN",
+      "NATIONAL_CHAIR",
+      "CHAPTER_CHAIR",
+      "CHAPTER_JUDGE",
+      "NATIONAL_JUDGE"
+    )
+  ) {
+    redirect("/dashboard");
+  }
 
-  const application = await getApplicationById(params.id, session.user.organizationId);
+  const application = await getApplicationById(params.id, session.user.organizationId, {
+    role: session.user.role,
+    userChapter: session.user.chapter,
+  });
   if (!application) notFound();
+
+  const canEditProfile = hasRole(session, "ADMIN", "NATIONAL_CHAIR");
+  const canDeleteApplication = hasRole(session, "ADMIN", "NATIONAL_CHAIR");
+  const canAdvanceToChapterAdj = canAdvanceApplicationStatusByRole({
+    role: session.user.role,
+    currentStatus: application.status,
+    nextStatus: "CHAPTER_ADJUDICATION",
+    applicationChapter: application.chapter,
+    userChapter: session.user.chapter,
+  });
+  const canRejectPending = canAdvanceApplicationStatusByRole({
+    role: session.user.role,
+    currentStatus: application.status,
+    nextStatus: "CHAPTER_REJECTED",
+    applicationChapter: application.chapter,
+    userChapter: session.user.chapter,
+  });
+  const canSeeStatusActions =
+    canAdvanceToChapterAdj ||
+    canRejectPending ||
+    hasRole(session, "ADMIN", "NATIONAL_CHAIR");
+  const canForwardToNationalsBypass = canForwardApplicationToNationalsByRole({
+    role: session.user.role,
+    currentStatus: application.status,
+    applicationChapter: application.chapter,
+    userChapter: session.user.chapter,
+  });
+  const chapterGateMessage =
+    session.user.role === "CHAPTER_CHAIR" &&
+    !chaptersMatch(application.chapter, session.user.chapter)
+      ? "Pending approval actions are restricted to your chapter."
+      : null;
 
   const timeline = deriveStatusTimeline(application.status);
   const repertoirePieces = parseRepertoireEntries(application.repertoire);
   const rawCsv = getImportedRawCsv(application.notes);
   const adminProfileNote = getAdminProfileNote(application.notes);
+  const bypassAuditEvent = getBypassAuditEvent(application.notes);
   const age = getAge(application.dateOfBirth);
 
   const division =
@@ -339,28 +463,56 @@ export default async function ApplicationDetailPage({
         </div>
 
         <aside className="space-y-4">
-          <ApplicationProfileEditor
-            applicationId={application.id}
-            initialApplicantName={application.applicant.name}
-            initialChapter={application.chapter ?? ""}
-            initialAdminNote={adminProfileNote}
-            initialVideo1Title={application.video1Title ?? ""}
-            initialVideo1Url={application.video1Url ?? ""}
-            initialVideo2Title={application.video2Title ?? ""}
-            initialVideo2Url={application.video2Url ?? ""}
-            initialVideo3Title={application.video3Title ?? ""}
-            initialVideo3Url={application.video3Url ?? ""}
-          />
+          {canEditProfile ? (
+            <ApplicationProfileEditor
+              applicationId={application.id}
+              initialApplicantName={application.applicant.name}
+              initialChapter={application.chapter ?? ""}
+              initialAdminNote={adminProfileNote}
+              initialVideo1Title={application.video1Title ?? ""}
+              initialVideo1Url={application.video1Url ?? ""}
+              initialVideo2Title={application.video2Title ?? ""}
+              initialVideo2Url={application.video2Url ?? ""}
+              initialVideo3Title={application.video3Title ?? ""}
+              initialVideo3Url={application.video3Url ?? ""}
+            />
+          ) : null}
 
           <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
             <h2 className="text-lg font-semibold text-[#1e1538]">Status & Actions</h2>
             <div className="mt-3 space-y-3">
+              {bypassAuditEvent ? (
+                <div className="rounded-lg border border-[#e3c88a] bg-[#fff8e7] p-2.5 text-sm text-[#6a4a00]">
+                  <p className="font-semibold">Forwarded (Bypassed Chapter Adjudication)</p>
+                  <p className="mt-1 text-xs">
+                    {new Date(bypassAuditEvent.at).toLocaleString("en-US")} ·{" "}
+                    {bypassAuditEvent.actorRole}
+                  </p>
+                  {bypassAuditEvent.reason ? (
+                    <p className="mt-1 text-xs">Reason: {bypassAuditEvent.reason}</p>
+                  ) : null}
+                </div>
+              ) : null}
               <ApplicationStatusBadge status={application.status} />
-              <AdvanceApplicationStatusButtons
-                applicationId={application.id}
-                currentStatus={application.status}
-              />
-              <DeleteApplicationButton applicationId={application.id} />
+              {canForwardToNationalsBypass ? (
+                <ForwardToNationalsButton applicationId={application.id} />
+              ) : null}
+              {canSeeStatusActions ? (
+                <AdvanceApplicationStatusButtons
+                  applicationId={application.id}
+                  currentStatus={application.status}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  You do not have permission to change this status.
+                </p>
+              )}
+              {chapterGateMessage ? (
+                <p className="text-xs text-muted-foreground">{chapterGateMessage}</p>
+              ) : null}
+              {canDeleteApplication ? (
+                <DeleteApplicationButton applicationId={application.id} />
+              ) : null}
             </div>
           </section>
 

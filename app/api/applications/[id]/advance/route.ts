@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ApplicationStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { requireRole } from "@/lib/auth-guards";
-import { advanceApplicationStatus } from "@/lib/db/applications";
+import { advanceApplicationStatusWithPermissions } from "@/lib/db/applications";
 import { sendStatusUpdate } from "@/lib/email";
 
 const bodySchema = z.object({
@@ -22,7 +22,7 @@ export async function POST(
   }
 
   try {
-    requireRole(session, "ADMIN", "NATIONAL_CHAIR");
+    requireRole(session, "ADMIN", "NATIONAL_CHAIR", "CHAPTER_CHAIR");
   } catch {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -39,15 +39,21 @@ export async function POST(
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const updated = await advanceApplicationStatus(
-    params.id,
-    parsed.data.status,
-    session.user.organizationId
-  );
+  const result = await advanceApplicationStatusWithPermissions({
+    id: params.id,
+    nextStatus: parsed.data.status,
+    organizationId: session.user.organizationId,
+    actorRole: session.user.role,
+    actorChapter: session.user.chapter,
+  });
 
-  if (!updated) {
+  if (result.reason === "FORBIDDEN") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (result.reason === "NOT_FOUND") {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
+  const updated = result.updated;
 
   const statusUrl = `${process.env.NEXTAUTH_URL ?? ""}/status/${updated.id}`;
   try {

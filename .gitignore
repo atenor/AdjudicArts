@@ -36,3 +36,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local tooling/artifacts
+.tmp-ref.zip
+.venv-pdf/
+app/theme-compare/

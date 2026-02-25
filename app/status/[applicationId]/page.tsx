@@ -10,16 +10,22 @@ import { ApplicationStatus } from "@prisma/client";
 import { getDisplayHeadshot } from "@/lib/headshots";
 
 const STATUS_MESSAGES: Record<ApplicationStatus, string> = {
+  SUBMITTED_PENDING_APPROVAL:
+    "Your application has been received and is awaiting approval.",
+  CHAPTER_ADJUDICATION:
+    "Your application is currently in chapter adjudication.",
+  NATIONAL_FINALS:
+    "Your application has advanced to national finals.",
   SUBMITTED:
-    "Your application has been received and is awaiting review.",
+    "Your application has been received and is awaiting approval.",
   CHAPTER_REVIEW:
-    "Your application is currently under chapter review.",
+    "Your application is currently in chapter adjudication.",
   CHAPTER_APPROVED:
-    "Congratulations! Your application has been approved to advance to national review.",
+    "Congratulations! Your application has been approved to advance to national finals.",
   CHAPTER_REJECTED:
     "Thank you for applying. Unfortunately your application was not selected to advance at this time.",
   NATIONAL_REVIEW:
-    "Your application is under national review.",
+    "Your application is currently in national finals adjudication.",
   NATIONAL_APPROVED:
     "Congratulations! Your application has been approved.",
   NATIONAL_REJECTED:
@@ -37,13 +43,25 @@ interface Step {
 
 function getSteps(status: ApplicationStatus): Step[] {
   const steps: Step[] = [
-    { label: "Submitted", state: "pending" },
-    { label: "Chapter Review", state: "pending" },
-    { label: "National Review", state: "pending" },
+    { label: "Submitted — Pending Approval", state: "pending" },
+    { label: "Chapter Adjudication", state: "pending" },
+    { label: "National Finals", state: "pending" },
     { label: "Decision", state: "pending" },
   ];
 
   switch (status) {
+    case "SUBMITTED_PENDING_APPROVAL":
+      steps[0].state = "active";
+      break;
+    case "CHAPTER_ADJUDICATION":
+      steps[0].state = "complete";
+      steps[1].state = "active";
+      break;
+    case "NATIONAL_FINALS":
+      steps[0].state = "complete";
+      steps[1].state = "complete";
+      steps[2].state = "active";
+      break;
     case "SUBMITTED":
       steps[0].state = "active";
       break;

@@ -478,7 +478,7 @@ export async function importApplicantFromRow(
     await prisma.application.create({
       data: {
         ...applicationData,
-        status: ApplicationStatus.SUBMITTED,
+        status: ApplicationStatus.SUBMITTED_PENDING_APPROVAL,
       },
     });
     createdApplication = true;

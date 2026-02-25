@@ -17,6 +17,7 @@ type ApplicationRow = {
   chapter?: string;
   eventName: string;
   status: ApplicationStatus;
+  isForwarded?: boolean;
   submittedLabel: string;
   headshotUrl: string;
 };
@@ -164,7 +165,14 @@ export default function BatchApplicationsTable({
                     {application.voicePartLabel} · {application.eventName}
                   </p>
                   <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <ApplicationStatusBadge status={application.status} />
+                    <div className="flex items-center gap-1.5">
+                      <ApplicationStatusBadge status={application.status} />
+                      {application.isForwarded ? (
+                        <span className="rounded-full border border-[#e3c88a] bg-[#fff8e7] px-2 py-0.5 text-[11px] font-semibold text-[#6a4a00]">
+                          Forwarded
+                        </span>
+                      ) : null}
+                    </div>
                     <span className="text-xs text-[#6d5b91]">
                       Submitted {application.submittedLabel}
                     </span>
@@ -227,6 +235,11 @@ export default function BatchApplicationsTable({
 
               <div className="flex items-center gap-2">
                 <ApplicationStatusBadge status={application.status} />
+                {application.isForwarded ? (
+                  <span className="rounded-full border border-[#e3c88a] bg-[#fff8e7] px-2 py-0.5 text-[11px] font-semibold text-[#6a4a00]">
+                    Forwarded
+                  </span>
+                ) : null}
                 <Link
                   href={`/dashboard/applications/${application.id}`}
                   className="rounded-md border border-[#c7b7e5] px-2 py-1 text-xs font-medium text-[#4a3d6b] hover:bg-[#f4effb]"

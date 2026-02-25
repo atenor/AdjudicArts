@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import {
   ApplicationStatus,
-  EventStatus,
   Role,
   RoundType,
+  ScoreRound,
 } from "@prisma/client";
 import { parseApplicationMetadata } from "@/lib/application-metadata";
 import { getYouTubeVideoId } from "@/lib/youtube";
@@ -66,20 +66,15 @@ function isRoleRoundMatch(role: Role, roundType: RoundType): boolean {
   return false;
 }
 
-export function canScoreInEventStatus(role: Role, eventStatus: EventStatus): boolean {
-  if (role === "CHAPTER_JUDGE") {
-    return eventStatus === "CHAPTER_REVIEW";
+function applicationStatusesForRoundType(roundType: RoundType): ApplicationStatus[] {
+  if (roundType === "CHAPTER") {
+    return ["CHAPTER_ADJUDICATION"];
   }
-  if (role === "NATIONAL_JUDGE") {
-    return eventStatus === "JUDGING" || eventStatus === "NATIONAL_REVIEW";
-  }
-  return false;
+  return ["NATIONAL_FINALS"];
 }
 
-function statusForRoundType(roundType: RoundType): ApplicationStatus {
-  return roundType === "CHAPTER"
-    ? "CHAPTER_REVIEW"
-    : "NATIONAL_REVIEW";
+function scoreRoundForRoundType(roundType: RoundType): ScoreRound {
+  return roundType === "CHAPTER" ? "CHAPTER" : "NATIONAL";
 }
 
 export async function getJudgeScoringQueue(
@@ -117,16 +112,16 @@ export async function getJudgeScoringQueue(
       const { round } = assignment;
       const { event } = round;
       if (!isRoleRoundMatch(role, round.type)) return null;
-      if (!canScoreInEventStatus(role, event.status)) return null;
 
-      const applicationStatus = statusForRoundType(round.type);
+      const applicationStatuses = applicationStatusesForRoundType(round.type);
+      const scoreRound = scoreRoundForRoundType(round.type);
       const criteriaCount = event.rubric?.criteria.length ?? 0;
 
       const applications = await prisma.application.findMany({
         where: {
           organizationId,
           eventId: event.id,
-          status: applicationStatus,
+          status: { in: applicationStatuses },
         },
         include: {
           applicant: {
@@ -150,6 +145,7 @@ export async function getJudgeScoringQueue(
                 organizationId,
                 judgeId,
                 applicationId: { in: applicationIds },
+                round: scoreRound,
               },
               _count: {
                 applicationId: true,
@@ -245,13 +241,11 @@ export async function getScoringApplicationForJudge(
   });
 
   if (!application) return null;
-  if (!canScoreInEventStatus(role, application.event.status)) return null;
 
   const expectedRoundType = role === "CHAPTER_JUDGE" ? "CHAPTER" : "NATIONAL";
-  const expectedApplicationStatus =
-    expectedRoundType === "CHAPTER" ? "CHAPTER_REVIEW" : "NATIONAL_REVIEW";
-
-  if (application.status !== expectedApplicationStatus) return null;
+  const scoreRound = scoreRoundForRoundType(expectedRoundType);
+  const expectedApplicationStatuses = applicationStatusesForRoundType(expectedRoundType);
+  if (!expectedApplicationStatuses.includes(application.status)) return null;
 
   const hasAssignment = application.event.rounds.some(
     (round) =>
@@ -264,7 +258,8 @@ export async function getScoringApplicationForJudge(
   const existingScores = await getScoresForApplication(
     applicationId,
     judgeId,
-    organizationId
+    organizationId,
+    scoreRound
   );
   const firstCriterionId = application.event.rubric.criteria[0]?.id;
   let finalComment: string | null = null;
@@ -275,6 +270,7 @@ export async function getScoringApplicationForJudge(
         organizationId,
         judgeId,
         criteriaId: firstCriterionId,
+        round: scoreRound,
       },
       select: { comment: true },
     });
@@ -306,6 +302,7 @@ export async function getScoringApplicationForJudge(
     criteria: application.event.rubric.criteria,
     existingScores,
     finalComment,
+    scoreRound,
     videoUrls,
     videoTitles,
   };
@@ -314,13 +311,15 @@ export async function getScoringApplicationForJudge(
 export async function getScoresForApplication(
   applicationId: string,
   judgeId: string,
-  organizationId: string
+  organizationId: string,
+  round: ScoreRound
 ) {
   const scores = await prisma.score.findMany({
     where: {
       applicationId,
       judgeId,
       organizationId,
+      round,
     },
     include: {
       criteria: {
@@ -345,15 +344,19 @@ export async function upsertScore(input: {
   applicationId: string;
   criteriaId: string;
   judgeId: string;
+  round?: ScoreRound;
   value: number;
   comment?: string | null;
 }) {
+  const round = input.round ?? "CHAPTER";
+
   return prisma.score.upsert({
     where: {
-      applicationId_criteriaId_judgeId: {
+      applicationId_criteriaId_judgeId_round: {
         applicationId: input.applicationId,
         criteriaId: input.criteriaId,
         judgeId: input.judgeId,
+        round,
       },
     },
     update: {
@@ -365,6 +368,7 @@ export async function upsertScore(input: {
       applicationId: input.applicationId,
       criteriaId: input.criteriaId,
       judgeId: input.judgeId,
+      round,
       value: input.value,
       comment: input.comment ?? null,
     },

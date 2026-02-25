@@ -39,7 +39,9 @@ export async function getAdminDashboardStats(organizationId: string) {
     prisma.application.count({
       where: {
         organizationId,
-        status: { in: ["SUBMITTED", "CHAPTER_REVIEW", "NATIONAL_REVIEW"] },
+        status: {
+          in: ["SUBMITTED_PENDING_APPROVAL", "SUBMITTED"],
+        },
       },
     }),
     prisma.application.findMany({
@@ -70,9 +72,15 @@ export async function getAdminDashboardStats(organizationId: string) {
   };
 
   for (const row of statusCounts) {
-    if (row.status === "SUBMITTED") statusBreakdown.submitted = row._count.status;
-    if (row.status === "CHAPTER_REVIEW") statusBreakdown.chapterReview = row._count.status;
-    if (row.status === "NATIONAL_REVIEW") statusBreakdown.nationalReview = row._count.status;
+    if (row.status === "SUBMITTED" || row.status === "SUBMITTED_PENDING_APPROVAL") {
+      statusBreakdown.submitted += row._count.status;
+    }
+    if (row.status === "CHAPTER_REVIEW" || row.status === "CHAPTER_ADJUDICATION") {
+      statusBreakdown.chapterReview += row._count.status;
+    }
+    if (row.status === "NATIONAL_REVIEW" || row.status === "NATIONAL_FINALS") {
+      statusBreakdown.nationalReview += row._count.status;
+    }
     if (row.status === "DECIDED") statusBreakdown.decided = row._count.status;
   }
 
@@ -104,17 +112,48 @@ export async function getAdminDashboardStats(organizationId: string) {
 // CHAPTER_CHAIR
 // ---------------------------------------------------------------------------
 
-export async function getChapterChairDashboardStats(organizationId: string) {
-  const [eventsInChapterReview, applicationsInReview, recentApplications] =
+export async function getChapterChairDashboardStats(
+  organizationId: string,
+  chapter: string | null | undefined
+) {
+  const chapterName = chapter?.trim();
+  if (!chapterName) {
+    return {
+      chapterName: null,
+      totalApplicantsForChapter: 0,
+      pendingApprovalsForChapter: 0,
+      chapterAdjudicationCount: 0,
+      recentPendingApprovals: [],
+    };
+  }
+
+  const [totalApplicantsForChapter, pendingApprovalsForChapter, chapterAdjudicationCount, recentPendingApprovals] =
     await Promise.all([
-      prisma.event.count({
-        where: { organizationId, status: "CHAPTER_REVIEW" },
+      prisma.application.count({
+        where: {
+          organizationId,
+          chapter: { equals: chapterName, mode: "insensitive" },
+        },
       }),
       prisma.application.count({
-        where: { organizationId, status: "CHAPTER_REVIEW" },
+        where: {
+          organizationId,
+          chapter: { equals: chapterName, mode: "insensitive" },
+          status: { in: ["SUBMITTED_PENDING_APPROVAL", "SUBMITTED"] },
+        },
+      }),
+      prisma.application.count({
+        where: {
+          organizationId,
+          status: { in: ["CHAPTER_ADJUDICATION", "CHAPTER_REVIEW"] },
+        },
       }),
       prisma.application.findMany({
-        where: { organizationId, status: "CHAPTER_REVIEW" },
+        where: {
+          organizationId,
+          chapter: { equals: chapterName, mode: "insensitive" },
+          status: { in: ["SUBMITTED_PENDING_APPROVAL", "SUBMITTED"] },
+        },
         orderBy: { submittedAt: "asc" },
         take: 5,
         include: {
@@ -125,9 +164,11 @@ export async function getChapterChairDashboardStats(organizationId: string) {
     ]);
 
   return {
-    eventsInChapterReview,
-    applicationsInReview,
-    recentApplications,
+    chapterName,
+    totalApplicantsForChapter,
+    pendingApprovalsForChapter,
+    chapterAdjudicationCount,
+    recentPendingApprovals,
   };
 }
 
@@ -141,19 +182,18 @@ export async function getJudgeDashboardStats(
   role: Role
 ) {
   const roundType = role === "CHAPTER_JUDGE" ? "CHAPTER" : "NATIONAL";
+  const scoreRound = role === "CHAPTER_JUDGE" ? "CHAPTER" : "NATIONAL";
   const appStatus =
-    role === "CHAPTER_JUDGE" ? "CHAPTER_REVIEW" : "NATIONAL_REVIEW";
-  const eventStatuses =
     role === "CHAPTER_JUDGE"
-      ? (["CHAPTER_REVIEW"] as const)
-      : (["JUDGING", "NATIONAL_REVIEW"] as const);
+      ? (["CHAPTER_ADJUDICATION"] as const)
+      : (["NATIONAL_FINALS"] as const);
 
   // Rounds this judge is assigned to
   const assignments = await prisma.judgeAssignment.findMany({
     where: {
       judgeId,
       organizationId,
-      round: { type: roundType, event: { status: { in: [...eventStatuses] } } },
+      round: { type: roundType },
     },
     include: {
       round: {
@@ -170,14 +210,12 @@ export async function getJudgeDashboardStats(
 
   if (assignments.length === 0) {
     return {
-      totalToScore: 0,
-      totalScored: 0,
+      currentRoundLabel:
+        role === "CHAPTER_JUDGE" ? "Chapter Adjudication" : "National Finals",
+      totalToJudgeCurrentRound: 0,
+      completedByJudgeCurrentRound: 0,
+      hasSavedWork: false,
       roundCount: assignments.length,
-      partiallyScored: 0,
-      untouched: 0,
-      completionRate: 0,
-      scoredLast7Days: 0,
-      assignedByEvent: [] as Array<{ eventName: string; count: number }>,
     };
   }
 
@@ -185,22 +223,20 @@ export async function getJudgeDashboardStats(
   const eventIds = Array.from(new Set(assignments.map((a) => a.round.eventId)));
 
   const applications = await prisma.application.findMany({
-    where: { organizationId, eventId: { in: eventIds }, status: appStatus },
+    where: { organizationId, eventId: { in: eventIds }, status: { in: [...appStatus] } },
     select: { id: true, eventId: true },
   });
 
-  const totalToScore = applications.length;
+  const totalToJudgeCurrentRound = applications.length;
 
-  if (totalToScore === 0) {
+  if (totalToJudgeCurrentRound === 0) {
     return {
-      totalToScore: 0,
-      totalScored: 0,
+      currentRoundLabel:
+        role === "CHAPTER_JUDGE" ? "Chapter Adjudication" : "National Finals",
+      totalToJudgeCurrentRound: 0,
+      completedByJudgeCurrentRound: 0,
+      hasSavedWork: false,
       roundCount: assignments.length,
-      partiallyScored: 0,
-      untouched: 0,
-      completionRate: 0,
-      scoredLast7Days: 0,
-      assignedByEvent: [] as Array<{ eventName: string; count: number }>,
     };
   }
 
@@ -223,7 +259,12 @@ export async function getJudgeDashboardStats(
 
   const scoreCounts = await prisma.score.groupBy({
     by: ["applicationId"],
-    where: { judgeId, applicationId: { in: applicationIds }, organizationId },
+    where: {
+      judgeId,
+      applicationId: { in: applicationIds },
+      organizationId,
+      round: scoreRound,
+    },
     _count: { applicationId: true },
   });
 
@@ -231,58 +272,21 @@ export async function getJudgeDashboardStats(
     scoreCounts.map((s) => [s.applicationId, s._count.applicationId])
   );
 
-  let totalScored = 0;
-  let partiallyScored = 0;
-  let untouched = 0;
+  let completedByJudgeCurrentRound = 0;
   for (const appId of applicationIds) {
     const eventId = eventIdByApp.get(appId)!;
     const criteriaCount = criteriaCountByEvent.get(eventId) ?? 0;
     const scored = scoreCountMap.get(appId) ?? 0;
-    if (criteriaCount > 0 && scored >= criteriaCount) totalScored++;
-    else if (scored > 0) partiallyScored++;
-    else untouched++;
+    if (criteriaCount > 0 && scored >= criteriaCount) completedByJudgeCurrentRound += 1;
   }
-
-  const recentScoreCutoff = new Date();
-  recentScoreCutoff.setDate(recentScoreCutoff.getDate() - 6);
-  recentScoreCutoff.setHours(0, 0, 0, 0);
-
-  const recentScoredApps = await prisma.score.groupBy({
-    by: ["applicationId"],
-    where: {
-      judgeId,
-      organizationId,
-      applicationId: { in: applicationIds },
-      updatedAt: { gte: recentScoreCutoff },
-    },
-    _count: { applicationId: true },
-  });
-
-  const eventNameById = new Map(
-    assignments.map((a) => [a.round.eventId, a.round.event.name])
-  );
-  const workloadCounts = new Map<string, number>();
-  for (const app of applications) {
-    workloadCounts.set(app.eventId, (workloadCounts.get(app.eventId) ?? 0) + 1);
-  }
-
-  const assignedByEvent = Array.from(workloadCounts.entries())
-    .map(([eventId, count]) => ({
-      eventName: eventNameById.get(eventId) ?? "Event",
-      count,
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 4);
 
   return {
-    totalToScore,
-    totalScored,
+    currentRoundLabel:
+      role === "CHAPTER_JUDGE" ? "Chapter Adjudication" : "National Finals",
+    totalToJudgeCurrentRound,
+    completedByJudgeCurrentRound,
+    hasSavedWork: scoreCounts.some((row) => row._count.applicationId > 0),
     roundCount: assignments.length,
-    partiallyScored,
-    untouched,
-    completionRate: totalToScore > 0 ? Math.round((totalScored / totalToScore) * 100) : 0,
-    scoredLast7Days: recentScoredApps.length,
-    assignedByEvent,
   };
 }
 

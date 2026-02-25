@@ -18,7 +18,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    requireRole(session, "ADMIN", "NATIONAL_CHAIR");
+    requireRole(
+      session,
+      "ADMIN",
+      "NATIONAL_CHAIR",
+      "CHAPTER_CHAIR",
+      "CHAPTER_JUDGE",
+      "NATIONAL_JUDGE"
+    );
   } catch {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -33,7 +40,11 @@ export async function GET(request: Request) {
 
   const applications = await listApplicationsByOrg(
     session.user.organizationId,
-    parsed.data.status
+    parsed.data.status,
+    {
+      role: session.user.role,
+      userChapter: session.user.chapter,
+    }
   );
 
   return Response.json(applications);

@@ -12,12 +12,21 @@ type Action = {
 };
 
 const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
-  SUBMITTED: [{ label: "Start Chapter Review", status: "CHAPTER_REVIEW" }],
+  SUBMITTED_PENDING_APPROVAL: [
+    { label: "Approve to Chapter Adjudication", status: "CHAPTER_ADJUDICATION" },
+    { label: "Reject", status: "CHAPTER_REJECTED", variant: "destructive" },
+  ],
+  CHAPTER_ADJUDICATION: [{ label: "Advance to National Finals", status: "NATIONAL_FINALS" }],
+  NATIONAL_FINALS: [],
+  SUBMITTED: [
+    { label: "Approve to Chapter Adjudication", status: "CHAPTER_ADJUDICATION" },
+    { label: "Reject", status: "CHAPTER_REJECTED", variant: "destructive" },
+  ],
   CHAPTER_REVIEW: [
-    { label: "Approve Chapter", status: "CHAPTER_APPROVED" },
+    { label: "Advance to National Finals", status: "NATIONAL_FINALS" },
     { label: "Reject Chapter", status: "CHAPTER_REJECTED", variant: "destructive" },
   ],
-  CHAPTER_APPROVED: [{ label: "Advance to National Review", status: "NATIONAL_REVIEW" }],
+  CHAPTER_APPROVED: [{ label: "Advance to National Finals", status: "NATIONAL_FINALS" }],
   CHAPTER_REJECTED: [],
   NATIONAL_REVIEW: [
     { label: "Approve National", status: "NATIONAL_APPROVED" },
