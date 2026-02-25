@@ -6,6 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+type VideoEntry = {
+  id: "video1" | "video2" | "video3";
+  title: string;
+  url: string;
+};
+
+function reorderEntries(entries: VideoEntry[], from: number, to: number) {
+  if (from === to || from < 0 || to < 0 || from >= entries.length || to >= entries.length) {
+    return entries;
+  }
+  const next = [...entries];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
 export default function ApplicationProfileEditor({
   applicationId,
   initialApplicantName,
@@ -33,21 +49,51 @@ export default function ApplicationProfileEditor({
   const [applicantName, setApplicantName] = useState(initialApplicantName);
   const [chapter, setChapter] = useState(initialChapter);
   const [adminNote, setAdminNote] = useState(initialAdminNote);
-  const [video1Title, setVideo1Title] = useState(initialVideo1Title);
-  const [video1Url, setVideo1Url] = useState(initialVideo1Url);
-  const [video2Title, setVideo2Title] = useState(initialVideo2Title);
-  const [video2Url, setVideo2Url] = useState(initialVideo2Url);
-  const [video3Title, setVideo3Title] = useState(initialVideo3Title);
-  const [video3Url, setVideo3Url] = useState(initialVideo3Url);
+  const [videoEntries, setVideoEntries] = useState<VideoEntry[]>([
+    { id: "video1", title: initialVideo1Title, url: initialVideo1Url },
+    { id: "video2", title: initialVideo2Title, url: initialVideo2Url },
+    { id: "video3", title: initialVideo3Title, url: initialVideo3Url },
+  ]);
+  const [editingVideoOrder, setEditingVideoOrder] = useState(false);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [showSaved, setShowSaved] = useState(false);
+
+  function updateVideoEntry(index: number, patch: Partial<VideoEntry>) {
+    setVideoEntries((prev) =>
+      prev.map((entry, entryIndex) =>
+        entryIndex === index
+          ? {
+              ...entry,
+              ...patch,
+            }
+          : entry
+      )
+    );
+  }
+
+  function resetVideoOrder() {
+    setVideoEntries([
+      { id: "video1", title: initialVideo1Title, url: initialVideo1Url },
+      { id: "video2", title: initialVideo2Title, url: initialVideo2Url },
+      { id: "video3", title: initialVideo3Title, url: initialVideo3Url },
+    ]);
+    setEditingVideoOrder(false);
+    setDraggingIndex(null);
+  }
+
+  function moveVideo(index: number, direction: -1 | 1) {
+    const destination = index + direction;
+    setVideoEntries((prev) => reorderEntries(prev, index, destination));
+  }
 
   async function onSave() {
     setIsSaving(true);
     setServerError(null);
     setShowSaved(false);
     try {
+      const [video1, video2, video3] = videoEntries;
       const response = await fetch(`/api/applications/${applicationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -55,12 +101,12 @@ export default function ApplicationProfileEditor({
           applicantName: applicantName.trim(),
           chapter: chapter.trim(),
           adminNote: adminNote.trim(),
-          video1Title: video1Title.trim(),
-          video1Url: video1Url.trim(),
-          video2Title: video2Title.trim(),
-          video2Url: video2Url.trim(),
-          video3Title: video3Title.trim(),
-          video3Url: video3Url.trim(),
+          video1Title: video1?.title.trim() ?? "",
+          video1Url: video1?.url.trim() ?? "",
+          video2Title: video2?.title.trim() ?? "",
+          video2Url: video2?.url.trim() ?? "",
+          video3Title: video3?.title.trim() ?? "",
+          video3Url: video3?.url.trim() ?? "",
         }),
       });
 
@@ -70,6 +116,7 @@ export default function ApplicationProfileEditor({
       }
 
       setShowSaved(true);
+      setEditingVideoOrder(false);
       router.refresh();
     } catch {
       setServerError("Unable to save profile changes.");
@@ -111,49 +158,117 @@ export default function ApplicationProfileEditor({
         </div>
 
         <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
-          <p className="text-sm font-semibold text-[#5f4d87]">Video Order Corrections</p>
-          <p className="text-xs text-[#7b6e9d]">
-            If imports come in out of order, edit Video 1/2/3 titles and URLs here.
-          </p>
-
-          <div className="grid gap-2 md:grid-cols-2">
-            <Input
-              value={video1Title}
-              onChange={(event) => setVideo1Title(event.target.value)}
-              placeholder="Video 1 title"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
-            <Input
-              value={video1Url}
-              onChange={(event) => setVideo1Url(event.target.value)}
-              placeholder="Video 1 URL"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
-            <Input
-              value={video2Title}
-              onChange={(event) => setVideo2Title(event.target.value)}
-              placeholder="Video 2 title"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
-            <Input
-              value={video2Url}
-              onChange={(event) => setVideo2Url(event.target.value)}
-              placeholder="Video 2 URL"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
-            <Input
-              value={video3Title}
-              onChange={(event) => setVideo3Title(event.target.value)}
-              placeholder="Video 3 title"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
-            <Input
-              value={video3Url}
-              onChange={(event) => setVideo3Url(event.target.value)}
-              placeholder="Video 3 URL"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-[#5f4d87]">Video Order Corrections</p>
+            {editingVideoOrder ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 border-[#d7cde9] bg-white text-[#5f4d87] hover:bg-[#f3ecff]"
+                onClick={resetVideoOrder}
+              >
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 border-[#d7cde9] bg-white text-[#5f4d87] hover:bg-[#f3ecff]"
+                onClick={() => setEditingVideoOrder(true)}
+              >
+                Edit
+              </Button>
+            )}
           </div>
+
+          {editingVideoOrder ? (
+            <>
+              <p className="text-xs text-[#7b6e9d]">
+                Drag and drop to reorder videos. You can also use Up/Down for touch devices.
+              </p>
+              <div className="space-y-2">
+                {videoEntries.map((entry, index) => (
+                  <div
+                    key={entry.id}
+                    draggable
+                    onDragStart={() => setDraggingIndex(index)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      if (draggingIndex === null) return;
+                      setVideoEntries((prev) => reorderEntries(prev, draggingIndex, index));
+                      setDraggingIndex(null);
+                    }}
+                    onDragEnd={() => setDraggingIndex(null)}
+                    className="space-y-2 rounded-lg border border-[#d7cde9] bg-white p-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
+                        Video {index + 1}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-[#7b6e9d]">Drag</span>
+                        <span className="cursor-grab text-[#6b5a92]" aria-hidden="true">
+                          :::
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-7 border-[#d7cde9] bg-white px-2 text-xs text-[#5f4d87] hover:bg-[#f3ecff]"
+                          onClick={() => moveVideo(index, -1)}
+                          disabled={index === 0}
+                        >
+                          Up
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-7 border-[#d7cde9] bg-white px-2 text-xs text-[#5f4d87] hover:bg-[#f3ecff]"
+                          onClick={() => moveVideo(index, 1)}
+                          disabled={index === videoEntries.length - 1}
+                        >
+                          Down
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <Input
+                        value={entry.title}
+                        onChange={(event) =>
+                          updateVideoEntry(index, { title: event.target.value })
+                        }
+                        placeholder={`Video ${index + 1} title`}
+                        className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+                      />
+                      <Input
+                        value={entry.url}
+                        onChange={(event) =>
+                          updateVideoEntry(index, { url: event.target.value })
+                        }
+                        placeholder={`Video ${index + 1} URL`}
+                        className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              {videoEntries.map((entry, index) => (
+                <div key={entry.id} className="rounded-lg border border-[#d7cde9] bg-white p-2.5">
+                  <p className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
+                    Video {index + 1}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#1e1538]">
+                    {entry.title.trim() || `Video ${index + 1} title not set`}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-[#5f2ec8]">
+                    {entry.url.trim() || "No URL set"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-1.5 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
