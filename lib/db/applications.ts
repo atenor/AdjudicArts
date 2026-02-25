@@ -23,12 +23,21 @@ function normalizeChapter(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase();
 }
 
+function chapterMatchKey(value: string | null | undefined) {
+  const normalized = normalizeChapter(value);
+  if (!normalized) return "";
+
+  const withoutParens = normalized.replace(/\(.*?\)/g, " ").replace(/\s+/g, " ").trim();
+  const base = withoutParens.split(/[–—-]/)[0]?.trim() ?? withoutParens;
+  return base.replace(/\bchapter\b/g, "").replace(/\s+/g, " ").trim();
+}
+
 function isChapterMatch(
   applicationChapter: string | null | undefined,
   userChapter: string | null | undefined
 ) {
-  const app = normalizeChapter(applicationChapter);
-  const user = normalizeChapter(userChapter);
+  const app = chapterMatchKey(applicationChapter);
+  const user = chapterMatchKey(userChapter);
   return app.length > 0 && user.length > 0 && app === user;
 }
 
@@ -122,19 +131,43 @@ function buildVisibilityWhere(input: {
 
   if (input.role === "CHAPTER_CHAIR") {
     const normalizedUserChapter = normalizeChapter(input.userChapter);
+    const userChapterKey = chapterMatchKey(input.userChapter);
+    const canUseContains = userChapterKey.length >= 3;
+
+    const chapterPendingWhere: Prisma.ApplicationWhereInput =
+      normalizedUserChapter && canUseContains
+        ? {
+            OR: [
+              {
+                chapter: {
+                  equals: normalizedUserChapter,
+                  mode: "insensitive",
+                },
+              },
+              {
+                chapter: {
+                  contains: userChapterKey,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          }
+        : normalizedUserChapter
+          ? {
+              chapter: {
+                equals: normalizedUserChapter,
+                mode: "insensitive",
+              },
+            }
+          : { id: "__none__" };
+
     if (statusFilter) {
       if (isInStatusSet(statusFilter, CHAPTER_ADJUDICATION_STATUSES)) {
         return { status: statusFilter };
       }
       if (isInStatusSet(statusFilter, PENDING_APPROVAL_STATUSES)) {
         if (!normalizedUserChapter) return { id: "__none__" };
-        return {
-          status: statusFilter,
-          chapter: {
-            equals: normalizedUserChapter,
-            mode: "insensitive",
-          },
-        };
+        return { status: statusFilter, ...chapterPendingWhere };
       }
       return { id: "__none__" };
     }
@@ -146,10 +179,7 @@ function buildVisibilityWhere(input: {
     if (normalizedUserChapter) {
       clauses.push({
         status: { in: PENDING_APPROVAL_STATUSES },
-        chapter: {
-          equals: normalizedUserChapter,
-          mode: "insensitive",
-        },
+        ...chapterPendingWhere,
       });
     }
 
