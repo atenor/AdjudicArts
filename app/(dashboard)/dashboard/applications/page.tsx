@@ -103,6 +103,10 @@ export default async function ApplicationsPage({
     searchParams.status && statusOptions.includes(searchParams.status as ApplicationStatus)
       ? (searchParams.status as ApplicationStatus)
       : undefined;
+  const activeStatusLabel = statusFilter ? STATUS_LABELS[statusFilter] : undefined;
+  const visibleStatusOptions = Array.from(
+    new Map(statusOptions.map((status) => [STATUS_LABELS[status], status])).values()
+  );
   const viewMode = searchParams.view === "list" ? "list" : "cards";
 
   function buildApplicationsHref(status?: ApplicationStatus, view = viewMode) {
@@ -158,12 +162,12 @@ export default async function ApplicationsPage({
               >
                 All
               </Link>
-              {statusOptions.map((status) => (
+              {visibleStatusOptions.map((status) => (
                 <Link
                   key={status}
                   href={buildApplicationsHref(status)}
                   className={`text-sm px-2 py-1 rounded border ${
-                    statusFilter === status
+                    activeStatusLabel === STATUS_LABELS[status]
                       ? "bg-muted border-muted-foreground/20"
                       : "hover:bg-muted/60"
                   }`}
