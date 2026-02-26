@@ -29,6 +29,13 @@ type BypassAuditEvent = {
   reason: string | null;
 };
 
+type CitizenshipVerification = {
+  verified: boolean;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
+  updatedByRole?: string | null;
+};
+
 const STATUS_FLOW: ApplicationStatus[] = [
   "SUBMITTED",
   "CHAPTER_REVIEW",
@@ -212,6 +219,31 @@ function getBypassAuditEvent(notes: string | null | undefined): BypassAuditEvent
   }
 }
 
+function getCitizenshipVerification(
+  notes: string | null | undefined
+): CitizenshipVerification | null {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes) as {
+      citizenshipVerification?: {
+        verified?: boolean;
+        updatedAt?: string | null;
+        updatedBy?: string | null;
+        updatedByRole?: string | null;
+      };
+    };
+    if (typeof parsed.citizenshipVerification?.verified !== "boolean") return null;
+    return {
+      verified: parsed.citizenshipVerification.verified,
+      updatedAt: parsed.citizenshipVerification.updatedAt ?? null,
+      updatedBy: parsed.citizenshipVerification.updatedBy ?? null,
+      updatedByRole: parsed.citizenshipVerification.updatedByRole ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function DetailTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-2.5">
@@ -299,6 +331,7 @@ export default async function ApplicationDetailPage({
   const rawCsv = getImportedRawCsv(application.notes);
   const adminProfileNote = getAdminProfileNote(application.notes);
   const bypassAuditEvent = getBypassAuditEvent(application.notes);
+  const citizenshipVerification = getCitizenshipVerification(application.notes);
   const age = getAge(application.dateOfBirth);
 
   const division =
@@ -371,6 +404,17 @@ export default async function ApplicationDetailPage({
               {citizenship ? (
                 <BadgePill className="bg-[#d6f6e8] text-[#0d7b5f]">{citizenship}</BadgePill>
               ) : null}
+              <BadgePill
+                className={
+                  citizenshipVerification?.verified
+                    ? "bg-[#fff4d6] text-[#6a4a00]"
+                    : "bg-[#f7e8c0] text-[#7a5a12]"
+                }
+              >
+                {citizenshipVerification?.verified
+                  ? "Citizenship Verified"
+                  : "Citizenship Unverified"}
+              </BadgePill>
               {mediaRelease ? (
                 <BadgePill className="bg-[#ccf5ef] text-[#0b7c74]">
                   {hasMediaConsent ? "Media Release: Consented" : "Media Release: Review"}
@@ -525,6 +569,8 @@ export default async function ApplicationDetailPage({
               initialVideo2Url={application.video2Url ?? ""}
               initialVideo3Title={application.video3Title ?? ""}
               initialVideo3Url={application.video3Url ?? ""}
+              initialCitizenship={citizenship ?? ""}
+              initialCitizenshipVerified={citizenshipVerification?.verified ?? false}
             />
           ) : null}
 

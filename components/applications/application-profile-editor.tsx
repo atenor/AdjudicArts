@@ -33,6 +33,8 @@ export default function ApplicationProfileEditor({
   initialVideo2Url,
   initialVideo3Title,
   initialVideo3Url,
+  initialCitizenship,
+  initialCitizenshipVerified,
 }: {
   applicationId: string;
   initialApplicantName: string;
@@ -44,11 +46,16 @@ export default function ApplicationProfileEditor({
   initialVideo2Url: string;
   initialVideo3Title: string;
   initialVideo3Url: string;
+  initialCitizenship: string;
+  initialCitizenshipVerified: boolean;
 }) {
   const router = useRouter();
   const [applicantName, setApplicantName] = useState(initialApplicantName);
   const [chapter, setChapter] = useState(initialChapter);
   const [adminNote, setAdminNote] = useState(initialAdminNote);
+  const [citizenshipVerified, setCitizenshipVerified] = useState(
+    initialCitizenshipVerified
+  );
   const [videoEntries, setVideoEntries] = useState<VideoEntry[]>([
     { id: "video1", title: initialVideo1Title, url: initialVideo1Url },
     { id: "video2", title: initialVideo2Title, url: initialVideo2Url },
@@ -100,6 +107,7 @@ export default function ApplicationProfileEditor({
         body: JSON.stringify({
           applicantName: applicantName.trim(),
           chapter: chapter.trim(),
+          citizenshipVerified,
           adminNote: adminNote.trim(),
           video1Title: video1?.title.trim() ?? "",
           video1Url: video1?.url.trim() ?? "",
@@ -155,6 +163,22 @@ export default function ApplicationProfileEditor({
               className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
             />
           </div>
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
+          <p className="text-sm font-semibold text-[#5f4d87]">Citizenship Verification</p>
+          <p className="text-xs text-[#7b6e9d]">
+            Reported citizenship: {initialCitizenship.trim() || "Not provided"}
+          </p>
+          <label className="flex items-center gap-2 text-sm font-medium text-[#5f4d87]">
+            <input
+              type="checkbox"
+              checked={citizenshipVerified}
+              onChange={(event) => setCitizenshipVerified(event.target.checked)}
+              className="h-4 w-4 rounded border-[#bca9df]"
+            />
+            Mark citizenship as verified
+          </label>
         </div>
 
         <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">

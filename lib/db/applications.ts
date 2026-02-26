@@ -750,6 +750,7 @@ type ApplicationProfileUpdateInput = {
   organizationId: string;
   applicantName?: string | null;
   chapter?: string | null;
+  citizenshipVerified?: boolean | null;
   adminNote?: string | null;
   video1Title?: string | null;
   video1Url?: string | null;
@@ -758,6 +759,7 @@ type ApplicationProfileUpdateInput = {
   video3Title?: string | null;
   video3Url?: string | null;
   actor?: string | null;
+  actorRole?: Role | null;
 };
 
 function parseNotesObject(notes: string | null): Record<string, unknown> {
@@ -805,6 +807,16 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
       note: nextAdminNote ?? "",
     });
     notesObject.chapterAssignmentHistory = chapterHistory;
+  }
+
+  if (typeof input.citizenshipVerified === "boolean") {
+    notesObject.citizenshipVerification = {
+      verified: input.citizenshipVerified,
+      status: input.citizenshipVerified ? "VERIFIED" : "UNVERIFIED",
+      updatedAt: new Date().toISOString(),
+      updatedBy: actor,
+      updatedByRole: input.actorRole ?? null,
+    };
   }
 
   return prisma.$transaction(async (tx) => {
