@@ -104,9 +104,11 @@ export default async function ApplicationsPage({
       ? (searchParams.status as ApplicationStatus)
       : undefined;
   const activeStatusLabel = statusFilter ? STATUS_LABELS[statusFilter] : undefined;
-  const visibleStatusOptions = Array.from(
-    new Map(statusOptions.map((status) => [STATUS_LABELS[status], status])).values()
-  );
+  // Keep the first status per label so canonical workflow states win over legacy aliases.
+  const visibleStatusOptions = statusOptions.filter((status, index, all) => {
+    const label = STATUS_LABELS[status];
+    return all.findIndex((candidate) => STATUS_LABELS[candidate] === label) === index;
+  });
   const viewMode = searchParams.view === "list" ? "list" : "cards";
 
   function buildApplicationsHref(status?: ApplicationStatus, view = viewMode) {
@@ -145,6 +147,11 @@ export default async function ApplicationsPage({
   });
 
   const canBatchDelete = session.user.role === "ADMIN";
+  const tabBaseClass =
+    "text-sm px-2.5 py-1.5 rounded-md border font-medium transition";
+  const tabActiveClass = "bg-[#e9f4ec] border-[#8eb89c] text-[#1f5b38]";
+  const tabInactiveClass =
+    "bg-[#fffdf5] border-[#e5d8ab] text-[#6b5a23] hover:bg-[#f9f2da]";
 
   return (
     <div className="space-y-6">
@@ -156,8 +163,8 @@ export default async function ApplicationsPage({
             <div className="flex flex-wrap gap-1.5">
               <Link
                 href={buildApplicationsHref(undefined)}
-                className={`text-sm px-2 py-1 rounded border ${
-                  !statusFilter ? "bg-muted border-muted-foreground/20" : "hover:bg-muted/60"
+                className={`${tabBaseClass} ${
+                  !statusFilter ? tabActiveClass : tabInactiveClass
                 }`}
               >
                 All
@@ -166,10 +173,10 @@ export default async function ApplicationsPage({
                 <Link
                   key={status}
                   href={buildApplicationsHref(status)}
-                  className={`text-sm px-2 py-1 rounded border ${
+                  className={`${tabBaseClass} ${
                     activeStatusLabel === STATUS_LABELS[status]
-                      ? "bg-muted border-muted-foreground/20"
-                      : "hover:bg-muted/60"
+                      ? tabActiveClass
+                      : tabInactiveClass
                   }`}
                 >
                   {STATUS_LABELS[status]}
@@ -182,20 +189,20 @@ export default async function ApplicationsPage({
             <span className="text-sm text-muted-foreground">View:</span>
             <Link
               href={buildApplicationsHref(statusFilter, "cards")}
-              className={`text-sm px-2 py-1 rounded border ${
+              className={`${tabBaseClass} ${
                 viewMode === "cards"
-                  ? "bg-muted border-muted-foreground/20"
-                  : "hover:bg-muted/60"
+                  ? tabActiveClass
+                  : tabInactiveClass
               }`}
             >
               Cards
             </Link>
             <Link
               href={buildApplicationsHref(statusFilter, "list")}
-              className={`text-sm px-2 py-1 rounded border ${
+              className={`${tabBaseClass} ${
                 viewMode === "list"
-                  ? "bg-muted border-muted-foreground/20"
-                  : "hover:bg-muted/60"
+                  ? tabActiveClass
+                  : tabInactiveClass
               }`}
             >
               List
