@@ -28,11 +28,23 @@ function StatCard({
   title,
   value,
   sub,
+  href,
 }: {
   title: string;
   value: string | number;
   sub?: string;
+  href?: string;
 }) {
+  if (href) {
+    return (
+      <Link href={href} className={`${styles.statCard} ${styles.statCardInteractive}`}>
+        <p className={styles.statLabel}>{title}</p>
+        <p className={styles.statValue}>{value}</p>
+        {sub ? <p className={styles.statSub}>{sub}</p> : null}
+      </Link>
+    );
+  }
+
   return (
     <article className={styles.statCard}>
       <p className={styles.statLabel}>{title}</p>
@@ -212,16 +224,19 @@ export default async function DashboardPage() {
             title="My Chapter Applicants"
             value={stats.totalApplicantsForChapter}
             sub={stats.chapterName ?? "No chapter assigned"}
+            href="/dashboard/applications"
           />
           <StatCard
             title="Pending Approval"
             value={stats.pendingApprovalsForChapter}
             sub="in your chapter"
+            href="/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL"
           />
           <StatCard
             title="Chapter Adjudication"
             value={stats.chapterAdjudicationCount}
             sub="visible across chapters"
+            href="/dashboard/applications?status=CHAPTER_ADJUDICATION"
           />
         </section>
 
