@@ -11,14 +11,17 @@ import { hasRole } from "@/lib/auth-guards";
 import { getJudgeScoringQueue } from "@/lib/db/scores";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import { Badge } from "@/components/ui/badge";
-import { formatVoicePart } from "@/lib/application-metadata";
+import {
+  ApplicationDivision,
+  formatDivisionLabel,
+} from "@/lib/application-division";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import HeadshotPreview from "@/components/shared/headshot-preview";
 
 export default async function ScoringQueuePage({
   searchParams,
 }: {
-  searchParams: { view?: string };
+  searchParams: { view?: string; division?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
@@ -26,10 +29,16 @@ export default async function ScoringQueuePage({
     redirect("/dashboard");
   }
 
+  const requestedDivision: ApplicationDivision | undefined =
+    searchParams.division === "16-18" || searchParams.division === "19-22"
+      ? searchParams.division
+      : undefined;
+
   const queue = await getJudgeScoringQueue(
     session.user.id,
     session.user.organizationId,
-    session.user.role
+    session.user.role,
+    { division: requestedDivision }
   );
 
   const totalApplications = queue.reduce((sum, round) => sum + round.totalCount, 0);
@@ -44,9 +53,35 @@ export default async function ScoringQueuePage({
           {totalScored} of {totalApplications} applications scored
         </p>
         <div className="flex items-center gap-2 pt-1">
+          <span className="text-sm text-muted-foreground">Division:</span>
+          <Link
+            href="/dashboard/scoring"
+            className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              !requestedDivision
+                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
+                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+            }`}
+          >
+            All
+          </Link>
+          {(["16-18", "19-22"] as const).map((division) => (
+            <Link
+              key={division}
+              href={`/dashboard/scoring?division=${division}${view === "compact" ? "&view=compact" : ""}`}
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                requestedDivision === division
+                  ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              {formatDivisionLabel(division)}
+            </Link>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 pt-1">
           <span className="text-sm text-muted-foreground">View:</span>
           <Link
-            href="/dashboard/scoring?view=detailed"
+            href={`/dashboard/scoring?view=detailed${requestedDivision ? `&division=${requestedDivision}` : ""}`}
             className={`rounded-full border px-3 py-1 text-xs font-medium ${
               view === "detailed"
                 ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
@@ -56,7 +91,7 @@ export default async function ScoringQueuePage({
             Detailed
           </Link>
           <Link
-            href="/dashboard/scoring?view=compact"
+            href={`/dashboard/scoring?view=compact${requestedDivision ? `&division=${requestedDivision}` : ""}`}
             className={`rounded-full border px-3 py-1 text-xs font-medium ${
               view === "compact"
                 ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
@@ -98,8 +133,7 @@ export default async function ScoringQueuePage({
                   const byDivision = roundQueue.applications.reduce<
                     Record<string, typeof roundQueue.applications>
                   >((groups, application) => {
-                    const division = formatVoicePart(application.voicePart);
-                    const key = division === "Not specified" ? "Unspecified" : division;
+                    const key = application.division ?? "UNASSIGNED";
                     if (!groups[key]) groups[key] = [];
                     groups[key].push(application);
                     return groups;
@@ -110,7 +144,11 @@ export default async function ScoringQueuePage({
                       {Object.entries(byDivision).map(([division, applications]) => (
                         <article key={`${roundQueue.round.id}-${division}`} className="rounded-lg border">
                           <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
-                            <p className="text-sm font-semibold">{division} Division</p>
+                            <p className="text-sm font-semibold">
+                              {division === "UNASSIGNED"
+                                ? "Division Unassigned"
+                                : formatDivisionLabel(division as ApplicationDivision)}
+                            </p>
                             <span className="text-xs text-muted-foreground">
                               {applications.length} applicant{applications.length === 1 ? "" : "s"}
                             </span>
@@ -133,7 +171,11 @@ export default async function ScoringQueuePage({
                                   />
                                   <div className="min-w-0">
                                     <Link
-                                      href={`/dashboard/scoring/${application.id}`}
+                                      href={
+                                        requestedDivision
+                                          ? `/dashboard/scoring/${application.id}?division=${requestedDivision}`
+                                          : `/dashboard/scoring/${application.id}`
+                                      }
                                       className="truncate text-sm font-semibold hover:underline"
                                     >
                                       {application.applicant.name}
@@ -155,7 +197,11 @@ export default async function ScoringQueuePage({
                                     <Badge variant="secondary">Pending</Badge>
                                   )}
                                   <Link
-                                    href={`/dashboard/scoring/${application.id}`}
+                                    href={
+                                      requestedDivision
+                                        ? `/dashboard/scoring/${application.id}?division=${requestedDivision}`
+                                        : `/dashboard/scoring/${application.id}`
+                                    }
                                     className="rounded-md border border-[#cfc3e3] px-2 py-1 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
                                   >
                                     Open

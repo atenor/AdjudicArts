@@ -24,9 +24,7 @@ export default async function NavHeader() {
   const canViewApplications =
     role === "ADMIN" ||
     role === "NATIONAL_CHAIR" ||
-    role === "CHAPTER_CHAIR" ||
-    role === "CHAPTER_JUDGE" ||
-    role === "NATIONAL_JUDGE";
+    role === "CHAPTER_CHAIR";
   const canImportApplications = role === "ADMIN";
   const canViewScoring = isJudge;
   const canViewNotifications = Boolean(session?.user);

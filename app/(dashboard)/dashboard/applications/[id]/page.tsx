@@ -330,11 +330,12 @@ export default async function ApplicationDetailPage({
       session,
       "ADMIN",
       "NATIONAL_CHAIR",
-      "CHAPTER_CHAIR",
-      "CHAPTER_JUDGE",
-      "NATIONAL_JUDGE"
+      "CHAPTER_CHAIR"
     )
   ) {
+    if (hasRole(session, "CHAPTER_JUDGE", "NATIONAL_JUDGE")) {
+      redirect("/dashboard/scoring");
+    }
     redirect("/dashboard");
   }
 
@@ -383,6 +384,7 @@ export default async function ApplicationDetailPage({
   const adminProfileNote = getAdminProfileNote(application.notes);
   const bypassAuditEvent = getBypassAuditEvent(application.notes);
   const citizenshipVerification = getCitizenshipVerification(application.notes);
+  const isCitizenshipVerified = citizenshipVerification?.verified === true;
   const age = getAge(application.dateOfBirth);
 
   const division =
@@ -471,12 +473,12 @@ export default async function ApplicationDetailPage({
               ) : null}
               <BadgePill
                 className={
-                  citizenshipVerification?.verified
-                    ? "bg-[#fff4d6] text-[#6a4a00]"
-                    : "bg-[#f7e8c0] text-[#7a5a12]"
+                  isCitizenshipVerified
+                    ? "bg-[#d6f6e8] text-[#0d7b5f]"
+                    : "bg-[#ffe1e1] text-[#b42318]"
                 }
               >
-                {citizenshipVerification?.verified
+                {isCitizenshipVerified
                   ? "Citizenship Verified"
                   : "Citizenship Unverified"}
               </BadgePill>
@@ -683,14 +685,23 @@ export default async function ApplicationDetailPage({
                   Workflow Actions
                 </p>
                 <div className="mt-2 space-y-2">
+                  {!isCitizenshipVerified ? (
+                    <div className="rounded-md border border-[#f2b2b2] bg-[#fff2f2] p-2 text-xs font-semibold text-[#b42318]">
+                      Citizenship verification is required before advancing this application.
+                    </div>
+                  ) : null}
                   {canForwardToNationalsBypass ? (
-                    <ForwardToNationalsButton applicationId={application.id} />
+                    <ForwardToNationalsButton
+                      applicationId={application.id}
+                      disabledByCitizenship={!isCitizenshipVerified}
+                    />
                   ) : null}
                   {canSeeStatusActions ? (
                     <AdvanceApplicationStatusButtons
                       applicationId={application.id}
                       currentStatus={application.status}
                       allowOverrideAll={canOverrideAllStatuses}
+                      citizenshipVerified={isCitizenshipVerified}
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground">

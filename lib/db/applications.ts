@@ -19,6 +19,13 @@ export const NATIONAL_FINALS_STATUSES: ApplicationStatus[] = [
   "NATIONAL_REVIEW",
 ];
 
+const NON_FORWARD_STATUSES: ApplicationStatus[] = [
+  "SUBMITTED_PENDING_APPROVAL",
+  "SUBMITTED",
+  "CHAPTER_REJECTED",
+  "NATIONAL_REJECTED",
+];
+
 function normalizeChapter(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase();
 }
@@ -521,6 +528,11 @@ export async function advanceApplicationStatusWithPermissions(input: {
     return { reason: "FORBIDDEN" as const };
   }
 
+  const canAdvanceWithoutCitizenship = NON_FORWARD_STATUSES.includes(input.nextStatus);
+  if (!canAdvanceWithoutCitizenship && !isCitizenshipVerifiedInNotes(existing.notes)) {
+    return { reason: "CITIZENSHIP_NOT_VERIFIED" as const };
+  }
+
   const notesObject = parseNotesObject(existing.notes);
   const normalizedReason = input.reason?.trim() || null;
   const auditHistory = Array.isArray(notesObject.auditHistory)
@@ -594,6 +606,10 @@ export async function forwardApplicationToNationalsWithBypass(
 
   if (!allowed) {
     return { reason: "FORBIDDEN" as const };
+  }
+
+  if (!isCitizenshipVerifiedInNotes(existing.notes)) {
+    return { reason: "CITIZENSHIP_NOT_VERIFIED" as const };
   }
 
   const notesObject = parseNotesObject(existing.notes);
@@ -812,6 +828,13 @@ function parseNotesObject(notes: string | null): Record<string, unknown> {
     return { voicePart: notes };
   }
   return {};
+}
+
+function isCitizenshipVerifiedInNotes(notes: string | null) {
+  const notesObject = parseNotesObject(notes);
+  const verification = notesObject.citizenshipVerification;
+  if (!verification || typeof verification !== "object") return false;
+  return (verification as { verified?: unknown }).verified === true;
 }
 
 export async function updateApplicationProfile(input: ApplicationProfileUpdateInput) {

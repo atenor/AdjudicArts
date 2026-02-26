@@ -47,14 +47,26 @@ const STATUS_OPTIONS: Array<{ value: ApplicationStatus; label: string }> = [
   { value: "DECIDED", label: "Decided" },
 ];
 
+const FORWARD_STATUSES = new Set<ApplicationStatus>([
+  "CHAPTER_ADJUDICATION",
+  "CHAPTER_REVIEW",
+  "CHAPTER_APPROVED",
+  "NATIONAL_FINALS",
+  "NATIONAL_REVIEW",
+  "NATIONAL_APPROVED",
+  "DECIDED",
+]);
+
 export default function AdvanceApplicationStatusButtons({
   applicationId,
   currentStatus,
   allowOverrideAll = false,
+  citizenshipVerified = false,
 }: {
   applicationId: string;
   currentStatus: ApplicationStatus;
   allowOverrideAll?: boolean;
+  citizenshipVerified?: boolean;
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +86,16 @@ export default function AdvanceApplicationStatusButtons({
       });
 
       if (!response.ok) {
-        setServerError("Failed to update application status.");
+        let message = "Failed to update application status.";
+        try {
+          const data = (await response.json()) as { error?: string };
+          if (typeof data.error === "string" && data.error.trim().length > 0) {
+            message = data.error;
+          }
+        } catch {
+          // no-op
+        }
+        setServerError(message);
         return;
       }
 
@@ -98,6 +119,10 @@ export default function AdvanceApplicationStatusButtons({
       setServerError("Override reason is required.");
       return;
     }
+    if (!citizenshipVerified && FORWARD_STATUSES.has(overrideStatus)) {
+      setServerError("Citizenship must be verified before advancing this application.");
+      return;
+    }
     await advance(overrideStatus, reason);
   }
 
@@ -109,17 +134,33 @@ export default function AdvanceApplicationStatusButtons({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {actions.map((action) => (
+          (() => {
+            const blockedByCitizenship =
+              !citizenshipVerified && FORWARD_STATUSES.has(action.status);
+            return (
           <Button
             key={action.status}
             type="button"
             variant={action.variant ?? "default"}
             onClick={() => void advance(action.status)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || blockedByCitizenship}
+            title={
+              blockedByCitizenship
+                ? "Verify citizenship before advancing."
+                : undefined
+            }
           >
             {action.label}
           </Button>
+            );
+          })()
         ))}
       </div>
+      {!citizenshipVerified ? (
+        <p className="text-xs font-semibold text-[#b42318]">
+          Citizenship must be verified before any forward progression.
+        </p>
+      ) : null}
       {allowOverrideAll ? (
         <details className="rounded-md border border-[#e5d9bf] bg-[#fffaf0] p-2.5">
           <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[#6f5b2d]">

@@ -5,6 +5,10 @@ import {
   RoundType,
   ScoreRound,
 } from "@prisma/client";
+import {
+  ApplicationDivision,
+  resolveApplicationDivision,
+} from "@/lib/application-division";
 import { parseApplicationMetadata } from "@/lib/application-metadata";
 import { getYouTubeVideoId } from "@/lib/youtube";
 
@@ -80,7 +84,8 @@ function scoreRoundForRoundType(roundType: RoundType): ScoreRound {
 export async function getJudgeScoringQueue(
   judgeId: string,
   organizationId: string,
-  role: Role
+  role: Role,
+  options?: { division?: ApplicationDivision }
 ) {
   const assignments = await prisma.judgeAssignment.findMany({
     where: {
@@ -159,21 +164,27 @@ export async function getJudgeScoringQueue(
         ])
       );
 
-      const queueItems = applications.map((application) => {
-        const criterionScores = scoreCountByApplication.get(application.id) ?? 0;
-        const isScored = criteriaCount > 0 && criterionScores >= criteriaCount;
+      const queueItems = applications
+        .map((application) => {
+          const criterionScores = scoreCountByApplication.get(application.id) ?? 0;
+          const isScored = criteriaCount > 0 && criterionScores >= criteriaCount;
+          const division = resolveApplicationDivision({
+            notes: application.notes,
+            dateOfBirth: application.dateOfBirth,
+          });
 
-        return {
-          id: application.id,
-          headshot: application.headshot,
-          chapter: application.chapter,
-          status: application.status,
-          voicePart: application.notes,
-          submittedAt: application.submittedAt,
-          applicant: application.applicant,
-          isScored,
-        };
-      });
+          return {
+            id: application.id,
+            headshot: application.headshot,
+            chapter: application.chapter,
+            status: application.status,
+            division,
+            submittedAt: application.submittedAt,
+            applicant: application.applicant,
+            isScored,
+          };
+        })
+        .filter((item) => !options?.division || item.division === options.division);
 
       const scoredCount = queueItems.filter((item) => item.isScored).length;
 

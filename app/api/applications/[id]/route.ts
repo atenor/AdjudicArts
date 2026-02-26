@@ -43,9 +43,7 @@ export async function GET(
       session,
       "ADMIN",
       "NATIONAL_CHAIR",
-      "CHAPTER_CHAIR",
-      "CHAPTER_JUDGE",
-      "NATIONAL_JUDGE"
+      "CHAPTER_CHAIR"
     );
   } catch {
     return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -202,6 +200,12 @@ export async function POST(
   }
   if (result.reason === "FORBIDDEN") {
     return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (result.reason === "CITIZENSHIP_NOT_VERIFIED") {
+    return Response.json(
+      { error: "Citizenship must be verified before forwarding to nationals." },
+      { status: 409 }
+    );
   }
 
   return Response.json(result.updated);

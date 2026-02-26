@@ -9,6 +9,7 @@ import {
   getJudgeScoringQueue,
   getScoringApplicationForJudge,
 } from "@/lib/db/scores";
+import { ApplicationDivision } from "@/lib/application-division";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import { parseRepertoireEntries } from "@/lib/repertoire";
@@ -20,14 +21,21 @@ import styles from "./scoring.module.css";
 
 export default async function ScoreApplicationPage({
   params,
+  searchParams,
 }: {
   params: { applicationId: string };
+  searchParams: { division?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   if (!hasRole(session, "CHAPTER_JUDGE", "NATIONAL_JUDGE")) {
     redirect("/dashboard");
   }
+
+  const requestedDivision: ApplicationDivision | undefined =
+    searchParams.division === "16-18" || searchParams.division === "19-22"
+      ? searchParams.division
+      : undefined;
 
   const [scoringContext, judgingList] = await Promise.all([
     getScoringApplicationForJudge(
@@ -36,7 +44,9 @@ export default async function ScoreApplicationPage({
       session.user.organizationId,
       session.user.role
     ),
-    getJudgeScoringQueue(session.user.id, session.user.organizationId, session.user.role),
+    getJudgeScoringQueue(session.user.id, session.user.organizationId, session.user.role, {
+      division: requestedDivision,
+    }),
   ]);
 
   if (!scoringContext) notFound();
@@ -162,7 +172,14 @@ export default async function ScoreApplicationPage({
             />
           </section>
 
-          <Link href="/dashboard/scoring" className={styles.backLink}>
+          <Link
+            href={
+              requestedDivision
+                ? `/dashboard/scoring?division=${requestedDivision}`
+                : "/dashboard/scoring"
+            }
+            className={styles.backLink}
+          >
             ← Back to judging list
           </Link>
         </div>
@@ -194,7 +211,11 @@ export default async function ScoreApplicationPage({
               <div className={styles.navLinks}>
                 {previousApplication ? (
                   <Link
-                    href={`/dashboard/scoring/${previousApplication.id}`}
+                    href={
+                      requestedDivision
+                        ? `/dashboard/scoring/${previousApplication.id}?division=${requestedDivision}`
+                        : `/dashboard/scoring/${previousApplication.id}`
+                    }
                     className={styles.navLink}
                   >
                     Prev
@@ -204,7 +225,14 @@ export default async function ScoreApplicationPage({
                 )}
 
                 {nextApplication ? (
-                  <Link href={`/dashboard/scoring/${nextApplication.id}`} className={styles.navLink}>
+                  <Link
+                    href={
+                      requestedDivision
+                        ? `/dashboard/scoring/${nextApplication.id}?division=${requestedDivision}`
+                        : `/dashboard/scoring/${nextApplication.id}`
+                    }
+                    className={styles.navLink}
+                  >
                     Next
                   </Link>
                 ) : (

@@ -329,6 +329,18 @@ export default async function DashboardPage() {
     const ctaLabel = stats.hasSavedWork
       ? "Continue Being Judgy"
       : "Start Being Judgy";
+    const activeDivisionRows = stats.divisionSummary.filter(
+      (row: { key: string; toJudge: number }) =>
+        row.key !== "UNASSIGNED" && row.toJudge > 0
+    );
+    const ctaHref =
+      activeDivisionRows.length === 1
+        ? `/dashboard/scoring?division=${activeDivisionRows[0].key}`
+        : "/dashboard/scoring";
+    const visibleDivisionRows = stats.divisionSummary.filter(
+      (row: { key: string; toJudge: number }) =>
+        row.key !== "UNASSIGNED" || row.toJudge > 0
+    );
 
     return (
       <div className={styles.page}>
@@ -343,17 +355,51 @@ export default async function DashboardPage() {
             value={user.role === "CHAPTER_JUDGE" ? "Chapter" : "National"}
             sub={stats.currentRoundLabel}
           />
-          <StatCard title="To Judge" value={stats.totalToJudgeCurrentRound} />
+          <StatCard
+            title="To Judge"
+            value={stats.totalToJudgeCurrentRound}
+            href="/dashboard/scoring"
+          />
           <StatCard
             title="Completed By You"
             value={stats.completedByJudgeCurrentRound}
             sub={`${remaining} remaining`}
+            href="/dashboard/scoring"
           />
+        </section>
+
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionTopBar} />
+          <div className={styles.sectionBody}>
+            <h2 className={styles.sectionTitle}>Division Analytics</h2>
+            <div className={styles.grid3}>
+              {visibleDivisionRows.map(
+                (row: {
+                  key: string;
+                  label: string;
+                  toJudge: number;
+                  completed: number;
+                }) => (
+                  <StatCard
+                    key={row.key}
+                    title={row.label}
+                    value={row.toJudge}
+                    sub={`${row.completed} completed`}
+                    href={
+                      row.key === "UNASSIGNED"
+                        ? "/dashboard/scoring"
+                        : `/dashboard/scoring?division=${row.key}`
+                    }
+                  />
+                )
+              )}
+            </div>
+          </div>
         </section>
 
         <section className={styles.judgeCtaCard}>
           <p className={styles.judgeCtaLabel}>Primary Action</p>
-          <Link href="/dashboard/scoring" className={styles.judgeCtaButton}>
+          <Link href={ctaHref} className={styles.judgeCtaButton}>
             {ctaLabel}
           </Link>
           <p className={styles.judgeCtaHint}>

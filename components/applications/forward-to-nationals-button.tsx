@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 
 export default function ForwardToNationalsButton({
   applicationId,
+  disabledByCitizenship = false,
 }: {
   applicationId: string;
+  disabledByCitizenship?: boolean;
 }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
@@ -30,7 +32,16 @@ export default function ForwardToNationalsButton({
       });
 
       if (!response.ok) {
-        setServerError("Unable to forward applicant to nationals.");
+        let message = "Unable to forward applicant to nationals.";
+        try {
+          const data = (await response.json()) as { error?: string };
+          if (typeof data.error === "string" && data.error.trim().length > 0) {
+            message = data.error;
+          }
+        } catch {
+          // no-op
+        }
+        setServerError(message);
         return;
       }
 
@@ -58,13 +69,18 @@ export default function ForwardToNationalsButton({
       <button
         type="button"
         onClick={() => void onForward()}
-        disabled={isSubmitting}
+        disabled={isSubmitting || disabledByCitizenship}
         className="w-full rounded-md border border-[#8a67cd] bg-[#5f2ec8] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5327b2] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting
           ? "Forwarding..."
           : "Forward to Nationals (Bypass Chapter Adjudication)"}
       </button>
+      {disabledByCitizenship ? (
+        <p className="text-xs font-semibold text-[#b42318]">
+          Verify citizenship before forwarding to nationals.
+        </p>
+      ) : null}
       {saved ? <p className="text-xs text-emerald-700">Forwarded to nationals.</p> : null}
       {serverError ? <p className="text-xs text-destructive">{serverError}</p> : null}
     </div>

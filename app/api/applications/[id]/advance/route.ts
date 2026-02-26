@@ -53,6 +53,12 @@ export async function POST(
   if (result.reason === "FORBIDDEN") {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+  if (result.reason === "CITIZENSHIP_NOT_VERIFIED") {
+    return Response.json(
+      { error: "Citizenship must be verified before advancing this application." },
+      { status: 409 }
+    );
+  }
   if (result.reason === "NOT_FOUND") {
     return Response.json({ error: "Not found" }, { status: 404 });
   }

@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, Role } from "@prisma/client";
+import {
+  formatDivisionLabel,
+  resolveApplicationDivision,
+} from "@/lib/application-division";
 
 function getLastNDays(n: number) {
   const dates: Date[] = [];
@@ -252,6 +256,11 @@ export async function getJudgeDashboardStats(
       totalToJudgeCurrentRound: 0,
       completedByJudgeCurrentRound: 0,
       hasSavedWork: false,
+      divisionSummary: [
+        { key: "16-18", label: formatDivisionLabel("16-18"), toJudge: 0, completed: 0 },
+        { key: "19-22", label: formatDivisionLabel("19-22"), toJudge: 0, completed: 0 },
+        { key: "UNASSIGNED", label: "Division Unassigned", toJudge: 0, completed: 0 },
+      ],
       roundCount: assignments.length,
     };
   }
@@ -261,7 +270,12 @@ export async function getJudgeDashboardStats(
 
   const applications = await prisma.application.findMany({
     where: { organizationId, eventId: { in: eventIds }, status: { in: [...appStatus] } },
-    select: { id: true, eventId: true },
+    select: {
+      id: true,
+      eventId: true,
+      dateOfBirth: true,
+      notes: true,
+    },
   });
 
   const totalToJudgeCurrentRound = applications.length;
@@ -273,6 +287,11 @@ export async function getJudgeDashboardStats(
       totalToJudgeCurrentRound: 0,
       completedByJudgeCurrentRound: 0,
       hasSavedWork: false,
+      divisionSummary: [
+        { key: "16-18", label: formatDivisionLabel("16-18"), toJudge: 0, completed: 0 },
+        { key: "19-22", label: formatDivisionLabel("19-22"), toJudge: 0, completed: 0 },
+        { key: "UNASSIGNED", label: "Division Unassigned", toJudge: 0, completed: 0 },
+      ],
       roundCount: assignments.length,
     };
   }
@@ -293,6 +312,15 @@ export async function getJudgeDashboardStats(
   }
 
   const eventIdByApp = new Map(applications.map((a) => [a.id, a.eventId]));
+  const divisionByApp = new Map(
+    applications.map((application) => [
+      application.id,
+      resolveApplicationDivision({
+        notes: application.notes,
+        dateOfBirth: application.dateOfBirth,
+      }),
+    ])
+  );
 
   const scoreCounts = await prisma.score.groupBy({
     by: ["applicationId"],
@@ -310,11 +338,26 @@ export async function getJudgeDashboardStats(
   );
 
   let completedByJudgeCurrentRound = 0;
+  const divisionSummaryMap = new Map([
+    ["16-18", { toJudge: 0, completed: 0 }],
+    ["19-22", { toJudge: 0, completed: 0 }],
+    ["UNASSIGNED", { toJudge: 0, completed: 0 }],
+  ]);
+
   for (const appId of applicationIds) {
     const eventId = eventIdByApp.get(appId)!;
     const criteriaCount = criteriaCountByEvent.get(eventId) ?? 0;
     const scored = scoreCountMap.get(appId) ?? 0;
-    if (criteriaCount > 0 && scored >= criteriaCount) completedByJudgeCurrentRound += 1;
+    const isCompleted = criteriaCount > 0 && scored >= criteriaCount;
+    if (isCompleted) completedByJudgeCurrentRound += 1;
+
+    const division = divisionByApp.get(appId);
+    const bucket = division ?? "UNASSIGNED";
+    const summary = divisionSummaryMap.get(bucket);
+    if (summary) {
+      summary.toJudge += 1;
+      if (isCompleted) summary.completed += 1;
+    }
   }
 
   return {
@@ -323,6 +366,26 @@ export async function getJudgeDashboardStats(
     totalToJudgeCurrentRound,
     completedByJudgeCurrentRound,
     hasSavedWork: scoreCounts.some((row) => row._count.applicationId > 0),
+    divisionSummary: [
+      {
+        key: "16-18",
+        label: formatDivisionLabel("16-18"),
+        toJudge: divisionSummaryMap.get("16-18")?.toJudge ?? 0,
+        completed: divisionSummaryMap.get("16-18")?.completed ?? 0,
+      },
+      {
+        key: "19-22",
+        label: formatDivisionLabel("19-22"),
+        toJudge: divisionSummaryMap.get("19-22")?.toJudge ?? 0,
+        completed: divisionSummaryMap.get("19-22")?.completed ?? 0,
+      },
+      {
+        key: "UNASSIGNED",
+        label: "Division Unassigned",
+        toJudge: divisionSummaryMap.get("UNASSIGNED")?.toJudge ?? 0,
+        completed: divisionSummaryMap.get("UNASSIGNED")?.completed ?? 0,
+      },
+    ],
     roundCount: assignments.length,
   };
 }

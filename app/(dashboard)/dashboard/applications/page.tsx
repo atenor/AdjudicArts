@@ -88,11 +88,12 @@ export default async function ApplicationsPage({
       session,
       "ADMIN",
       "NATIONAL_CHAIR",
-      "CHAPTER_CHAIR",
-      "CHAPTER_JUDGE",
-      "NATIONAL_JUDGE"
+      "CHAPTER_CHAIR"
     )
   ) {
+    if (hasRole(session, "CHAPTER_JUDGE", "NATIONAL_JUDGE")) {
+      redirect("/dashboard/scoring");
+    }
     redirect("/dashboard");
   }
 
