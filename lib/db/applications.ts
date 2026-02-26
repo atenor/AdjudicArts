@@ -38,7 +38,11 @@ function isChapterMatch(
 ) {
   const app = chapterMatchKey(applicationChapter);
   const user = chapterMatchKey(userChapter);
-  return app.length > 0 && user.length > 0 && app === user;
+  if (!app || !user) return false;
+  if (app === user) return true;
+  if (app.length >= 3 && user.includes(app)) return true;
+  if (user.length >= 3 && app.includes(user)) return true;
+  return false;
 }
 
 function isInStatusSet(status: ApplicationStatus, statuses: ApplicationStatus[]) {
