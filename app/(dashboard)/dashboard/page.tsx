@@ -162,7 +162,9 @@ export default async function DashboardPage() {
                           loading="lazy"
                         />
                       </div>
-                      <p className={styles.rowTitle}>{app.applicant.name}</p>
+                      <Link href={`/dashboard/applications/${app.id}`} className={styles.rowTitle}>
+                        {app.applicant.name}
+                      </Link>
                       <p className={styles.rowMeta}>
                         {app.event.name}
                         {meta.voicePart ? ` · ${meta.voicePart}` : ""}
@@ -240,7 +242,9 @@ export default async function DashboardPage() {
                           loading="lazy"
                         />
                       </div>
-                      <p className={styles.rowTitle}>{app.applicant.name}</p>
+                      <Link href={`/dashboard/applications/${app.id}`} className={styles.rowTitle}>
+                        {app.applicant.name}
+                      </Link>
                       <p className={styles.rowMeta}>
                         {meta.voicePart ? `${meta.voicePart} · ` : ""}
                         {app.event.name}

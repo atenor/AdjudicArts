@@ -142,7 +142,12 @@ export default function BatchApplicationsTable({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="truncate text-xl font-semibold text-[#1e1538]">
-                      {application.applicantName}
+                      <Link
+                        href={`/dashboard/applications/${application.id}`}
+                        className="hover:text-[#5f2ec8] hover:underline"
+                      >
+                        {application.applicantName}
+                      </Link>
                     </h3>
                     {canBatchDelete ? (
                       <input
@@ -220,7 +225,12 @@ export default function BatchApplicationsTable({
 
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-[#1f163a]">
-                  {application.applicantName}
+                  <Link
+                    href={`/dashboard/applications/${application.id}`}
+                    className="hover:text-[#5f2ec8] hover:underline"
+                  >
+                    {application.applicantName}
+                  </Link>
                 </p>
                 <p className="truncate text-xs font-medium text-[#3f4b6f]">
                   {application.divisionLabel ?? "Division —"}
