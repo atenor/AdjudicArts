@@ -651,6 +651,7 @@ export default async function ApplicationDetailPage({
               initialCitizenship={citizenship ?? ""}
               initialCitizenshipDocumentUrl={citizenshipDocumentUrl ?? ""}
               initialCitizenshipVerified={citizenshipVerification?.verified ?? false}
+              canEditChapter={hasRole(session, "ADMIN", "NATIONAL_CHAIR")}
             />
           ) : null}
 

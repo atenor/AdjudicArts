@@ -36,6 +36,7 @@ export default function ApplicationProfileEditor({
   initialCitizenship,
   initialCitizenshipDocumentUrl,
   initialCitizenshipVerified,
+  canEditChapter = false,
 }: {
   applicationId: string;
   initialApplicantName: string;
@@ -50,6 +51,7 @@ export default function ApplicationProfileEditor({
   initialCitizenship: string;
   initialCitizenshipDocumentUrl: string;
   initialCitizenshipVerified: boolean;
+  canEditChapter?: boolean;
 }) {
   const router = useRouter();
   const [applicantName, setApplicantName] = useState(initialApplicantName);
@@ -103,25 +105,37 @@ export default function ApplicationProfileEditor({
     setShowSaved(false);
     try {
       const [video1, video2, video3] = videoEntries;
+      const payload: Record<string, unknown> = {
+        applicantName: applicantName.trim(),
+        citizenshipVerified,
+        adminNote: adminNote.trim(),
+        video1Title: video1?.title.trim() ?? "",
+        video1Url: video1?.url.trim() ?? "",
+        video2Title: video2?.title.trim() ?? "",
+        video2Url: video2?.url.trim() ?? "",
+        video3Title: video3?.title.trim() ?? "",
+        video3Url: video3?.url.trim() ?? "",
+      };
+      if (canEditChapter) {
+        payload.chapter = chapter.trim();
+      }
       const response = await fetch(`/api/applications/${applicationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          applicantName: applicantName.trim(),
-          chapter: chapter.trim(),
-          citizenshipVerified,
-          adminNote: adminNote.trim(),
-          video1Title: video1?.title.trim() ?? "",
-          video1Url: video1?.url.trim() ?? "",
-          video2Title: video2?.title.trim() ?? "",
-          video2Url: video2?.url.trim() ?? "",
-          video3Title: video3?.title.trim() ?? "",
-          video3Url: video3?.url.trim() ?? "",
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        setServerError("Unable to save profile changes.");
+        let message = "Unable to save profile changes.";
+        try {
+          const data = (await response.json()) as { error?: string };
+          if (typeof data.error === "string" && data.error.trim().length > 0) {
+            message = data.error;
+          }
+        } catch {
+          // no-op
+        }
+        setServerError(message);
         return;
       }
 
@@ -140,7 +154,9 @@ export default function ApplicationProfileEditor({
       <h2 className="text-lg font-semibold text-[#1e1538]">Profile Editor</h2>
       <div className="mt-3 space-y-3">
         <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
-          <p className="text-sm font-semibold text-[#5f4d87]">Chapter Assignment</p>
+          <p className="text-sm font-semibold text-[#5f4d87]">
+            {canEditChapter ? "Chapter Assignment" : "Applicant Info"}
+          </p>
           <div className="space-y-1.5">
             <label htmlFor="applicant-name" className="text-sm font-medium text-[#5f4d87]">
               Applicant Name
@@ -153,18 +169,20 @@ export default function ApplicationProfileEditor({
               className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
             />
           </div>
-          <div className="space-y-1.5">
-            <label htmlFor="chapter" className="text-sm font-medium text-[#5f4d87]">
-              Chapter
-            </label>
-            <Input
-              id="chapter"
-              value={chapter}
-              onChange={(event) => setChapter(event.target.value)}
-              placeholder="Example: Washington DC Chapter"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
-          </div>
+          {canEditChapter ? (
+            <div className="space-y-1.5">
+              <label htmlFor="chapter" className="text-sm font-medium text-[#5f4d87]">
+                Chapter
+              </label>
+              <Input
+                id="chapter"
+                value={chapter}
+                onChange={(event) => setChapter(event.target.value)}
+                placeholder="Example: Washington DC Chapter"
+                className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
@@ -344,7 +362,7 @@ export default function ApplicationProfileEditor({
           disabled={isSaving}
           className="w-full bg-gradient-to-r from-[#5f2ec8] to-[#462b7c] text-white hover:from-[#5327b2] hover:to-[#3e256f]"
         >
-          {isSaving ? "Saving..." : "Save Profile Updates"}
+          {isSaving ? "Saving..." : "Save"}
         </Button>
 
         {showSaved ? <p className="text-sm text-emerald-700">Saved.</p> : null}

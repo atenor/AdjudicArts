@@ -99,7 +99,7 @@ export async function PATCH(
   }
 
   try {
-    requireRole(session, "ADMIN", "NATIONAL_CHAIR");
+    requireRole(session, "ADMIN", "NATIONAL_CHAIR", "CHAPTER_CHAIR");
   } catch {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -114,6 +114,15 @@ export async function PATCH(
   const parsed = patchSchema.safeParse(payload);
   if (!parsed.success) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
+  }
+
+  const canEditChapter =
+    session.user.role === "ADMIN" || session.user.role === "NATIONAL_CHAIR";
+  if (typeof parsed.data.chapter !== "undefined" && !canEditChapter) {
+    return Response.json(
+      { error: "Only Admin/National Chair can reassign chapter." },
+      { status: 403 }
+    );
   }
 
   const visibleApplication = await getApplicationById(
