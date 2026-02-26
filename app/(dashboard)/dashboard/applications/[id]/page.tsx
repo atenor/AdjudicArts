@@ -314,6 +314,7 @@ export default async function ApplicationDetailPage({
     canAdvanceToChapterAdj ||
     canRejectPending ||
     hasRole(session, "ADMIN", "NATIONAL_CHAIR");
+  const canOverrideAllStatuses = hasRole(session, "ADMIN", "NATIONAL_CHAIR");
   const canForwardToNationalsBypass = canForwardApplicationToNationalsByRole({
     role: session.user.role,
     currentStatus: application.status,
@@ -597,6 +598,7 @@ export default async function ApplicationDetailPage({
                 <AdvanceApplicationStatusButtons
                   applicationId={application.id}
                   currentStatus={application.status}
+                  allowOverrideAll={canOverrideAllStatuses}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">

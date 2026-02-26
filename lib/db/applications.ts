@@ -200,9 +200,13 @@ export function canAdvanceApplicationStatusByRole(input: {
   applicationChapter?: string | null;
   userChapter?: string | null;
 }) {
+  if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") {
+    return true;
+  }
+
   const fromPending = isInStatusSet(input.currentStatus, PENDING_APPROVAL_STATUSES);
   if (!fromPending) {
-    return input.role === "ADMIN" || input.role === "NATIONAL_CHAIR";
+    return false;
   }
 
   const isPendingApprovalAction =
@@ -211,7 +215,6 @@ export function canAdvanceApplicationStatusByRole(input: {
     input.nextStatus === "SUBMITTED_PENDING_APPROVAL";
 
   if (!isPendingApprovalAction) return false;
-  if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") return true;
   if (input.role === "CHAPTER_CHAIR") {
     return isChapterMatch(input.applicationChapter, input.userChapter);
   }
@@ -492,12 +495,14 @@ export async function advanceApplicationStatusWithPermissions(input: {
   id: string;
   nextStatus: ApplicationStatus;
   organizationId: string;
+  actorUserId: string;
   actorRole: Role;
   actorChapter?: string | null;
+  reason?: string | null;
 }) {
   const existing = await prisma.application.findFirst({
     where: { id: input.id, organizationId: input.organizationId },
-    select: { id: true, status: true, chapter: true },
+    select: { id: true, status: true, chapter: true, notes: true },
   });
 
   if (!existing) {
@@ -516,11 +521,41 @@ export async function advanceApplicationStatusWithPermissions(input: {
     return { reason: "FORBIDDEN" as const };
   }
 
-  const updated = await advanceApplicationStatus(
-    existing.id,
-    input.nextStatus,
-    input.organizationId
-  );
+  const notesObject = parseNotesObject(existing.notes);
+  const normalizedReason = input.reason?.trim() || null;
+  const auditHistory = Array.isArray(notesObject.auditHistory)
+    ? [...notesObject.auditHistory]
+    : [];
+  auditHistory.push({
+    type: "STATUS_UPDATE",
+    at: new Date().toISOString(),
+    actorUserId: input.actorUserId,
+    actorRole: input.actorRole,
+    fromStatus: existing.status,
+    toStatus: input.nextStatus,
+    reason: normalizedReason,
+    override:
+      input.actorRole === "ADMIN" || input.actorRole === "NATIONAL_CHAIR"
+        ? true
+        : false,
+  });
+  notesObject.auditHistory = auditHistory;
+
+  const updated = await prisma.application.update({
+    where: { id: existing.id },
+    data: {
+      status: input.nextStatus,
+      notes: JSON.stringify(notesObject),
+    },
+    include: {
+      applicant: {
+        select: { id: true, name: true, email: true },
+      },
+      event: {
+        select: { id: true, name: true },
+      },
+    },
+  });
 
   if (!updated) {
     return { reason: "NOT_FOUND" as const };

@@ -4,6 +4,7 @@ import { ApplicationStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Action = {
   label: string;
@@ -37,26 +38,39 @@ const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
   DECIDED: [],
 };
 
+const STATUS_OPTIONS: Array<{ value: ApplicationStatus; label: string }> = [
+  { value: "SUBMITTED_PENDING_APPROVAL", label: "Submitted — Pending Approval" },
+  { value: "CHAPTER_ADJUDICATION", label: "Chapter Adjudication" },
+  { value: "NATIONAL_FINALS", label: "National Finals" },
+  { value: "CHAPTER_REJECTED", label: "Chapter Rejected" },
+  { value: "NATIONAL_REJECTED", label: "National Rejected" },
+  { value: "DECIDED", label: "Decided" },
+];
+
 export default function AdvanceApplicationStatusButtons({
   applicationId,
   currentStatus,
+  allowOverrideAll = false,
 }: {
   applicationId: string;
   currentStatus: ApplicationStatus;
+  allowOverrideAll?: boolean;
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [overrideStatus, setOverrideStatus] = useState<ApplicationStatus>(currentStatus);
+  const [overrideReason, setOverrideReason] = useState("");
   const actions = STATUS_ACTIONS[currentStatus];
 
-  async function advance(status: ApplicationStatus) {
+  async function advance(status: ApplicationStatus, reason?: string) {
     setIsSubmitting(true);
     setServerError(null);
     try {
       const response = await fetch(`/api/applications/${applicationId}/advance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason }),
       });
 
       if (!response.ok) {
@@ -75,6 +89,16 @@ export default function AdvanceApplicationStatusButtons({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleOverride() {
+    if (!allowOverrideAll) return;
+    const reason = overrideReason.trim();
+    if (!reason) {
+      setServerError("Override reason is required.");
+      return;
+    }
+    await advance(overrideStatus, reason);
   }
 
   if (actions.length === 0) {
@@ -96,6 +120,46 @@ export default function AdvanceApplicationStatusButtons({
           </Button>
         ))}
       </div>
+      {allowOverrideAll ? (
+        <div className="rounded-md border border-[#e5d9bf] bg-[#fffaf0] p-2.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#6f5b2d]">
+            Admin / National Chair Override
+          </p>
+          <p className="mt-1 text-xs text-[#6f5b2d]">
+            Use only with a valid reason. This action is audited.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <select
+              value={overrideStatus}
+              onChange={(event) =>
+                setOverrideStatus(event.target.value as ApplicationStatus)
+              }
+              className="h-9 rounded-md border border-[#dccd9e] bg-white px-2 text-sm text-[#3c2f12]"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <Input
+              value={overrideReason}
+              onChange={(event) => setOverrideReason(event.target.value)}
+              placeholder="Required reason for override"
+              className="max-w-sm border-[#dccd9e] bg-white focus-visible:ring-[#a6883f]"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleOverride()}
+              disabled={isSubmitting}
+              className="border-[#dccd9e] text-[#6f5b2d] hover:bg-[#fff3d8]"
+            >
+              Override Status
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
     </div>
   );

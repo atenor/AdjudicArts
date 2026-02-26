@@ -10,6 +10,7 @@ import { sendStatusUpdate } from "@/lib/email";
 
 const bodySchema = z.object({
   status: z.nativeEnum(ApplicationStatus),
+  reason: z.string().trim().max(500).optional(),
 });
 
 export async function POST(
@@ -43,8 +44,10 @@ export async function POST(
     id: params.id,
     nextStatus: parsed.data.status,
     organizationId: session.user.organizationId,
+    actorUserId: session.user.id,
     actorRole: session.user.role,
     actorChapter: session.user.chapter,
+    reason: parsed.data.reason,
   });
 
   if (result.reason === "FORBIDDEN") {
