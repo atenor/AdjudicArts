@@ -196,11 +196,14 @@ export default async function DashboardPage() {
       user.organizationId,
       user.chapter
     );
+    const chapterDashboardTitle = stats.chapterName
+      ? `${stats.chapterName} Dashboard`
+      : "Chapter Dashboard";
 
     return (
       <div className={styles.page}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Chapter Dashboard</h1>
+          <h1 className={styles.title}>{chapterDashboardTitle}</h1>
           <span className={styles.rolePill}>{ROLE_LABELS[user.role]}</span>
         </header>
 

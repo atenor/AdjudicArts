@@ -278,6 +278,13 @@ export async function getScoringApplicationForJudge(
   }
 
   const metadata = parseApplicationMetadata(application.notes);
+  const sanitizedApplication = {
+    ...application,
+    notes: JSON.stringify({
+      voicePart: metadata.voicePart ?? null,
+      videoUrls: metadata.videoUrls,
+    }),
+  };
   const importedVideoUrls = [
     application.video1Url,
     application.video2Url,
@@ -298,7 +305,7 @@ export async function getScoringApplicationForJudge(
   ].map((title) => title?.trim() || null);
 
   return {
-    application,
+    application: sanitizedApplication,
     criteria: application.event.rubric.criteria,
     existingScores,
     finalComment,

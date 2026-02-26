@@ -190,8 +190,6 @@ export default function ApplicationProfileEditor({
                 {videoEntries.map((entry, index) => (
                   <div
                     key={entry.id}
-                    draggable
-                    onDragStart={() => setDraggingIndex(index)}
                     onDragOver={(event) => event.preventDefault()}
                     onDrop={() => {
                       if (draggingIndex === null) return;
@@ -206,10 +204,18 @@ export default function ApplicationProfileEditor({
                         Video {index + 1}
                       </p>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-[#7b6e9d]">Drag</span>
-                        <span className="cursor-grab text-[#6b5a92]" aria-hidden="true">
-                          :::
-                        </span>
+                        <span className="text-xs text-[#7b6e9d]">Reorder</span>
+                        <button
+                          type="button"
+                          draggable
+                          onDragStart={() => setDraggingIndex(index)}
+                          onDragEnd={() => setDraggingIndex(null)}
+                          className="cursor-grab rounded border border-[#d7cde9] px-2 py-0.5 text-xs font-semibold text-[#6b5a92] hover:bg-[#f3ecff]"
+                          aria-label={`Drag to reorder video ${index + 1}`}
+                          title={`Drag to reorder video ${index + 1}`}
+                        >
+                          Drag
+                        </button>
                         <Button
                           type="button"
                           variant="outline"
@@ -230,23 +236,33 @@ export default function ApplicationProfileEditor({
                         </Button>
                       </div>
                     </div>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      <Input
-                        value={entry.title}
-                        onChange={(event) =>
-                          updateVideoEntry(index, { title: event.target.value })
-                        }
-                        placeholder={`Video ${index + 1} title`}
-                        className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-                      />
-                      <Input
-                        value={entry.url}
-                        onChange={(event) =>
-                          updateVideoEntry(index, { url: event.target.value })
-                        }
-                        placeholder={`Video ${index + 1} URL`}
-                        className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-                      />
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
+                          Video title
+                        </label>
+                        <Input
+                          value={entry.title}
+                          onChange={(event) =>
+                            updateVideoEntry(index, { title: event.target.value })
+                          }
+                          placeholder={`Video ${index + 1} title`}
+                          className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
+                          YouTube URL
+                        </label>
+                        <Input
+                          value={entry.url}
+                          onChange={(event) =>
+                            updateVideoEntry(index, { url: event.target.value })
+                          }
+                          placeholder={`https://www.youtube.com/watch?v=...`}
+                          className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
