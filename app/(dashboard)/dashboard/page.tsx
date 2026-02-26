@@ -95,13 +95,23 @@ export default async function DashboardPage() {
         </header>
 
         <section className={styles.grid4}>
-          <StatCard title="Applications" value={stats.totalApplications} />
-          <StatCard title="Events" value={stats.totalEvents} />
-          <StatCard title="Active" value={stats.openEvents} sub="open, review, or judging" />
+          <StatCard
+            title="Applications"
+            value={stats.totalApplications}
+            href="/dashboard/applications"
+          />
+          <StatCard title="Events" value={stats.totalEvents} href="/dashboard/events" />
+          <StatCard
+            title="Active"
+            value={stats.openEvents}
+            sub="open, review, or judging"
+            href="/dashboard/events"
+          />
           <StatCard
             title="Pending Approval"
             value={stats.pendingApplications}
             sub="awaiting approval to enter chapter adjudication"
+            href="/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL"
           />
         </section>
 
@@ -118,8 +128,18 @@ export default async function DashboardPage() {
                     { label: "Chapter Adjudication", value: stats.statusBreakdown.chapterReview },
                     { label: "National Finals", value: stats.statusBreakdown.nationalReview },
                     { label: "Decided", value: stats.statusBreakdown.decided },
-                  ].map((item) => (
-                    <div key={item.label} className={styles.analyticsRow}>
+                  ].map((item) => {
+                    const href =
+                      item.label === "Submitted"
+                        ? "/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL"
+                        : item.label === "Chapter Adjudication"
+                          ? "/dashboard/applications?status=CHAPTER_ADJUDICATION"
+                          : item.label === "National Finals"
+                            ? "/dashboard/applications?status=NATIONAL_FINALS"
+                            : "/dashboard/applications?status=DECIDED";
+                    return (
+                    <Link key={item.label} href={href} className={styles.analyticsRowLink}>
+                      <div className={styles.analyticsRow}>
                       <div className={styles.analyticsRowLabel}>{item.label}</div>
                       <div className={styles.analyticsBarWrap}>
                         <div
@@ -129,7 +149,9 @@ export default async function DashboardPage() {
                       </div>
                       <div className={styles.analyticsValue}>{item.value}</div>
                     </div>
-                  ))}
+                    </Link>
+                    );
+                  })}
                 </div>
               </article>
 
@@ -137,7 +159,13 @@ export default async function DashboardPage() {
                 <p className={styles.analyticsTitle}>Submissions (Last 7 Days)</p>
                 <div className={styles.trendGrid}>
                   {stats.submissionsLast7Days.map((item) => (
-                    <div key={item.label} className={styles.trendItem}>
+                    <Link
+                      key={item.label}
+                      href="/dashboard/applications"
+                      className={styles.trendItemLink}
+                      title="Open applications"
+                    >
+                      <div className={styles.trendItem}>
                       <div className={styles.trendCount}>{item.count}</div>
                       <div className={styles.trendBarWrap}>
                         <div
@@ -147,6 +175,7 @@ export default async function DashboardPage() {
                       </div>
                       <div className={styles.trendLabel}>{item.label}</div>
                     </div>
+                    </Link>
                   ))}
                 </div>
               </article>

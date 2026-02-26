@@ -163,6 +163,56 @@ function findRaw(raw: RawCsv | null, candidates: string[]) {
   return null;
 }
 
+function normalizeExternalUrl(value: string | null | undefined) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+function extractFirstUrl(value: string | null | undefined) {
+  if (!value) return null;
+  const match = value.match(/https?:\/\/[^\s)]+/i);
+  return match?.[0] ?? null;
+}
+
+function findCitizenshipDocumentUrl(raw: RawCsv | null) {
+  if (!raw) return null;
+  const entries = Object.entries(raw);
+  const targetKeyParts = [
+    "citizenship",
+    "passport",
+    "resident",
+    "green card",
+    "proof",
+    "document",
+    "upload",
+    "attachment",
+    "file",
+    "link",
+    "url",
+  ];
+
+  for (const [key, value] of entries) {
+    const normalizedKey = key.toLowerCase();
+    const isLikelyCitizenshipKey =
+      (normalizedKey.includes("citizen") ||
+        normalizedKey.includes("passport") ||
+        normalizedKey.includes("resident")) &&
+      targetKeyParts.some((part) => normalizedKey.includes(part));
+
+    if (!isLikelyCitizenshipKey) continue;
+    const directUrl = normalizeExternalUrl(value);
+    if (directUrl && /^https?:\/\//i.test(directUrl)) return directUrl;
+    const embeddedUrl = extractFirstUrl(value);
+    if (embeddedUrl) return embeddedUrl;
+  }
+
+  return null;
+}
+
 function getAdminProfileNote(notes: string | null | undefined) {
   if (!notes) return "";
   try {
@@ -340,6 +390,18 @@ export default async function ApplicationDetailPage({
     formatVoicePart(application.notes);
   const citizenship = findRaw(rawCsv, ["citizen", "citizenship", "resident"]);
   const mediaRelease = findRaw(rawCsv, ["media release", "photo release", "release"]);
+  const citizenshipDocumentUrl =
+    findCitizenshipDocumentUrl(rawCsv) ??
+    normalizeExternalUrl(
+      findRaw(rawCsv, [
+        "citizenship document",
+        "citizenship doc",
+        "passport",
+        "id document",
+        "proof of citizenship",
+        "citizenship link",
+      ])
+    );
   const hasMediaConsent =
     mediaRelease !== null &&
     /(yes|agree|consent|approved|true)/i.test(mediaRelease);
@@ -384,7 +446,9 @@ export default async function ApplicationDetailPage({
               alt={`${application.applicant.name} headshot`}
               triggerClassName="h-32 w-24 rounded-xl border border-[#cbb7e8] object-cover shadow-sm transition group-hover:scale-[1.02]"
             />
-            <p className="mt-2 text-xs font-medium text-[#7f6aa9]">Open full-size photo</p>
+            <p className="mt-2 text-xs font-medium text-[#7f6aa9]">
+              Click thumbnail to open full-size photo
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -447,7 +511,21 @@ export default async function ApplicationDetailPage({
               />
               <DetailTile label="Alt Contact" value={valueOrDash(altContact)} />
               <DetailTile label="Alt Phone / Email" value={formatPhoneOrEmail(altPhoneOrEmail)} />
+              <DetailTile
+                label="Citizenship Proof"
+                value={citizenshipDocumentUrl ? "Document available" : "No document link found"}
+              />
             </div>
+            {citizenshipDocumentUrl ? (
+              <a
+                href={citizenshipDocumentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex rounded-lg border border-[#c7b6e5] bg-white px-3 py-1.5 text-sm font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]"
+              >
+                View citizenship proof document
+              </a>
+            ) : null}
           </section>
 
           <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
@@ -571,6 +649,7 @@ export default async function ApplicationDetailPage({
               initialVideo3Title={application.video3Title ?? ""}
               initialVideo3Url={application.video3Url ?? ""}
               initialCitizenship={citizenship ?? ""}
+              initialCitizenshipDocumentUrl={citizenshipDocumentUrl ?? ""}
               initialCitizenshipVerified={citizenshipVerification?.verified ?? false}
             />
           ) : null}
@@ -590,26 +669,47 @@ export default async function ApplicationDetailPage({
                   ) : null}
                 </div>
               ) : null}
-              <ApplicationStatusBadge status={application.status} />
-              {canForwardToNationalsBypass ? (
-                <ForwardToNationalsButton applicationId={application.id} />
-              ) : null}
-              {canSeeStatusActions ? (
-                <AdvanceApplicationStatusButtons
-                  applicationId={application.id}
-                  currentStatus={application.status}
-                  allowOverrideAll={canOverrideAllStatuses}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  You do not have permission to change this status.
+              <div className="rounded-lg border border-[#e2d8f0] bg-[#faf7ff] p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#7b6e9d]">
+                  Current Status
                 </p>
-              )}
+                <div className="mt-2">
+                  <ApplicationStatusBadge status={application.status} />
+                </div>
+              </div>
+              <div className="rounded-lg border border-[#e2d8f0] bg-[#faf7ff] p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#7b6e9d]">
+                  Workflow Actions
+                </p>
+                <div className="mt-2 space-y-2">
+                  {canForwardToNationalsBypass ? (
+                    <ForwardToNationalsButton applicationId={application.id} />
+                  ) : null}
+                  {canSeeStatusActions ? (
+                    <AdvanceApplicationStatusButtons
+                      applicationId={application.id}
+                      currentStatus={application.status}
+                      allowOverrideAll={canOverrideAllStatuses}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      You do not have permission to change this status.
+                    </p>
+                  )}
+                </div>
+              </div>
               {chapterGateMessage ? (
                 <p className="text-xs text-muted-foreground">{chapterGateMessage}</p>
               ) : null}
               {canDeleteApplication ? (
-                <DeleteApplicationButton applicationId={application.id} />
+                <details className="rounded-lg border border-[#eed7d7] bg-[#fff8f8] p-3">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[#a04949]">
+                    Danger Zone
+                  </summary>
+                  <div className="mt-3">
+                    <DeleteApplicationButton applicationId={application.id} />
+                  </div>
+                </details>
               ) : null}
             </div>
           </section>

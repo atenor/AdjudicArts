@@ -34,6 +34,7 @@ export default function ApplicationProfileEditor({
   initialVideo3Title,
   initialVideo3Url,
   initialCitizenship,
+  initialCitizenshipDocumentUrl,
   initialCitizenshipVerified,
 }: {
   applicationId: string;
@@ -47,6 +48,7 @@ export default function ApplicationProfileEditor({
   initialVideo3Title: string;
   initialVideo3Url: string;
   initialCitizenship: string;
+  initialCitizenshipDocumentUrl: string;
   initialCitizenshipVerified: boolean;
 }) {
   const router = useRouter();
@@ -170,6 +172,18 @@ export default function ApplicationProfileEditor({
           <p className="text-xs text-[#7b6e9d]">
             Reported citizenship: {initialCitizenship.trim() || "Not provided"}
           </p>
+          {initialCitizenshipDocumentUrl.trim() ? (
+            <a
+              href={initialCitizenshipDocumentUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-md border border-[#c7b6e5] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]"
+            >
+              View citizenship document
+            </a>
+          ) : (
+            <p className="text-xs text-[#8a7aa9]">No citizenship document link on file.</p>
+          )}
           <label className="flex items-center gap-2 text-sm font-medium text-[#5f4d87]">
             <input
               type="checkbox"

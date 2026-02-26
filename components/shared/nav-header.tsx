@@ -30,6 +30,7 @@ export default async function NavHeader() {
   const canImportApplications = role === "ADMIN";
   const canViewScoring = isJudge;
   const canViewNotifications = Boolean(session?.user);
+  const canViewSettings = Boolean(session?.user);
   const easyNavLinks: Array<{ href: string; label: string }> = [];
   if (canViewDashboard) easyNavLinks.push({ href: "/dashboard", label: "Dashboard Home" });
   if (canViewApplications) easyNavLinks.push({ href: "/dashboard/applications", label: "Applications" });
@@ -79,6 +80,16 @@ export default async function NavHeader() {
         </div>
         {session?.user && (
           <div className={styles.right}>
+            {canViewSettings ? (
+              <Link
+                href="/dashboard/notifications"
+                className={styles.settingsGear}
+                aria-label="Open notification settings"
+                title="Settings"
+              >
+                ⚙
+              </Link>
+            ) : null}
             <span className={styles.userName}>{session.user.name}</span>
             <span className={styles.roleBadge}>{ROLE_LABELS[role as Role]}</span>
             <SignOutButton className={styles.signOut} />

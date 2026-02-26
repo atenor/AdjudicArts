@@ -823,18 +823,26 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
   if (!existing) return null;
 
   const notesObject = parseNotesObject(existing.notes);
-  const nextChapter = input.chapter?.trim() ?? null;
-  const nextAdminNote = input.adminNote?.trim() ?? null;
+  const hasChapterUpdate = typeof input.chapter !== "undefined";
+  const nextChapter = hasChapterUpdate ? input.chapter?.trim() ?? null : undefined;
+  const hasAdminNoteUpdate = typeof input.adminNote !== "undefined";
+  const nextAdminNote = hasAdminNoteUpdate ? input.adminNote?.trim() ?? null : undefined;
   const nextApplicantName = input.applicantName?.trim() ?? null;
   const actor = input.actor?.trim() || "admin";
 
-  if (nextAdminNote) {
-    notesObject.adminProfileNote = nextAdminNote;
-  } else {
-    delete notesObject.adminProfileNote;
+  if (hasAdminNoteUpdate) {
+    if (nextAdminNote) {
+      notesObject.adminProfileNote = nextAdminNote;
+    } else {
+      delete notesObject.adminProfileNote;
+    }
   }
 
-  if (typeof nextChapter === "string" && nextChapter !== (existing.chapter ?? null)) {
+  if (
+    hasChapterUpdate &&
+    typeof nextChapter === "string" &&
+    nextChapter !== (existing.chapter ?? null)
+  ) {
     const chapterHistory = Array.isArray(notesObject.chapterAssignmentHistory)
       ? [...notesObject.chapterAssignmentHistory]
       : [];
@@ -843,7 +851,7 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
       by: actor,
       from: existing.chapter ?? "No chapter",
       to: nextChapter,
-      note: nextAdminNote ?? "",
+      note: typeof nextAdminNote === "string" ? nextAdminNote : "",
     });
     notesObject.chapterAssignmentHistory = chapterHistory;
   }
@@ -869,7 +877,7 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
     return tx.application.update({
       where: { id: existing.id },
       data: {
-        chapter: nextChapter,
+        chapter: hasChapterUpdate ? nextChapter : undefined,
         notes: JSON.stringify(notesObject),
         video1Title: input.video1Title?.trim() || null,
         video1Url: input.video1Url?.trim() || null,

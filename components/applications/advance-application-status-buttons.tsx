@@ -121,11 +121,11 @@ export default function AdvanceApplicationStatusButtons({
         ))}
       </div>
       {allowOverrideAll ? (
-        <div className="rounded-md border border-[#e5d9bf] bg-[#fffaf0] p-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#6f5b2d]">
+        <details className="rounded-md border border-[#e5d9bf] bg-[#fffaf0] p-2.5">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[#6f5b2d]">
             Admin / National Chair Override
-          </p>
-          <p className="mt-1 text-xs text-[#6f5b2d]">
+          </summary>
+          <p className="mt-2 text-xs text-[#6f5b2d]">
             Use only with a valid reason. This action is audited.
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -158,7 +158,7 @@ export default function AdvanceApplicationStatusButtons({
               Override Status
             </Button>
           </div>
-        </div>
+        </details>
       ) : null}
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
     </div>

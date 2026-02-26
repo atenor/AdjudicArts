@@ -261,6 +261,19 @@
   gap: 0.5rem;
 }
 
+.analyticsRowLink {
+  display: block;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.analyticsRowLink:hover,
+.analyticsRowLink:focus-visible {
+  background: rgba(70, 43, 124, 0.08);
+  outline: none;
+}
+
 .analyticsRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1.2fr auto;
@@ -309,6 +322,20 @@
   display: grid;
   gap: 0.28rem;
   justify-items: center;
+}
+
+.trendItemLink {
+  display: block;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 0.2rem 0.1rem;
+  transition: background 0.15s ease;
+}
+
+.trendItemLink:hover,
+.trendItemLink:focus-visible {
+  background: rgba(70, 43, 124, 0.08);
+  outline: none;
 }
 
 .trendCount {

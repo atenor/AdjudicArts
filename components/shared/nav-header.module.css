@@ -59,6 +59,28 @@
   gap: 0.5rem;
 }
 
+.settingsGear {
+  width: 1.9rem;
+  height: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.7);
+  background: rgba(201, 168, 76, 0.18);
+  color: #fff7dc;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.settingsGear:hover {
+  background: rgba(201, 168, 76, 0.32);
+  border-color: rgba(201, 168, 76, 0.95);
+}
+
 .userName {
   max-width: 8rem;
   overflow: hidden;
