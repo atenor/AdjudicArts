@@ -95,6 +95,41 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+.quickNav {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(22, 13, 44, 0.35);
+}
+
+.quickNavInner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0.55rem 0.9rem 0.65rem;
+}
+
+.quickNavLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.62);
+  background: rgba(201, 168, 76, 0.18);
+  color: #fff8de;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.3rem 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.quickNavLink:hover {
+  background: rgba(201, 168, 76, 0.3);
+  border-color: rgba(201, 168, 76, 0.9);
+  color: #fffdf3;
+}
+
 @media (min-width: 640px) {
   .inner {
     padding: 0.45rem 1.5rem;
@@ -106,5 +141,9 @@
 
   .userName {
     max-width: none;
+  }
+
+  .quickNavInner {
+    padding: 0.55rem 1.5rem 0.7rem;
   }
 }
