@@ -106,8 +106,8 @@ function toHeadshotUrl(url: string | null): string | null {
   if (!url) return null;
   const id = extractDriveId(url);
   if (id) {
-    // Use the original Drive file (not the w400 thumbnail) to preserve resolution.
-    return `https://drive.google.com/uc?export=view&id=${id}`;
+    // Use a high-res Drive thumbnail URL for reliable in-app rendering.
+    return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
   }
   // Keep non-Drive image URLs unchanged.
   return url;

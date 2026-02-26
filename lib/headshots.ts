@@ -25,7 +25,8 @@ function toHighResHeadshotUrl(url: string): string {
 
   const driveId = extractDriveId(trimmed);
   if (driveId) {
-    return `https://drive.google.com/uc?export=view&id=${driveId}`;
+    // Prefer Drive thumbnail delivery for reliable direct <img> rendering.
+    return `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
   }
 
   // Legacy imports stored `thumbnail?...&sz=w400`; bump to a larger render size.
