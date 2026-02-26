@@ -64,6 +64,13 @@ export default function AdvanceApplicationStatusButtons({
         return;
       }
 
+      // Reject actions can move the record outside the current role's visibility.
+      // Navigate back to the list to avoid landing on a 404 detail route.
+      if (status === "CHAPTER_REJECTED" || status === "NATIONAL_REJECTED") {
+        router.push("/dashboard/applications");
+        return;
+      }
+
       router.refresh();
     } finally {
       setIsSubmitting(false);
