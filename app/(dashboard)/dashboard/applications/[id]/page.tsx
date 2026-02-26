@@ -262,7 +262,7 @@ export default async function ApplicationDetailPage({
   });
   if (!application) notFound();
 
-  const canEditProfile = hasRole(session, "ADMIN", "NATIONAL_CHAIR");
+  const canEditProfile = hasRole(session, "ADMIN", "NATIONAL_CHAIR", "CHAPTER_CHAIR");
   const canDeleteApplication = hasRole(session, "ADMIN", "NATIONAL_CHAIR");
   const canAdvanceToChapterAdj = canAdvanceApplicationStatusByRole({
     role: session.user.role,
@@ -459,6 +459,56 @@ export default async function ApplicationDetailPage({
                 ))}
               </ul>
             )}
+
+            <div className="mt-5 border-t border-[#e5dbf3] pt-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base font-bold tracking-wide text-[#5f7090]">VIDEOS</h3>
+                {application.youtubePlaylist ? (
+                  <a
+                    href={application.youtubePlaylist}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex rounded-lg border border-[#4d2d91] bg-[#5f2ec8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#5327b2]"
+                  >
+                    Open YouTube Playlist
+                  </a>
+                ) : null}
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {videoItems.length === 0 ? (
+                  <p className="text-sm text-[#6d5b91]">No video links found.</p>
+                ) : (
+                  videoItems.map((video, index) => (
+                    <div key={`video-${index}`} className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
+                      <p className="text-sm font-semibold text-[#4a3d6b]">
+                        {video.title || `Video ${index + 1}`}
+                      </p>
+                      {video.url ? (
+                        <a
+                          href={video.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 block truncate text-sm text-[#5f2ec8] underline"
+                        >
+                          {video.url}
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-sm text-[#6d5b91]">No URL</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {hasMediaConsent ? (
+                <p className="mt-3 text-xs text-[#3e7c67]">
+                  Media Release: Applicant consented to recording/photo use.
+                </p>
+              ) : mediaRelease ? (
+                <p className="mt-3 text-xs text-[#6d5b91]">Media Release: {mediaRelease}</p>
+              ) : null}
+            </div>
           </section>
         </div>
 
@@ -514,52 +564,6 @@ export default async function ApplicationDetailPage({
                 <DeleteApplicationButton applicationId={application.id} />
               ) : null}
             </div>
-          </section>
-
-          <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
-            <h2 className="text-lg font-semibold text-[#1e1538]">Videos</h2>
-            {application.youtubePlaylist ? (
-              <a
-                href={application.youtubePlaylist}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex rounded-lg border border-[#4d2d91] bg-[#5f2ec8] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5327b2]"
-              >
-                Open YouTube Playlist
-              </a>
-            ) : null}
-            <div className="mt-3 space-y-3">
-              {videoItems.length === 0 ? (
-                <p className="text-sm text-[#6d5b91]">No video links found.</p>
-              ) : (
-                videoItems.map((video, index) => (
-                  <div key={`video-${index}`} className="rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
-                    <p className="text-sm font-semibold text-[#4a3d6b]">
-                      {video.title || `Video ${index + 1}`}
-                    </p>
-                    {video.url ? (
-                      <a
-                        href={video.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 block truncate text-sm text-[#5f2ec8] underline"
-                      >
-                        {video.url}
-                      </a>
-                    ) : (
-                      <p className="mt-1 text-sm text-[#6d5b91]">No URL</p>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-            {hasMediaConsent ? (
-              <p className="mt-3 text-xs text-[#3e7c67]">
-                Media Release: Applicant consented to recording/photo use.
-              </p>
-            ) : mediaRelease ? (
-              <p className="mt-3 text-xs text-[#6d5b91]">Media Release: {mediaRelease}</p>
-            ) : null}
           </section>
 
           <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
