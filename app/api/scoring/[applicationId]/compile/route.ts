@@ -208,6 +208,105 @@ function buildCompiledComment(
     .join("\n\n");
 }
 
+function buildAiPrompt(
+  notes: Array<{ criterionName: string; comment: string; value?: number | null }>,
+  applicantName: string,
+  existingFinalComment?: string | null
+) {
+  const firstName = extractFirstName(applicantName);
+  const normalizedNotes = notes.map((note) => ({
+    criterionName: note.criterionName,
+    score:
+      typeof note.value === "number" && Number.isFinite(note.value)
+        ? `${note.value}/10`
+        : null,
+    quickNote: note.comment.trim(),
+  }));
+
+  const cleanedFinalComment = sanitizeJudgeFinalComment(existingFinalComment);
+
+  return `
+You are writing an applicant-facing adjudication letter.
+
+Output requirements:
+- Write only the final letter text.
+- Start with: Dear ${firstName},
+- Use complete paragraphs, not bullet points, not rubric listing.
+- Warm, encouraging, professional tone.
+- No em dash characters.
+- Do not exaggerate.
+- Do not add claims not present in source notes.
+- Do not add technical critiques not present in source notes.
+- Do not add career advice.
+
+Structure:
+1) Opening thanks paragraph.
+2) Technique paragraph (if technique-related notes exist).
+3) Musicality/style paragraph (if such notes exist).
+4) Diction/language paragraph (if such notes exist).
+5) Acting/stage presence paragraph (if such notes exist).
+6) Closing paragraph grounded in the provided final comment (if present).
+
+Source data (use only this content):
+Applicant Name: ${applicantName}
+Rubric Notes JSON:
+${JSON.stringify(normalizedNotes, null, 2)}
+
+Judge Final Comment:
+${cleanedFinalComment || "(none provided)"}
+`.trim();
+}
+
+async function generateAiCompiledComment(
+  notes: Array<{ criterionName: string; comment: string; value?: number | null }>,
+  applicantName: string,
+  existingFinalComment?: string | null
+) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const model = process.env.OPENAI_FEEDBACK_MODEL || "gpt-4o-mini";
+  const prompt = buildAiPrompt(notes, applicantName, existingFinalComment);
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.35,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You produce concise, honest, encouraging adjudication letters from provided notes only.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string | null } }>;
+    };
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) return null;
+    return content;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(
   request: Request,
   { params }: { params: { applicationId: string } }
@@ -268,7 +367,15 @@ export async function POST(
     );
   }
 
-  const compiledComment = buildCompiledComment(
+  const aiCompiledComment = await generateAiCompiledComment(
+    normalizedNotes,
+    scoringContext.application.applicant.name,
+    parsed.data.existingFinalComment ?? null
+  );
+
+  const compiledComment =
+    aiCompiledComment ??
+    buildCompiledComment(
     normalizedNotes,
     scoringContext.application.applicant.name,
     parsed.data.existingFinalComment ?? null
