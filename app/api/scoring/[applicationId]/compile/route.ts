@@ -25,43 +25,93 @@ function toSentence(text: string) {
   return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
+function toParagraph(lines: string[]) {
+  const normalized = lines.map((line) => toSentence(line)).filter(Boolean);
+  if (normalized.length === 0) return "";
+  return normalized.join(" ");
+}
+
+function findCriterionNote(
+  notes: Array<{ criterionName: string; comment: string; value?: number | null }>,
+  keywords: string[]
+) {
+  return notes.find((note) =>
+    keywords.some((keyword) =>
+      note.criterionName.toLowerCase().includes(keyword.toLowerCase())
+    )
+  );
+}
+
 function buildCompiledComment(
   notes: Array<{ criterionName: string; comment: string; value?: number | null }>,
+  applicantName: string,
   judgeName: string,
   existingFinalComment?: string | null
 ) {
-  const noteLines = notes.map((note) => {
-    const scorePart =
-      typeof note.value === "number" && !Number.isNaN(note.value)
-        ? ` (${note.value}/10)`
-        : "";
-    return `- ${note.criterionName}${scorePart}: ${toSentence(note.comment)}`;
-  });
+  const techniqueNotes = [
+    findCriterionNote(notes, ["vocal technique", "technique", "breath", "tone", "intonation"]),
+    findCriterionNote(notes, ["tone quality", "tone"]),
+    findCriterionNote(notes, ["intonation", "accuracy"]),
+  ]
+    .filter((note): note is { criterionName: string; comment: string; value?: number | null } => Boolean(note))
+    .map((note) => note.comment);
 
-  const opening = "ADJUDICARTS FEEDBACK SUMMARY";
-  const intro =
-    "Thank you for your submission. The following feedback reflects your adjudication notes.";
-  const heading = "Rubric Feedback";
-  const existing = toSentence(existingFinalComment ?? "");
-  const finalHeading = "Final Comments";
-  const preparedBy = `Prepared by: ${judgeName}`;
-  const closing =
-    "Thank you for your work and preparation. We hope these notes support your continued growth.";
+  const musicalityNotes = [
+    findCriterionNote(notes, ["musicality", "style", "stylistic", "repertoire"]),
+    findCriterionNote(notes, ["stylistic appropriateness"]),
+  ]
+    .filter((note): note is { criterionName: string; comment: string; value?: number | null } => Boolean(note))
+    .map((note) => note.comment);
+
+  const dictionNotes = [
+    findCriterionNote(notes, ["diction", "language"]),
+  ]
+    .filter((note): note is { criterionName: string; comment: string; value?: number | null } => Boolean(note))
+    .map((note) => note.comment);
+
+  const actingNotes = [
+    findCriterionNote(notes, ["acting", "interpretation", "stage presence", "presence"]),
+  ]
+    .filter((note): note is { criterionName: string; comment: string; value?: number | null } => Boolean(note))
+    .map((note) => note.comment);
+
+  const remainingNotes = notes
+    .filter(
+      (note) =>
+        !techniqueNotes.includes(note.comment) &&
+        !musicalityNotes.includes(note.comment) &&
+        !dictionNotes.includes(note.comment) &&
+        !actingNotes.includes(note.comment)
+    )
+    .map((note) => note.comment);
+
+  const openingParagraph = toParagraph([
+    "Thank you for sharing your performance.",
+    "The following adjudication feedback reflects your rubric notes and final comments.",
+  ]);
+  const techniqueParagraph = toParagraph(techniqueNotes);
+  const musicalityParagraph = toParagraph(musicalityNotes);
+  const dictionParagraph = toParagraph(dictionNotes);
+  const actingParagraph = toParagraph(actingNotes);
+  const additionalParagraph = toParagraph(remainingNotes);
+  const finalRemarksParagraph = toParagraph([
+    existingFinalComment ?? "",
+    "Prepared by: " + judgeName,
+  ]);
 
   return [
-    opening,
+    `Dear ${applicantName},`,
     "",
-    intro,
-    "",
-    heading,
-    ...noteLines,
-    "",
-    finalHeading,
-    existing || "No final comments provided.",
-    "",
-    preparedBy,
-    closing,
-  ].join("\n");
+    openingParagraph,
+    techniqueParagraph,
+    musicalityParagraph,
+    dictionParagraph,
+    actingParagraph,
+    additionalParagraph,
+    finalRemarksParagraph,
+  ]
+    .filter((paragraph) => paragraph.trim().length > 0)
+    .join("\n\n");
 }
 
 export async function POST(
@@ -126,6 +176,7 @@ export async function POST(
 
   const compiledComment = buildCompiledComment(
     normalizedNotes,
+    scoringContext.application.applicant.name,
     session.user.name ?? "Adjudication Judge",
     parsed.data.existingFinalComment ?? null
   );

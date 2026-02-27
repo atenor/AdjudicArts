@@ -19,12 +19,14 @@ type ExistingScore = {
 
 export default function ScoringForm({
   applicationId,
+  applicantName,
   judgeName,
   criteria,
   existingScores,
   existingFinalComment,
 }: {
   applicationId: string;
+  applicantName: string;
   judgeName: string;
   criteria: Criterion[];
   existingScores: ExistingScore[];
@@ -92,31 +94,31 @@ export default function ScoringForm({
   }
 
   const aggregatedPreview = useMemo(() => {
-    const lines: string[] = [];
-    lines.push("ADJUDICARTS FEEDBACK SUMMARY");
-    lines.push("");
-    lines.push(
-      "Thank you for your submission. The following feedback reflects your adjudication notes."
+    const opening = toSentence(
+      "Thank you for sharing your performance. The following adjudication feedback reflects your rubric notes and final comments."
     );
-    lines.push("");
-    lines.push("Rubric Feedback");
-    lines.push(
-      ...aggregatedNotes.map((item) => {
+    const rubricParagraph = aggregatedNotes
+      .map((item) => {
         const scorePart =
           typeof item.value === "number" && !Number.isNaN(item.value)
             ? ` (${item.value}/10)`
             : "";
-        return `- ${item.criterionName}${scorePart}: ${toSentence(item.comment)}`;
+        return `${item.criterionName}${scorePart}: ${toSentence(item.comment)}`;
       })
-    );
-    lines.push("");
-    lines.push("Final Comments");
-    lines.push(toSentence(finalComment.trim()) || "No final comments provided.");
-    lines.push("");
-    lines.push(`Prepared by: ${judgeName}`);
-    lines.push("Thank you for your work and preparation.");
-    return lines.join("\n");
-  }, [aggregatedNotes, finalComment, judgeName]);
+      .join(" ");
+    const closing = toSentence(finalComment.trim());
+
+    return [
+      `Dear ${applicantName},`,
+      "",
+      opening,
+      rubricParagraph,
+      closing,
+      `Prepared by: ${judgeName}.`,
+    ]
+      .filter((line) => line.trim().length > 0)
+      .join("\n\n");
+  }, [aggregatedNotes, applicantName, finalComment, judgeName]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
