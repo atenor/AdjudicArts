@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./scoring-form.module.css";
 
@@ -37,6 +37,7 @@ export default function ScoringForm({
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalComment, setFinalComment] = useState(existingFinalComment ?? "");
+  const [compiledFeedback, setCompiledFeedback] = useState("");
 
   const initialByCriterion = useMemo(
     () => new Map(existingScores.map((score) => [score.criteriaId, score])),
@@ -93,7 +94,7 @@ export default function ScoringForm({
     return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
   }
 
-  const aggregatedPreview = useMemo(() => {
+  const fallbackAggregatedPreview = useMemo(() => {
     const opening = toSentence(
       "Thank you for sharing your performance. The following adjudication feedback reflects your rubric notes and final comments."
     );
@@ -119,6 +120,49 @@ export default function ScoringForm({
       .filter((line) => line.trim().length > 0)
       .join("\n\n");
   }, [aggregatedNotes, applicantName, finalComment, judgeName]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function compilePreview() {
+      if (aggregatedNotes.length === 0 || !finalComment.trim()) {
+        setCompiledFeedback("");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/scoring/${applicationId}/compile`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            notes: aggregatedNotes.map((item) => ({
+              criteriaId: item.criteriaId,
+              value: item.value,
+              comment: item.comment,
+            })),
+            existingFinalComment: finalComment.trim(),
+          }),
+        });
+
+        if (!response.ok) return;
+        const data = (await response.json()) as { compiledComment?: string };
+        if (!cancelled) {
+          setCompiledFeedback(data.compiledComment?.trim() ?? "");
+        }
+      } catch {
+        if (!cancelled) {
+          setCompiledFeedback("");
+        }
+      }
+    }
+
+    compilePreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [aggregatedNotes, applicationId, finalComment]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -295,7 +339,7 @@ export default function ScoringForm({
           className={styles.noteBox}
           rows={5}
           readOnly
-          value={aggregatedPreview}
+          value={compiledFeedback || fallbackAggregatedPreview}
           placeholder="On save, this will be compiled into a polished applicant-facing feedback message."
         />
       </section>

@@ -31,6 +31,37 @@ function toParagraph(lines: string[]) {
   return normalized.join(" ");
 }
 
+function sanitizeJudgeFinalComment(input: string | null | undefined) {
+  const raw = (input ?? "").trim();
+  if (!raw) return "";
+
+  // Remove legacy boilerplate that may have been saved in older versions.
+  const blockedPatterns = [
+    /^summary of rubric feedback:/i,
+    /^rubric feedback:/i,
+    /^prepared by:/i,
+    /^dear\s+/i,
+    /^adjudicarts feedback summary$/i,
+    /^final comments$/i,
+  ];
+
+  const cleanedLines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .filter((line) => !blockedPatterns.some((pattern) => pattern.test(line)));
+
+  const cleaned = cleanedLines.join(" ");
+  // If legacy sentence exists inline, trim it away.
+  return cleaned
+    .replace(
+      /overall,\s*these notes represent the judge'?s rationale and can be refined before final submission\.?/gi,
+      ""
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function findCriterionNote(
   notes: Array<{ criterionName: string; comment: string; value?: number | null }>,
   keywords: string[]
@@ -95,7 +126,7 @@ function buildCompiledComment(
   const actingParagraph = toParagraph(actingNotes);
   const additionalParagraph = toParagraph(remainingNotes);
   const finalRemarksParagraph = toParagraph([
-    existingFinalComment ?? "",
+    sanitizeJudgeFinalComment(existingFinalComment),
     "Prepared by: " + judgeName,
   ]);
 
