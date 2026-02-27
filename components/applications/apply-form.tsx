@@ -32,6 +32,10 @@ const applySchema = z.object({
   videoUrl1: z.string().url("Enter a valid URL").optional().or(z.literal("")),
   videoUrl2: z.string().url("Enter a valid URL").optional().or(z.literal("")),
   videoUrl3: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  headshotUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  citizenshipDocumentUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  resourceUrl1: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  resourceUrl2: z.string().url("Enter a valid URL").optional().or(z.literal("")),
 });
 
 type ApplyFormValues = z.infer<typeof applySchema>;
@@ -189,6 +193,54 @@ export default function ApplyForm({ eventId }: { eventId: string }) {
             />
             {errors.videoUrl3 && (
               <p className="text-xs text-destructive">{errors.videoUrl3.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="headshotUrl">Headshot URL</Label>
+            <Input
+              id="headshotUrl"
+              placeholder="https://... (image link)"
+              {...register("headshotUrl")}
+            />
+            {errors.headshotUrl && (
+              <p className="text-xs text-destructive">{errors.headshotUrl.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="citizenshipDocumentUrl">Citizenship Document URL</Label>
+            <Input
+              id="citizenshipDocumentUrl"
+              placeholder="https://... (passport/birth certificate)"
+              {...register("citizenshipDocumentUrl")}
+            />
+            {errors.citizenshipDocumentUrl && (
+              <p className="text-xs text-destructive">{errors.citizenshipDocumentUrl.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="resourceUrl1">Additional Resource URL 1</Label>
+            <Input
+              id="resourceUrl1"
+              placeholder="https://..."
+              {...register("resourceUrl1")}
+            />
+            {errors.resourceUrl1 && (
+              <p className="text-xs text-destructive">{errors.resourceUrl1.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="resourceUrl2">Additional Resource URL 2</Label>
+            <Input
+              id="resourceUrl2"
+              placeholder="https://..."
+              {...register("resourceUrl2")}
+            />
+            {errors.resourceUrl2 && (
+              <p className="text-xs text-destructive">{errors.resourceUrl2.message}</p>
             )}
           </div>
 

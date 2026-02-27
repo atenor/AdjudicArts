@@ -22,6 +22,47 @@ type ApplicationRow = {
   headshotUrl: string;
 };
 
+function statusSurface(status: ApplicationStatus) {
+  switch (status) {
+    case "SUBMITTED_PENDING_APPROVAL":
+    case "SUBMITTED":
+      return {
+        card: "border-[#e4c56f] bg-[#fffef7]",
+        list: "odd:bg-[#fffef7] even:bg-[#fffbee] hover:!bg-[#fff6d8]",
+      };
+    case "CHAPTER_ADJUDICATION":
+    case "CHAPTER_REVIEW":
+      return {
+        card: "border-[#b8caef] bg-[#f7faff]",
+        list: "odd:bg-[#f7faff] even:bg-[#f1f6ff] hover:!bg-[#e6efff]",
+      };
+    case "NATIONAL_FINALS":
+    case "NATIONAL_REVIEW":
+      return {
+        card: "border-[#d4c8f2] bg-[#faf7ff]",
+        list: "odd:bg-[#faf7ff] even:bg-[#f4eeff] hover:!bg-[#ece2ff]",
+      };
+    case "CHAPTER_REJECTED":
+    case "NATIONAL_REJECTED":
+      return {
+        card: "border-[#efc7c7] bg-[#fff7f7]",
+        list: "odd:bg-[#fff8f8] even:bg-[#fff2f2] hover:!bg-[#ffe7e7]",
+      };
+    case "CHAPTER_APPROVED":
+    case "NATIONAL_APPROVED":
+    case "DECIDED":
+      return {
+        card: "border-[#c6e7d2] bg-[#f7fffa]",
+        list: "odd:bg-[#f7fffa] even:bg-[#f0fcf4] hover:!bg-[#e4f7ea]",
+      };
+    default:
+      return {
+        card: "border-[#d7cde9] bg-[#f8f4ff]",
+        list: "odd:bg-white even:bg-[#f6f1ff] hover:!bg-[#ece4fb]",
+      };
+  }
+}
+
 export default function BatchApplicationsTable({
   applications,
   canBatchDelete,
@@ -130,7 +171,7 @@ export default function BatchApplicationsTable({
           {applications.map((application) => (
             <article
               key={application.id}
-              className="rounded-xl border border-[#d7cde9] bg-[#f8f4ff] p-4 shadow-sm transition hover:border-[#b9a4df] hover:shadow-md"
+              className={`rounded-xl border p-4 shadow-sm transition hover:shadow-md ${statusSurface(application.status).card}`}
             >
               <div className="flex items-start gap-3">
                 <HeadshotPreview
@@ -204,7 +245,7 @@ export default function BatchApplicationsTable({
           {applications.map((application) => (
             <div
               key={application.id}
-              className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-[#e2d9f1] px-3 py-2 odd:bg-white even:bg-[#f6f1ff] last:border-b-0 hover:bg-[#ece4fb]"
+              className={`grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-[#e2d9f1] px-3 py-2 last:border-b-0 ${statusSurface(application.status).list}`}
             >
               <div className="flex items-center gap-2">
                 {canBatchDelete ? (

@@ -17,6 +17,10 @@ const applySchema = z.object({
   videoUrl1: z.string().url().optional().or(z.literal("")),
   videoUrl2: z.string().url().optional().or(z.literal("")),
   videoUrl3: z.string().url().optional().or(z.literal("")),
+  headshotUrl: z.string().url().optional().or(z.literal("")),
+  citizenshipDocumentUrl: z.string().url().optional().or(z.literal("")),
+  resourceUrl1: z.string().url().optional().or(z.literal("")),
+  resourceUrl2: z.string().url().optional().or(z.literal("")),
 });
 
 export async function POST(
@@ -48,7 +52,19 @@ export async function POST(
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const { name, email, voicePart, repertoire, videoUrl1, videoUrl2, videoUrl3 } =
+  const {
+    name,
+    email,
+    voicePart,
+    repertoire,
+    videoUrl1,
+    videoUrl2,
+    videoUrl3,
+    headshotUrl,
+    citizenshipDocumentUrl,
+    resourceUrl1,
+    resourceUrl2,
+  } =
     parsed.data;
 
   const alreadyApplied = await hasExistingApplication(event.id, email);
@@ -67,6 +83,11 @@ export async function POST(
     voicePart,
     repertoire,
     videoUrls: [videoUrl1, videoUrl2, videoUrl3].filter(
+      (url): url is string => Boolean(url && url.length > 0)
+    ),
+    headshotUrl: headshotUrl || null,
+    citizenshipDocumentUrl: citizenshipDocumentUrl || null,
+    resourceUrls: [resourceUrl1, resourceUrl2].filter(
       (url): url is string => Boolean(url && url.length > 0)
     ),
   });

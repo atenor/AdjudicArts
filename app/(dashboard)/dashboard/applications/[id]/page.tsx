@@ -17,7 +17,7 @@ import DeleteApplicationButton from "@/components/applications/delete-applicatio
 import ApplicationProfileEditor from "@/components/applications/application-profile-editor";
 import ForwardToNationalsButton from "@/components/applications/forward-to-nationals-button";
 import HeadshotPreview from "@/components/shared/headshot-preview";
-import { formatVoicePart } from "@/lib/application-metadata";
+import { formatVoicePart, parseApplicationMetadata } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import { parseRepertoireEntries } from "@/lib/repertoire";
 
@@ -380,6 +380,7 @@ export default async function ApplicationDetailPage({
 
   const timeline = deriveStatusTimeline(application.status);
   const repertoirePieces = parseRepertoireEntries(application.repertoire);
+  const metadata = parseApplicationMetadata(application.notes);
   const rawCsv = getImportedRawCsv(application.notes);
   const adminProfileNote = getAdminProfileNote(application.notes);
   const bypassAuditEvent = getBypassAuditEvent(application.notes);
@@ -393,6 +394,7 @@ export default async function ApplicationDetailPage({
   const citizenship = findRaw(rawCsv, ["citizen", "citizenship", "resident"]);
   const mediaRelease = findRaw(rawCsv, ["media release", "photo release", "release"]);
   const citizenshipDocumentUrl =
+    metadata.citizenshipDocumentUrl ??
     findCitizenshipDocumentUrl(rawCsv) ??
     normalizeExternalUrl(
       findRaw(rawCsv, [
@@ -404,6 +406,7 @@ export default async function ApplicationDetailPage({
         "citizenship link",
       ])
     );
+  const intakeResourceUrls = metadata.resourceUrls;
   const hasMediaConsent =
     mediaRelease !== null &&
     /(yes|agree|consent|approved|true)/i.test(mediaRelease);
@@ -527,6 +530,26 @@ export default async function ApplicationDetailPage({
               >
                 View citizenship proof document
               </a>
+            ) : null}
+            {intakeResourceUrls.length > 0 ? (
+              <div className="mt-3 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#7f6aa9]">
+                  Additional Intake Resources
+                </p>
+                <div className="flex flex-col gap-1">
+                  {intakeResourceUrls.map((resourceUrl, index) => (
+                    <a
+                      key={`${resourceUrl}-${index}`}
+                      href={resourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-fit rounded-lg border border-[#c7b6e5] bg-white px-3 py-1.5 text-sm font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]"
+                    >
+                      View intake resource {index + 1}
+                    </a>
+                  ))}
+                </div>
+              </div>
             ) : null}
           </section>
 

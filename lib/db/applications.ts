@@ -285,6 +285,9 @@ export async function createPublicApplication(data: {
   voicePart: string;
   repertoire: string;
   videoUrls?: string[];
+  headshotUrl?: string | null;
+  citizenshipDocumentUrl?: string | null;
+  resourceUrls?: string[];
 }) {
   // Find or create applicant user by email
   let user = await prisma.user.findUnique({
@@ -313,9 +316,13 @@ export async function createPublicApplication(data: {
       applicantId: user.id,
       status: ApplicationStatus.SUBMITTED_PENDING_APPROVAL,
       repertoire: data.repertoire,
+      headshot: data.headshotUrl ?? null,
       notes: buildApplicationMetadata({
         voicePart: data.voicePart,
         videoUrls: data.videoUrls ?? [],
+        citizenshipDocumentUrl: data.citizenshipDocumentUrl ?? null,
+        resourceUrls: data.resourceUrls ?? [],
+        intakeHeadshotUrl: data.headshotUrl ?? null,
       }),
     },
   });

@@ -76,6 +76,44 @@ function wasForwardedBypass(notes: string | null | undefined) {
   }
 }
 
+function statusFilterClasses(status: ApplicationStatus | undefined, active: boolean) {
+  if (!status) {
+    return active
+      ? "bg-[#e9f4ec] border-[#8eb89c] text-[#1f5b38]"
+      : "bg-[#fffdf5] border-[#e5d8ab] text-[#6b5a23] hover:bg-[#f9f2da]";
+  }
+
+  if (status === "SUBMITTED_PENDING_APPROVAL" || status === "SUBMITTED") {
+    return active
+      ? "bg-[#fff3cf] border-[#d1ab3f] text-[#7a5c10]"
+      : "bg-[#fffaf0] border-[#eadbb0] text-[#7a5c10] hover:bg-[#fff3dc]";
+  }
+  if (status === "CHAPTER_ADJUDICATION" || status === "CHAPTER_REVIEW") {
+    return active
+      ? "bg-[#e4efff] border-[#5b83d6] text-[#214f9b]"
+      : "bg-[#f3f8ff] border-[#c8d9f7] text-[#305fae] hover:bg-[#e9f1ff]";
+  }
+  if (status === "NATIONAL_FINALS" || status === "NATIONAL_REVIEW") {
+    return active
+      ? "bg-[#efe8ff] border-[#7b5dc8] text-[#472d96]"
+      : "bg-[#f7f2ff] border-[#d9ccf2] text-[#5b3eab] hover:bg-[#eee5ff]";
+  }
+  if (status === "CHAPTER_REJECTED" || status === "NATIONAL_REJECTED") {
+    return active
+      ? "bg-[#ffe6e6] border-[#dc6d6d] text-[#a22525]"
+      : "bg-[#fff4f4] border-[#f0c6c6] text-[#a43b3b] hover:bg-[#ffeaea]";
+  }
+  if (status === "CHAPTER_APPROVED" || status === "NATIONAL_APPROVED" || status === "DECIDED") {
+    return active
+      ? "bg-[#ddf5e6] border-[#57ad7a] text-[#1f6a3d]"
+      : "bg-[#f2fbf5] border-[#b7e3c8] text-[#2f7d4c] hover:bg-[#e8f7ee]";
+  }
+
+  return active
+    ? "bg-[#e9f4ec] border-[#8eb89c] text-[#1f5b38]"
+    : "bg-[#fffdf5] border-[#e5d8ab] text-[#6b5a23] hover:bg-[#f9f2da]";
+}
+
 export default async function ApplicationsPage({
   searchParams,
 }: {
@@ -150,10 +188,6 @@ export default async function ApplicationsPage({
   const canBatchDelete = session.user.role === "ADMIN";
   const tabBaseClass =
     "text-sm px-2.5 py-1.5 rounded-md border font-medium transition";
-  const tabActiveClass = "bg-[#e9f4ec] border-[#8eb89c] text-[#1f5b38]";
-  const tabInactiveClass =
-    "bg-[#fffdf5] border-[#e5d8ab] text-[#6b5a23] hover:bg-[#f9f2da]";
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -164,9 +198,7 @@ export default async function ApplicationsPage({
             <div className="flex flex-wrap gap-1.5">
               <Link
                 href={buildApplicationsHref(undefined)}
-                className={`${tabBaseClass} ${
-                  !statusFilter ? tabActiveClass : tabInactiveClass
-                }`}
+                className={`${tabBaseClass} ${statusFilterClasses(undefined, !statusFilter)}`}
               >
                 All
               </Link>
@@ -174,11 +206,10 @@ export default async function ApplicationsPage({
                 <Link
                   key={status}
                   href={buildApplicationsHref(status)}
-                  className={`${tabBaseClass} ${
+                  className={`${tabBaseClass} ${statusFilterClasses(
+                    status,
                     activeStatusLabel === STATUS_LABELS[status]
-                      ? tabActiveClass
-                      : tabInactiveClass
-                  }`}
+                  )}`}
                 >
                   {STATUS_LABELS[status]}
                 </Link>
@@ -192,8 +223,8 @@ export default async function ApplicationsPage({
               href={buildApplicationsHref(statusFilter, "cards")}
               className={`${tabBaseClass} ${
                 viewMode === "cards"
-                  ? tabActiveClass
-                  : tabInactiveClass
+                  ? "bg-[#e9f4ec] border-[#8eb89c] text-[#1f5b38]"
+                  : "bg-[#fffdf5] border-[#e5d8ab] text-[#6b5a23] hover:bg-[#f9f2da]"
               }`}
             >
               Cards
@@ -202,8 +233,8 @@ export default async function ApplicationsPage({
               href={buildApplicationsHref(statusFilter, "list")}
               className={`${tabBaseClass} ${
                 viewMode === "list"
-                  ? tabActiveClass
-                  : tabInactiveClass
+                  ? "bg-[#e9f4ec] border-[#8eb89c] text-[#1f5b38]"
+                  : "bg-[#fffdf5] border-[#e5d8ab] text-[#6b5a23] hover:bg-[#f9f2da]"
               }`}
             >
               List
