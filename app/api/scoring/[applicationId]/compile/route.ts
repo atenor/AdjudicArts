@@ -25,12 +25,6 @@ function toSentence(text: string) {
   return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
-function toParagraph(lines: string[]) {
-  const normalized = lines.map((line) => toSentence(line)).filter(Boolean);
-  if (normalized.length === 0) return "";
-  return normalized.join(" ");
-}
-
 function sanitizeJudgeFinalComment(input: string | null | undefined) {
   const raw = (input ?? "").trim();
   if (!raw) return "";
@@ -142,69 +136,40 @@ function buildCompiledComment(
     .map((note) => note.comment.replace(/\s+/g, " ").trim())
     .filter((comment) => !usedComments.has(comment));
 
-  const openingParagraph = toParagraph([
-    "Thank you for sharing your performance.",
-    "You did very good work, and there is much to commend in your performance.",
-  ]);
-
-  const techniqueParagraph = techniqueNotes.length
-    ? toParagraph([
-        "Your technique shows a strong foundation.",
-        ...techniqueNotes,
-      ])
-    : "";
-
-  const musicalityParagraph = musicalityNotes.length
-    ? toParagraph([
-        "Musically, there were several strong choices in your performance.",
-        ...musicalityNotes,
-      ])
-    : "";
-
-  const dictionParagraph = dictionNotes.length
-    ? toParagraph([
-        "Your diction and language work is generally solid.",
-        ...dictionNotes,
-      ])
-    : "";
-
-  const actingParagraph = actingNotes.length
-    ? toParagraph([
-        "In acting and stage presence, there are clear strengths to build on.",
-        ...actingNotes,
-      ])
-    : "";
-
-  const additionalParagraph =
-    remainingNotes.length > 0
-      ? toParagraph([
-          "Additional feedback from your rubric comments includes the following:",
-          ...remainingNotes,
-        ])
-      : "";
-
   const finalRemarks = sanitizeJudgeFinalComment(existingFinalComment);
-  const finalRemarksParagraph = finalRemarks
-    ? toParagraph([
-        finalRemarks,
-        "Overall, you show strong potential and we look forward to your continued growth.",
-      ])
-    : toParagraph([
-        "Overall, you show strong potential and we look forward to your continued growth.",
-      ]);
+  const formatBulletLines = (lines: string[]) =>
+    lines.map((line) => `- ${toSentence(line)}`).join("\n");
+
+  const sections: string[] = [];
+
+  if (techniqueNotes.length > 0) {
+    sections.push(["Technique", formatBulletLines(techniqueNotes)].join("\n"));
+  }
+  if (musicalityNotes.length > 0) {
+    sections.push(["Musicality and Style", formatBulletLines(musicalityNotes)].join("\n"));
+  }
+  if (dictionNotes.length > 0) {
+    sections.push(["Diction and Language", formatBulletLines(dictionNotes)].join("\n"));
+  }
+  if (actingNotes.length > 0) {
+    sections.push(["Acting and Stage Presence", formatBulletLines(actingNotes)].join("\n"));
+  }
+  if (remainingNotes.length > 0) {
+    sections.push(["Additional Notes", formatBulletLines(remainingNotes)].join("\n"));
+  }
+
+  const finalSection = finalRemarks
+    ? ["Judge Final Comment", formatBulletLines([finalRemarks])].join("\n")
+    : "";
 
   return [
-    `Dear ${firstName},`,
+    "Applicant Feedback Outline",
+    `Applicant: ${firstName}`,
     "",
-    openingParagraph,
-    techniqueParagraph,
-    musicalityParagraph,
-    dictionParagraph,
-    actingParagraph,
-    additionalParagraph,
-    finalRemarksParagraph,
+    ...sections,
+    ...(finalSection ? ["", finalSection] : []),
   ]
-    .filter((paragraph) => paragraph.trim().length > 0)
+    .filter((line) => line.trim().length > 0)
     .join("\n\n");
 }
 
