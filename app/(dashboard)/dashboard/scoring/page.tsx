@@ -194,7 +194,7 @@ export default async function ScoringQueuePage({
                                   {application.isScored ? (
                                     <Badge variant="default">Scored</Badge>
                                   ) : (
-                                    <Badge variant="secondary">Pending</Badge>
+                                    <Badge variant="secondary">Pending Adjudication</Badge>
                                   )}
                                   <Link
                                     href={

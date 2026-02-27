@@ -162,6 +162,7 @@ export default async function ScoreApplicationPage({
             <div className={styles.sectionHeader}>Rubric Scores</div>
             <ScoringForm
               applicationId={application.id}
+              judgeName={session.user.name ?? "Adjudication Judge"}
               criteria={criteria}
               existingFinalComment={finalComment}
               existingScores={existingScores.map((score) => ({

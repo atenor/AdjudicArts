@@ -329,6 +329,13 @@ export default async function DashboardPage() {
     const ctaLabel = stats.hasSavedWork
       ? "Continue Being Judgy"
       : "Start Being Judgy";
+    const judgeRoleLabel =
+      user.role === "CHAPTER_JUDGE" ? "Chapter Judge" : "National Judge";
+    const judgeLocationLabel =
+      user.role === "CHAPTER_JUDGE"
+        ? user.chapter?.trim() || "Unassigned"
+        : "National";
+    const judgeDashboardTitle = `${judgeLocationLabel} ${judgeRoleLabel} Dashboard`;
     const activeDivisionRows = stats.divisionSummary.filter(
       (row: { key: string; toJudge: number }) =>
         row.key !== "UNASSIGNED" && row.toJudge > 0
@@ -345,7 +352,10 @@ export default async function DashboardPage() {
     return (
       <div className={styles.page}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Judge Dashboard</h1>
+          <div>
+            <h1 className={styles.title}>{judgeDashboardTitle}</h1>
+            <p className={styles.muted}>Welcome {user.name}!</p>
+          </div>
           <span className={styles.rolePill}>{ROLE_LABELS[user.role]}</span>
         </header>
 

@@ -19,11 +19,13 @@ type ExistingScore = {
 
 export default function ScoringForm({
   applicationId,
+  judgeName,
   criteria,
   existingScores,
   existingFinalComment,
 }: {
   applicationId: string;
+  judgeName: string;
   criteria: Criterion[];
   existingScores: ExistingScore[];
   existingFinalComment?: string | null;
@@ -83,15 +85,38 @@ export default function ScoringForm({
     [comments, criteria, values]
   );
 
+  function toSentence(text: string) {
+    const trimmed = text.replace(/\s+/g, " ").trim();
+    if (!trimmed) return "";
+    return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+  }
+
   const aggregatedPreview = useMemo(() => {
-    const noteLines = aggregatedNotes.map(
-      (item) => `${item.criterionName}: ${item.comment}`
+    const lines: string[] = [];
+    lines.push("ADJUDICARTS FEEDBACK SUMMARY");
+    lines.push("");
+    lines.push(
+      "Thank you for your submission. The following feedback reflects your adjudication notes."
     );
-    const finalLine = finalComment.trim()
-      ? `Final comments: ${finalComment.trim()}`
-      : "";
-    return [...noteLines, finalLine].filter(Boolean).join("\n");
-  }, [aggregatedNotes, finalComment]);
+    lines.push("");
+    lines.push("Rubric Feedback");
+    lines.push(
+      ...aggregatedNotes.map((item) => {
+        const scorePart =
+          typeof item.value === "number" && !Number.isNaN(item.value)
+            ? ` (${item.value}/10)`
+            : "";
+        return `- ${item.criterionName}${scorePart}: ${toSentence(item.comment)}`;
+      })
+    );
+    lines.push("");
+    lines.push("Final Comments");
+    lines.push(toSentence(finalComment.trim()) || "No final comments provided.");
+    lines.push("");
+    lines.push(`Prepared by: ${judgeName}`);
+    lines.push("Thank you for your work and preparation.");
+    return lines.join("\n");
+  }, [aggregatedNotes, finalComment, judgeName]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -121,8 +146,6 @@ export default function ScoringForm({
       return;
     }
 
-    let compiledFinalComment = trimmedFinalComment;
-
     setIsSubmitting(true);
     try {
       if (aggregatedNotes.length > 0) {
@@ -143,10 +166,9 @@ export default function ScoringForm({
           });
 
           if (compileResponse.ok) {
-            const data = (await compileResponse.json()) as { compiledComment?: string };
-            if (data.compiledComment?.trim()) {
-              compiledFinalComment = data.compiledComment.trim();
-            }
+            // We intentionally keep finalComment judge-authored.
+            // Compiled feedback is for applicant-facing output, not to overwrite the judge's final note.
+            await compileResponse.json();
           }
         } catch {
           // If compile service fails, still allow score submission with judge-entered final comment.
@@ -158,7 +180,7 @@ export default function ScoringForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scores, finalComment: compiledFinalComment }),
+        body: JSON.stringify({ scores, finalComment: trimmedFinalComment }),
       });
 
       if (!response.ok) {
@@ -265,14 +287,14 @@ export default function ScoringForm({
       </section>
 
       <section className={styles.aggregateWrap}>
-        <p className={styles.label}>Aggregated Rubric Notes</p>
+        <p className={styles.label}>Aggregated Applicant Feedback</p>
         <textarea
           id="aggregated-rubric-notes"
           className={styles.noteBox}
           rows={5}
           readOnly
           value={aggregatedPreview}
-          placeholder="Will aggregate rubric quick notes and final comments when you save."
+          placeholder="On save, this will be compiled into a polished applicant-facing feedback message."
         />
       </section>
       {serverError ? <p className={styles.error}>{serverError}</p> : null}

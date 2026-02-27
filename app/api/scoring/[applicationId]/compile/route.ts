@@ -27,23 +27,41 @@ function toSentence(text: string) {
 
 function buildCompiledComment(
   notes: Array<{ criterionName: string; comment: string; value?: number | null }>,
+  judgeName: string,
   existingFinalComment?: string | null
 ) {
   const noteLines = notes.map((note) => {
     const scorePart =
       typeof note.value === "number" && !Number.isNaN(note.value)
-        ? ` (score ${note.value}/10)`
+        ? ` (${note.value}/10)`
         : "";
-    return `${note.criterionName}${scorePart}: ${toSentence(note.comment)}`;
+    return `- ${note.criterionName}${scorePart}: ${toSentence(note.comment)}`;
   });
 
-  const opening = "Summary of rubric feedback:";
-  const combined = noteLines.join(" ");
+  const opening = "ADJUDICARTS FEEDBACK SUMMARY";
+  const intro =
+    "Thank you for your submission. The following feedback reflects your adjudication notes.";
+  const heading = "Rubric Feedback";
   const existing = toSentence(existingFinalComment ?? "");
+  const finalHeading = "Final Comments";
+  const preparedBy = `Prepared by: ${judgeName}`;
   const closing =
-    "Overall, these notes represent the judge's rationale and can be refined before final submission.";
+    "Thank you for your work and preparation. We hope these notes support your continued growth.";
 
-  return [opening, combined, existing, closing].filter(Boolean).join(" ");
+  return [
+    opening,
+    "",
+    intro,
+    "",
+    heading,
+    ...noteLines,
+    "",
+    finalHeading,
+    existing || "No final comments provided.",
+    "",
+    preparedBy,
+    closing,
+  ].join("\n");
 }
 
 export async function POST(
@@ -108,6 +126,7 @@ export async function POST(
 
   const compiledComment = buildCompiledComment(
     normalizedNotes,
+    session.user.name ?? "Adjudication Judge",
     parsed.data.existingFinalComment ?? null
   );
 
