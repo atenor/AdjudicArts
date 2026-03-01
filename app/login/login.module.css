@@ -175,3 +175,21 @@
     max-width: none;
   }
 }
+
+
+.signupPrompt {
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #8a7fa8;
+}
+
+.signupLink {
+  color: #462b7c;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.signupLink:hover {
+  text-decoration: underline;
+}

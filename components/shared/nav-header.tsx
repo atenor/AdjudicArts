@@ -29,13 +29,17 @@ export default async function NavHeader() {
   const canViewScoring = isJudge;
   const canViewNotifications = Boolean(session?.user);
   const canViewSettings = Boolean(session?.user);
+  const canManageUsers = role === "ADMIN";
+  const canViewSupport = Boolean(session?.user);
   const easyNavLinks: Array<{ href: string; label: string }> = [];
   if (canViewDashboard) easyNavLinks.push({ href: "/dashboard", label: "Dashboard Home" });
   if (canViewApplications) easyNavLinks.push({ href: "/dashboard/applications", label: "Applications" });
   if (canViewScoring) easyNavLinks.push({ href: "/dashboard/scoring", label: "Judging List" });
   if (canViewEvents) easyNavLinks.push({ href: "/dashboard/events", label: "Events" });
   if (canImportApplications) easyNavLinks.push({ href: "/dashboard/import", label: "Import CSV" });
+  if (canManageUsers) easyNavLinks.push({ href: "/dashboard/users", label: "Users" });
   if (canViewNotifications) easyNavLinks.push({ href: "/dashboard/notifications", label: "Notifications" });
+  if (canViewSupport) easyNavLinks.push({ href: "/dashboard/support", label: "Support" });
 
   return (
     <header className={styles.header}>
@@ -73,6 +77,16 @@ export default async function NavHeader() {
           {canViewNotifications && (
             <Link href="/dashboard/notifications" className={styles.link}>
               Notifications
+            </Link>
+          )}
+          {canManageUsers && (
+            <Link href="/dashboard/users" className={styles.link}>
+              Users
+            </Link>
+          )}
+          {canViewSupport && (
+            <Link href="/dashboard/support" className={styles.link}>
+              Support
             </Link>
           )}
         </div>

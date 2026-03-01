@@ -1,0 +1,110 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #a89dcc;
+  margin-bottom: 1.5rem;
+}
+
+.breadcrumbLink {
+  color: #c9a84c;
+  text-decoration: none;
+}
+
+.breadcrumbLink:hover { text-decoration: underline; }
+
+.breadcrumbSep { color: #6b5f8a; }
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f5f0fc;
+  margin: 0 0 0.2rem;
+}
+
+.sub {
+  color: #a89dcc;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.section {
+  background: #1a1432;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #a89dcc;
+  margin: 0 0 1.25rem;
+}
+
+.tableWrap { overflow-x: auto; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: #6b5f8a;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+
+.table tr:last-child td { border-bottom: none; }
+
+.nameCell { font-weight: 500; color: #f5f0fc; }
+.dimCell { color: #a89dcc; }
+.empty { color: #a89dcc; font-size: 0.9rem; }
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: #a89dcc;
+}
+
+.role_ADMIN { background: rgba(70,43,124,0.3); color: #c4a8ff; }
+.role_NATIONAL_CHAIR { background: rgba(201,168,76,0.2); color: #c9a84c; }
+.role_CHAPTER_CHAIR { background: rgba(201,168,76,0.12); color: #c9a84c; }
+.role_NATIONAL_JUDGE,
+.role_CHAPTER_JUDGE { background: rgba(255,255,255,0.06); color: #a89dcc; }

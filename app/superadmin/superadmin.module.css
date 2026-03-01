@@ -1,0 +1,82 @@
+.shell {
+  min-height: 100dvh;
+  background: #0f0b1e;
+  color: #f5f0fc;
+}
+
+.topbar {
+  background: #1a1432;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.topbarInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.brandStrong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f5f0fc;
+}
+
+.brandTag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #c9a84c;
+  background: rgba(201, 168, 76, 0.12);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.nav {
+  display: flex;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.navLink {
+  font-size: 0.875rem;
+  color: #a89dcc;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.navLink:hover {
+  color: #f5f0fc;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.adminName {
+  font-size: 0.8rem;
+  color: #a89dcc;
+}
+
+.main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}

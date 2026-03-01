@@ -1,0 +1,132 @@
+.page {
+  padding: 2rem 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e1538;
+  margin: 0 0 0.2rem;
+}
+
+.sub {
+  color: #8a7fa8;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.section {
+  background: #fff;
+  border: 1px solid rgba(70, 43, 124, 0.12);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #4a3d6b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 1.25rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: #8a7fa8;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(70, 43, 124, 0.1);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(70, 43, 124, 0.07);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.nameCell {
+  font-weight: 500;
+  color: #1e1538;
+}
+
+.emailCell {
+  color: #4a3d6b;
+}
+
+.dimCell {
+  color: #8a7fa8;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(70, 43, 124, 0.1);
+  color: #462b7c;
+}
+
+.badge_ADMIN {
+  background: rgba(70, 43, 124, 0.15);
+  color: #462b7c;
+}
+
+.badge_NATIONAL_CHAIR {
+  background: rgba(201, 168, 76, 0.15);
+  color: #7a5c00;
+}
+
+.badge_CHAPTER_CHAIR {
+  background: rgba(201, 168, 76, 0.1);
+  color: #7a5c00;
+}
+
+.badge_NATIONAL_JUDGE,
+.badge_CHAPTER_JUDGE {
+  background: rgba(70, 43, 124, 0.07);
+  color: #6b4baa;
+}
+
+.badge_APPLICANT {
+  background: rgba(0, 0, 0, 0.06);
+  color: #8a7fa8;
+}
+
+.empty {
+  color: #8a7fa8;
+  font-size: 0.9rem;
+}

@@ -102,3 +102,89 @@ export async function sendStatusUpdate(
     html,
   });
 }
+
+export async function sendWelcomeEmail(
+  to: string,
+  adminName: string,
+  orgName: string
+) {
+  const html = baseLayout(`
+    <p>Hi ${adminName},</p>
+    <p>Welcome to AdjudicArts! Your organization <strong>${orgName}</strong> has been created.</p>
+    <p>You're the administrator for your organization. You can now set up events, invite judges and chairs, and manage your adjudication workflows.</p>
+    <a class="button" href="${process.env.NEXTAUTH_URL}/dashboard">Go to your dashboard &rarr;</a>
+  `);
+
+  await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `Welcome to AdjudicArts — ${orgName}`,
+    html,
+  });
+}
+
+export async function sendInviteEmail(
+  to: string,
+  inviteUrl: string,
+  roleLabel: string,
+  invitedByName: string
+) {
+  const html = baseLayout(`
+    <p>You've been invited to join AdjudicArts as a <strong>${roleLabel}</strong>.</p>
+    <p>Invited by: ${invitedByName}</p>
+    <p>Click the button below to set up your account. This link expires in 48 hours.</p>
+    <a class="button" href="${inviteUrl}">Accept invitation &rarr;</a>
+    <p style="margin-top:16px;font-size:13px;color:#71717a;">If you weren't expecting this invitation, you can safely ignore this email.</p>
+  `);
+
+  await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: "You're invited to AdjudicArts",
+    html,
+  });
+}
+
+export async function sendSupportNotification(
+  to: string,
+  orgName: string,
+  subject: string,
+  body: string,
+  ticketUrl: string
+) {
+  const html = baseLayout(`
+    <p><strong>New support ticket from ${orgName}</strong></p>
+    <p><strong>Subject:</strong> ${subject}</p>
+    <p><strong>Message:</strong></p>
+    <p style="background:#f4f4f5;padding:12px;border-radius:6px;">${body.replace(/\n/g, "<br>")}</p>
+    <a class="button" href="${ticketUrl}">View ticket &rarr;</a>
+  `);
+
+  await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `[Support] ${subject} — ${orgName}`,
+    html,
+  });
+}
+
+export async function sendTicketReply(
+  to: string,
+  userName: string,
+  replyBody: string,
+  ticketUrl: string
+) {
+  const html = baseLayout(`
+    <p>Hi ${userName},</p>
+    <p>AdjudicArts support has replied to your ticket:</p>
+    <p style="background:#f4f4f5;padding:12px;border-radius:6px;">${replyBody.replace(/\n/g, "<br>")}</p>
+    <a class="button" href="${ticketUrl}">View your ticket &rarr;</a>
+  `);
+
+  await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: "AdjudicArts support replied to your ticket",
+    html,
+  });
+}

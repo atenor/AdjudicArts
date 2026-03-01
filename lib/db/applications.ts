@@ -52,6 +52,42 @@ function isChapterMatch(
   return false;
 }
 
+function buildChapterFilterWhere(chapter: string): Prisma.ApplicationWhereInput {
+  const normalizedChapter = normalizeChapter(chapter);
+  const chapterKey = chapterMatchKey(chapter);
+  const canUseContains = chapterKey.length >= 3;
+
+  if (!normalizedChapter) {
+    return { id: "__none__" };
+  }
+
+  if (!canUseContains) {
+    return {
+      chapter: {
+        equals: normalizedChapter,
+        mode: "insensitive",
+      },
+    };
+  }
+
+  return {
+    OR: [
+      {
+        chapter: {
+          equals: normalizedChapter,
+          mode: "insensitive",
+        },
+      },
+      {
+        chapter: {
+          contains: chapterKey,
+          mode: "insensitive",
+        },
+      },
+    ],
+  };
+}
+
 function isInStatusSet(status: ApplicationStatus, statuses: ApplicationStatus[]) {
   return statuses.includes(status);
 }
@@ -115,11 +151,25 @@ function buildVisibilityWhere(input: {
   role: Role;
   userChapter?: string | null;
   status?: ApplicationStatus;
+  selectedChapter?: string | null;
 }): Prisma.ApplicationWhereInput {
   const statusFilter = input.status;
+  const selectedChapter = input.selectedChapter?.trim();
 
   if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") {
-    return statusFilter ? { status: statusFilter } : {};
+    const clauses: Prisma.ApplicationWhereInput[] = [];
+
+    if (statusFilter) {
+      clauses.push({ status: statusFilter });
+    }
+
+    if (selectedChapter) {
+      clauses.push(buildChapterFilterWhere(selectedChapter));
+    }
+
+    if (clauses.length === 0) return {};
+    if (clauses.length === 1) return clauses[0];
+    return { AND: clauses };
   }
 
   if (input.role === "CHAPTER_JUDGE") {
@@ -142,35 +192,9 @@ function buildVisibilityWhere(input: {
 
   if (input.role === "CHAPTER_CHAIR") {
     const normalizedUserChapter = normalizeChapter(input.userChapter);
-    const userChapterKey = chapterMatchKey(input.userChapter);
-    const canUseContains = userChapterKey.length >= 3;
-
-    const chapterPendingWhere: Prisma.ApplicationWhereInput =
-      normalizedUserChapter && canUseContains
-        ? {
-            OR: [
-              {
-                chapter: {
-                  equals: normalizedUserChapter,
-                  mode: "insensitive",
-                },
-              },
-              {
-                chapter: {
-                  contains: userChapterKey,
-                  mode: "insensitive",
-                },
-              },
-            ],
-          }
-        : normalizedUserChapter
-          ? {
-              chapter: {
-                equals: normalizedUserChapter,
-                mode: "insensitive",
-              },
-            }
-          : { id: "__none__" };
+    const chapterPendingWhere = normalizedUserChapter
+      ? buildChapterFilterWhere(input.userChapter ?? "")
+      : { id: "__none__" };
 
     if (statusFilter) {
       if (isInStatusSet(statusFilter, CHAPTER_ADJUDICATION_STATUSES)) {
@@ -350,6 +374,7 @@ export async function listApplicationsByOrg(
   visibility?: {
     role: Role;
     userChapter?: string | null;
+    selectedChapter?: string | null;
   }
 ) {
   const visibilityWhere = visibility
@@ -357,6 +382,7 @@ export async function listApplicationsByOrg(
         role: visibility.role,
         userChapter: visibility.userChapter,
         status,
+        selectedChapter: visibility.selectedChapter,
       })
     : status
       ? { status }
@@ -386,6 +412,42 @@ export async function listApplicationsByOrg(
       submittedAt: "desc",
     },
   });
+}
+
+export async function listApplicationChaptersByOrg(
+  organizationId: string,
+  visibility?: {
+    role: Role;
+    userChapter?: string | null;
+  }
+) {
+  const visibilityWhere = visibility
+    ? buildVisibilityWhere({
+        role: visibility.role,
+        userChapter: visibility.userChapter,
+      })
+    : {};
+
+  const rows = await prisma.application.findMany({
+    where: {
+      organizationId,
+      ...visibilityWhere,
+      chapter: {
+        not: null,
+      },
+    },
+    select: {
+      chapter: true,
+    },
+    distinct: ["chapter"],
+    orderBy: {
+      chapter: "asc",
+    },
+  });
+
+  return rows
+    .map((row) => row.chapter?.trim() ?? "")
+    .filter((chapter): chapter is string => chapter.length > 0);
 }
 
 export async function getApplicationById(

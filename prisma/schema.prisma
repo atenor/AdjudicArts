@@ -85,15 +85,19 @@ enum EmailDeliveryStatus {
 model Organization {
   id        String   @id @default(cuid())
   name      String
+  plan      String   @default("starter")  // "starter" | "regional" | "national"
+  status    String   @default("trial")    // "trial" | "active" | "suspended"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users        User[]
-  events       Event[]
-  rubrics      Rubric[]
-  applications Application[]
-  notifications Notification[]
+  users          User[]
+  events         Event[]
+  rubrics        Rubric[]
+  applications   Application[]
+  notifications  Notification[]
   outboundEmails OutboundEmail[]
+  inviteTokens   InviteToken[]
+  supportTickets SupportTicket[]
 }
 
 // ---------------------------------------------------------------------------
@@ -118,6 +122,8 @@ model User {
   notificationPreference NotificationPreference?
   notifications    Notification[]
   outboundEmails   OutboundEmail[]
+  invitesSent      InviteToken[]     @relation("InvitesSent")
+  ticketsSubmitted SupportTicket[]   @relation("TicketsSubmitted")
 
   @@index([organizationId])
   @@index([email])
@@ -375,4 +381,80 @@ model OutboundEmail {
   @@index([organizationId, createdAt])
   @@index([userId, createdAt])
   @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// SuperAdmin
+// Platform-level admins (AdjudicArts staff) — completely separate from org users.
+// ---------------------------------------------------------------------------
+
+model SuperAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// InviteToken
+// One-time email invite links for org staff (ADMIN sends, recipient sets password).
+// ---------------------------------------------------------------------------
+
+model InviteToken {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  role           Role
+  name           String?
+  tokenHash      String    @unique  // SHA-256 of raw token; raw token only in email link
+  invitedById    String
+  expiresAt      DateTime           // createdAt + 48h
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invitedBy    User         @relation("InvitesSent", fields: [invitedById], references: [id])
+
+  @@index([tokenHash])
+  @@index([email])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// SupportTicket + SupportMessage
+// Org users submit tickets; platform super-admins respond.
+// ---------------------------------------------------------------------------
+
+model SupportTicket {
+  id             String   @id @default(cuid())
+  organizationId String
+  submittedById  String
+  subject        String
+  body           String
+  status         String   @default("open")  // "open" | "in_progress" | "resolved"
+  assignedToSAId String?                    // SuperAdmin.id if assigned
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  submittedBy  User             @relation("TicketsSubmitted", fields: [submittedById], references: [id])
+  messages     SupportMessage[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  body      String
+  fromSA    Boolean  @default(false)  // true = sent by super-admin, false = sent by org user
+  authorId  String                    // User.id or SuperAdmin.id
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }

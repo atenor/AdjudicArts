@@ -11,6 +11,7 @@ import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
 import {
   getAllowedApplicationStatusesForRole,
+  listApplicationChaptersByOrg,
   listApplicationsByOrg,
 } from "@/lib/db/applications";
 import { formatVoicePart } from "@/lib/application-metadata";
@@ -117,7 +118,7 @@ function statusFilterClasses(status: ApplicationStatus | undefined, active: bool
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; view?: string };
+  searchParams: { status?: string; view?: string; chapter?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
@@ -149,14 +150,32 @@ export default async function ApplicationsPage({
     return all.findIndex((candidate) => STATUS_LABELS[candidate] === label) === index;
   });
   const viewMode = searchParams.view === "list" ? "list" : "cards";
+  const chapterFilter = searchParams.chapter?.trim() || undefined;
+  const canFilterByChapter =
+    session.user.role === "ADMIN" || session.user.role === "NATIONAL_CHAIR";
 
-  function buildApplicationsHref(status?: ApplicationStatus, view = viewMode) {
+  function buildApplicationsHref(
+    status?: ApplicationStatus,
+    view = viewMode,
+    chapter = chapterFilter
+  ) {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
     if (view && view !== "cards") params.set("view", view);
+    if (chapter) params.set("chapter", chapter);
     const query = params.toString();
     return query ? `/dashboard/applications?${query}` : "/dashboard/applications";
   }
+
+  const availableChapters = canFilterByChapter
+    ? await listApplicationChaptersByOrg(session.user.organizationId, {
+        role: session.user.role,
+        userChapter: session.user.chapter,
+      })
+    : [];
+  const normalizedChapterFilter = availableChapters.find(
+    (chapter) => chapter.toLowerCase() === chapterFilter?.toLowerCase()
+  );
 
   const applications = await listApplicationsByOrg(
     session.user.organizationId,
@@ -164,6 +183,7 @@ export default async function ApplicationsPage({
     {
       role: session.user.role,
       userChapter: session.user.chapter,
+      selectedChapter: normalizedChapterFilter,
     }
   );
 
@@ -240,6 +260,42 @@ export default async function ApplicationsPage({
               List
             </Link>
           </div>
+
+          {canFilterByChapter ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Chapter:</span>
+              <form action="/dashboard/applications" className="flex items-center gap-2">
+                <input type="hidden" name="view" value={viewMode} />
+                {statusFilter ? <input type="hidden" name="status" value={statusFilter} /> : null}
+                <select
+                  name="chapter"
+                  defaultValue={normalizedChapterFilter ?? ""}
+                  className="h-9 rounded-md border border-[#d7cde9] bg-[#fffdf5] px-3 text-sm text-[#4a3d6b] outline-none transition focus:border-[#8eb89c]"
+                >
+                  <option value="">All chapters</option>
+                  {availableChapters.map((chapter) => (
+                    <option key={chapter} value={chapter}>
+                      {chapter}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="inline-flex h-9 items-center rounded-md border border-[#8eb89c] bg-[#e9f4ec] px-3 text-sm font-medium text-[#1f5b38] transition hover:bg-[#dceddf]"
+                >
+                  Apply
+                </button>
+                {normalizedChapterFilter ? (
+                  <Link
+                    href={buildApplicationsHref(statusFilter, viewMode, undefined)}
+                    className="inline-flex h-9 items-center rounded-md border border-[#d7cde9] bg-[#fffdf5] px-3 text-sm font-medium text-[#4a3d6b] transition hover:bg-[#f7f1ff]"
+                  >
+                    Clear
+                  </Link>
+                ) : null}
+              </form>
+            </div>
+          ) : null}
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -114,6 +115,13 @@ export default function LoginPage() {
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+
+          <p className={styles.signupPrompt}>
+            New organization?{" "}
+            <Link href="/signup" className={styles.signupLink}>
+              Create an account
+            </Link>
+          </p>
         </article>
       </section>
     </main>
