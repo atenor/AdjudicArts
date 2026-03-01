@@ -16,6 +16,7 @@
 import { PrismaClient, Role, EventStatus, RoundType, ApplicationStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { buildApplicationMetadata } from "../lib/application-metadata";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -283,9 +284,13 @@ export async function seedDevelopment() {
   }
   console.log(`✓ Judge assignments: 2 chapter, 2 national`);
 
+  // ── SuperAdmin ───────────────────────────────────────────────────────────────
+  await seedSuperAdmin();
+
   console.log("\n✅ Seed complete.");
   console.log("─────────────────────────────────────");
   console.log("Login credentials (all passwords: password123)");
+  console.log(`  SuperAdmin:      sa@adjudicarts.dev  → /superadmin/login`);
   console.log(`  Admin:           admin@adjudicarts.dev`);
   console.log(`  National Chair:  nationalchair@adjudicarts.dev`);
   console.log(`  Chapter Chair:   chapterchair@adjudicarts.dev`);
@@ -431,6 +436,42 @@ export async function seedProduction() {
   console.log(`Organization: ${organization.name}`);
   console.log(`Event: ${event.name}`);
   console.log(`Admin: ${adminEmail.toLowerCase()}`);
+}
+
+/**
+ * Seed a SuperAdmin account.
+ *
+ * Dev defaults: sa@adjudicarts.dev / password123
+ * Production: set SEED_SA_EMAIL, SEED_SA_PASSWORD, SEED_SA_NAME env vars
+ */
+export async function seedSuperAdmin(opts?: {
+  email?: string;
+  password?: string;
+  name?: string;
+}) {
+  const email = (opts?.email ?? process.env.SEED_SA_EMAIL ?? "sa@adjudicarts.dev").toLowerCase();
+  const password = opts?.password ?? process.env.SEED_SA_PASSWORD ?? "password123";
+  const name = opts?.name ?? process.env.SEED_SA_NAME ?? "Platform Admin";
+
+  if (password === "password123" && process.env.NODE_ENV === "production") {
+    throw new Error("SEED_SA_PASSWORD must be set for production super-admin seeding");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const sa = await prisma.superAdmin.upsert({
+    where: { email },
+    update: { name, passwordHash },
+    create: {
+      id: `sa-${crypto.randomBytes(6).toString("hex")}`,
+      email,
+      name,
+      passwordHash,
+    },
+  });
+
+  console.log(`✓ SuperAdmin: ${sa.name} <${sa.email}>`);
+  return sa;
 }
 
 async function runSeed(seedFn: () => Promise<void>) {

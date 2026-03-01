@@ -28,12 +28,13 @@ export async function POST(req: Request) {
         subject: parsed.data.subject,
         body: parsed.data.body,
       },
+      include: { organization: { select: { name: true } } },
     });
 
     const ticketUrl = `${process.env.NEXTAUTH_URL}/superadmin/support/${ticket.id}`;
     sendSupportNotification(
       "support@adjudicarts.dev",
-      session.user.organizationId,
+      ticket.organization.name,
       parsed.data.subject,
       parsed.data.body,
       ticketUrl
