@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { EventStatus, Role } from "@prisma/client";
+import { EventStatus, Role, Prisma } from "@prisma/client";
 
 export async function listEventsByOrg(organizationId: string) {
   return prisma.event.findMany({
@@ -41,10 +41,11 @@ export async function updateEventById(
   id: string,
   organizationId: string,
   data: {
-    name: string;
+    name?: string;
     description?: string;
     openAt?: Date;
-    closeAt?: Date;
+    closeAt?: Date | null;
+    timeline?: Prisma.InputJsonValue | null;
   }
 ) {
   const existing = await prisma.event.findFirst({
@@ -55,7 +56,15 @@ export async function updateEventById(
 
   return prisma.event.update({
     where: { id: existing.id },
-    data,
+    data: {
+      ...(data.name !== undefined ? { name: data.name } : {}),
+      ...(data.description !== undefined ? { description: data.description } : {}),
+      ...(data.openAt !== undefined ? { openAt: data.openAt } : {}),
+      ...(data.closeAt !== undefined ? { closeAt: data.closeAt } : {}),
+      ...('timeline' in data
+        ? { timeline: data.timeline === null ? Prisma.DbNull : data.timeline }
+        : {}),
+    },
   });
 }
 

@@ -9,28 +9,36 @@ function getResend() {
 const FROM_ADDRESS = "AdjudicArts <noreply@adjudicarts.dev>";
 
 const STATUS_MESSAGES: Record<ApplicationStatus, string> = {
-  SUBMITTED_PENDING_APPROVAL:
-    "Your application has been received and is awaiting approval.",
-  CHAPTER_ADJUDICATION:
-    "Your application is now in chapter adjudication.",
-  NATIONAL_FINALS:
-    "Your application has advanced to national finals.",
-  SUBMITTED:
-    "Your application has been received and is awaiting approval.",
-  CHAPTER_REVIEW:
-    "Your application is currently in chapter adjudication.",
+  PENDING_APPROVAL: "Your application has been received and is awaiting review.",
+  CORRECTION_REQUIRED:
+    "Your application needs a correction before it can be approved for adjudication.",
+  APPROVED_FOR_CHAPTER_ADJUDICATION:
+    "Your application has been approved for chapter adjudication.",
+  PENDING_NATIONAL_ACCEPTANCE:
+    "Your application has been selected as a chapter winner and is awaiting national approval.",
+  APPROVED_FOR_NATIONAL_ADJUDICATION:
+    "Your application has been accepted for national adjudication.",
+  EXCLUDED:
+    "Your application has been excluded from this cycle. If you believe this is in error, please contact the program and we will review it with you.",
+  ALTERNATE:
+    "Your application has been designated as an alternate and may still advance if space opens.",
+  DID_NOT_ADVANCE:
+    "Your application completed adjudication but was not selected to advance to the next round.",
+  WITHDRAWN: "This application is no longer active in the current cycle.",
+  SUBMITTED_PENDING_APPROVAL: "Your application has been received and is awaiting review.",
+  CHAPTER_ADJUDICATION: "Your application has been approved for chapter adjudication.",
+  NATIONAL_FINALS: "Your application has been accepted for national adjudication.",
+  SUBMITTED: "Your application has been received and is awaiting review.",
+  CHAPTER_REVIEW: "Your application has been approved for chapter adjudication.",
   CHAPTER_APPROVED:
-    "Congratulations! Your application has been approved to advance to national finals.",
+    "Your application has been selected as a chapter winner and is awaiting national approval.",
   CHAPTER_REJECTED:
-    "Thank you for applying. Unfortunately your application was not selected to advance at this time.",
-  NATIONAL_REVIEW:
-    "Your application is currently in national finals adjudication.",
-  NATIONAL_APPROVED:
-    "Congratulations! Your application has been approved.",
+    "Your application has been excluded from this cycle. If you believe this is in error, please contact the program and we will review it with you.",
+  NATIONAL_REVIEW: "Your application has been accepted for national adjudication.",
+  NATIONAL_APPROVED: "This application is no longer active in the current cycle.",
   NATIONAL_REJECTED:
-    "Thank you for applying. Unfortunately your application was not selected.",
-  DECIDED:
-    "A final decision has been made. Please check your email for details.",
+    "Your application has been excluded from this cycle. If you believe this is in error, please contact the program and we will review it with you.",
+  DECIDED: "This application is no longer active in the current cycle.",
 };
 
 function baseLayout(body: string) {
@@ -164,6 +172,30 @@ export async function sendSupportNotification(
     from: FROM_ADDRESS,
     to,
     subject: `[Support] ${subject} — ${orgName}`,
+    html,
+  });
+}
+
+export async function sendContactInquiry(
+  to: string,
+  name: string,
+  email: string,
+  organization: string | undefined,
+  message: string
+) {
+  const orgLine = organization ? `<p><strong>Organization:</strong> ${organization}</p>` : "";
+  const html = baseLayout(`
+    <p><strong>New contact inquiry from ${name}</strong></p>
+    <p><strong>Email:</strong> ${email}</p>
+    ${orgLine}
+    <p><strong>Message:</strong></p>
+    <p style="background:#f4f4f5;padding:12px;border-radius:6px;">${message.replace(/\n/g, "<br>")}</p>
+  `);
+
+  await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `[Contact] ${name}${organization ? ` — ${organization}` : ""}`,
     html,
   });
 }

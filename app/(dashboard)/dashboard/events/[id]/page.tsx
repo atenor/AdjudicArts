@@ -15,6 +15,7 @@ import AdvanceStatusButton from "@/components/events/advance-status-button";
 import AddRoundDialog from "@/components/events/add-round-dialog";
 import AssignJudgeDialog from "@/components/events/assign-judge-dialog";
 import DeleteEventButton from "@/components/events/delete-event-button";
+import TimelineEditor from "@/components/events/timeline-editor";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -41,7 +42,8 @@ export default async function EventDetailPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (!hasRole(session, "ADMIN", "NATIONAL_CHAIR")) redirect("/dashboard");
+  if (!hasRole(session, "ADMIN", "NATIONAL_CHAIR", "CHAPTER_CHAIR")) redirect("/dashboard");
+  const canManageEvent = hasRole(session, "ADMIN", "NATIONAL_CHAIR");
 
   const event = await getEventById(params.id, session.user.organizationId);
   if (!event) notFound();
@@ -71,25 +73,42 @@ export default async function EventDetailPage({
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <Link
-            href={`/dashboard/events/${event.id}/edit`}
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
-          >
-            Edit Event
-          </Link>
+          {canManageEvent ? (
+            <Link
+              href={`/dashboard/events/${event.id}/edit`}
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Edit Event
+            </Link>
+          ) : null}
           <Link
             href={`/dashboard/events/${event.id}/results`}
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
           >
             Results
           </Link>
-          <AdvanceStatusButton
-            eventId={event.id}
-            currentStatus={event.status}
-          />
-          <AddRoundDialog eventId={event.id} />
+          {canManageEvent ? (
+            <>
+              <AdvanceStatusButton
+                eventId={event.id}
+                currentStatus={event.status}
+              />
+              <AddRoundDialog eventId={event.id} />
+            </>
+          ) : null}
         </div>
       </div>
+
+      {/* Timeline */}
+      {event.timeline && Array.isArray(event.timeline) && (event.timeline as unknown[]).length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-medium">Timeline</h2>
+          <TimelineEditor
+            event={{ id: event.id, timeline: event.timeline }}
+            readOnly
+          />
+        </div>
+      )}
 
       {/* Rounds */}
       <div className="space-y-3">
@@ -106,6 +125,7 @@ export default async function EventDetailPage({
                 <TableHead>Type</TableHead>
                 <TableHead>Starts</TableHead>
                 <TableHead>Ends</TableHead>
+                <TableHead>Advancing</TableHead>
                 <TableHead>Judges</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -126,6 +146,9 @@ export default async function EventDetailPage({
                     <TableCell className="text-muted-foreground text-sm">
                       {formatDate(round.endAt)}
                     </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {round.advancementSlots ?? "—"}
+                    </TableCell>
                     <TableCell>
                       {assignments.length === 0 ? (
                         <span className="text-sm text-muted-foreground">None</span>
@@ -140,13 +163,17 @@ export default async function EventDetailPage({
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <AssignJudgeDialog
-                        eventId={event.id}
-                        roundId={round.id}
-                        roundType={round.type}
-                        judges={judges}
-                        assignedJudges={assignments}
-                      />
+                      {canManageEvent ? (
+                        <AssignJudgeDialog
+                          eventId={event.id}
+                          roundId={round.id}
+                          roundType={round.type}
+                          judges={judges}
+                          assignedJudges={assignments}
+                        />
+                      ) : (
+                        <span className="text-sm text-muted-foreground">View only</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -157,7 +184,7 @@ export default async function EventDetailPage({
       </div>
 
       {/* Back link */}
-      <DeleteEventButton eventId={event.id} />
+      {canManageEvent ? <DeleteEventButton eventId={event.id} /> : null}
 
       <Link
         href="/dashboard/events"

@@ -55,34 +55,31 @@ export default function ForwardToNationalsButton({
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#faf7ff] p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#7b6e9d]">
-        Bypass Chapter Adjudication
-      </p>
+    <div className="space-y-2">
       <input
         value={reason}
         onChange={(event) => setReason(event.target.value)}
         placeholder="Reason (optional)"
-        className="w-full rounded-md border border-[#d7cde9] bg-white px-2 py-1.5 text-sm text-[#2b2350] outline-none focus:ring-2 focus:ring-[#5f2ec8]"
+        className="w-full max-w-md rounded-md border border-[#d7cde9] bg-white px-2.5 py-1.5 text-sm text-[#2b2350] outline-none focus:ring-2 focus:ring-[#5f2ec8]"
         maxLength={500}
       />
       <button
         type="button"
         onClick={() => void onForward()}
         disabled={isSubmitting || disabledByCitizenship}
-        className="w-full rounded-md border border-[#8a67cd] bg-[#5f2ec8] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5327b2] disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-md border border-[#cfc3e3] bg-white px-3 py-1.5 text-sm font-semibold text-[#5f4d87] hover:bg-[#f4effb] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isSubmitting
-          ? "Forwarding..."
-          : "Forward to Nationals (Bypass Chapter Adjudication)"}
+        {isSubmitting ? "Sending…" : "Send Directly to Nationals"}
       </button>
       {disabledByCitizenship ? (
-        <p className="text-xs font-semibold text-[#b42318]">
-          Verify citizenship before forwarding to nationals.
+        <p className="text-xs text-[#b42318]">Verify citizenship before using this bypass.</p>
+      ) : null}
+      {saved ? (
+        <p className="text-xs font-semibold text-[#166a46]">
+          Advanced to national adjudication — pending national approval.
         </p>
       ) : null}
-      {saved ? <p className="text-xs text-emerald-700">Forwarded to nationals.</p> : null}
-      {serverError ? <p className="text-xs text-destructive">{serverError}</p> : null}
+      {serverError ? <p className="text-xs text-[#b42318]">{serverError}</p> : null}
     </div>
   );
 }

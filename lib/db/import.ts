@@ -60,9 +60,13 @@ function normalizeVoicePart(value: string | null): string | null {
   const normalized = value.trim().toLowerCase();
   const map: Record<string, string> = {
     soprano: "soprano",
+    contralto: "contralto",
+    alto: "contralto",
     mezzo: "mezzo",
     "mezzo-soprano": "mezzo",
     tenor: "tenor",
+    countertenor: "countertenor",
+    "counter-tenor": "countertenor",
     baritone: "baritone",
     bass: "bass",
   };
@@ -482,7 +486,7 @@ export async function importApplicantFromRow(
     await prisma.application.create({
       data: {
         ...applicationData,
-        status: ApplicationStatus.SUBMITTED_PENDING_APPROVAL,
+        status: ApplicationStatus.PENDING_APPROVAL,
       },
     });
     createdApplication = true;

@@ -29,6 +29,14 @@ const roundSchema = z.object({
   type: z.nativeEnum(RoundType),
   startAt: z.string().optional(),
   endAt: z.string().optional(),
+  advancementSlots: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value || value.trim().length === 0) return true;
+      const parsed = Number(value);
+      return Number.isInteger(parsed) && parsed > 0;
+    }, "Advancing count must be a whole number greater than 0"),
 });
 
 type RoundFormValues = z.infer<typeof roundSchema>;
@@ -41,6 +49,7 @@ export default function AddRoundDialog({ eventId }: { eventId: string }) {
   const {
     register,
     control,
+    watch,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -48,6 +57,7 @@ export default function AddRoundDialog({ eventId }: { eventId: string }) {
     resolver: zodResolver(roundSchema),
     defaultValues: { type: RoundType.CHAPTER },
   });
+  const roundType = watch("type");
 
   async function onSubmit(data: RoundFormValues) {
     setServerError(null);
@@ -57,6 +67,10 @@ export default function AddRoundDialog({ eventId }: { eventId: string }) {
       type: data.type,
       startAt: data.startAt ? new Date(data.startAt).toISOString() : null,
       endAt: data.endAt ? new Date(data.endAt).toISOString() : null,
+      advancementSlots:
+        data.advancementSlots && data.advancementSlots.trim().length > 0
+          ? Number(data.advancementSlots)
+          : null,
     };
 
     const res = await fetch(`/api/events/${eventId}/rounds`, {
@@ -123,6 +137,24 @@ export default function AddRoundDialog({ eventId }: { eventId: string }) {
               <Label htmlFor="round-end">Ends</Label>
               <Input id="round-end" type="date" {...register("endAt")} />
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="advancement-slots">Applicants advancing from this round</Label>
+            <Input
+              id="advancement-slots"
+              type="number"
+              min="1"
+              placeholder={roundType === RoundType.CHAPTER ? "2" : "Optional"}
+              {...register("advancementSlots")}
+            />
+            <p className="text-xs text-muted-foreground">
+              Set how many applicants can advance from this round. For Winston chapter rounds,
+              this is typically 2.
+            </p>
+            {errors.advancementSlots && (
+              <p className="text-xs text-destructive">{errors.advancementSlots.message}</p>
+            )}
           </div>
 
           {serverError && (

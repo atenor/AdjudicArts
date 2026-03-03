@@ -13,8 +13,13 @@ const DEFAULT_NOTIFICATION_PREFS = {
   timezone: "America/Indiana/Indianapolis",
 };
 
-const PENDING_APPROVAL_STATUSES = ["SUBMITTED_PENDING_APPROVAL", "SUBMITTED"] as const;
-const DIGEST_LINK_PATH = "/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL";
+const PENDING_APPROVAL_STATUSES = [
+  "PENDING_APPROVAL",
+  "CORRECTION_REQUIRED",
+  "SUBMITTED_PENDING_APPROVAL",
+  "SUBMITTED",
+] as const;
+const DIGEST_LINK_PATH = "/dashboard/applications?status=PENDING_APPROVAL";
 
 function getTimePartsInZone(date: Date, timezone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {

@@ -13,41 +13,109 @@ type Action = {
 };
 
 const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
-  SUBMITTED_PENDING_APPROVAL: [
-    { label: "Approve to Chapter Adjudication", status: "CHAPTER_ADJUDICATION" },
-    { label: "Reject", status: "CHAPTER_REJECTED", variant: "destructive" },
+  PENDING_APPROVAL: [
+    {
+      label: "Approve for Chapter Adjudication",
+      status: "APPROVED_FOR_CHAPTER_ADJUDICATION",
+    },
+    {
+      label: "Mark Correction Required",
+      status: "CORRECTION_REQUIRED",
+      variant: "secondary",
+    },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
   ],
-  CHAPTER_ADJUDICATION: [{ label: "Advance to National Finals", status: "NATIONAL_FINALS" }],
+  CORRECTION_REQUIRED: [
+    {
+      label: "Approve for Chapter Adjudication",
+      status: "APPROVED_FOR_CHAPTER_ADJUDICATION",
+    },
+    {
+      label: "Return to Pending Approval",
+      status: "PENDING_APPROVAL",
+      variant: "outline",
+    },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+  ],
+  APPROVED_FOR_CHAPTER_ADJUDICATION: [
+    {
+      label: "Mark Chapter Winner",
+      status: "PENDING_NATIONAL_ACCEPTANCE",
+    },
+    { label: "Mark Alternate", status: "ALTERNATE", variant: "secondary" },
+    { label: "Mark Did Not Advance", status: "DID_NOT_ADVANCE", variant: "outline" },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+  ],
+  PENDING_NATIONAL_ACCEPTANCE: [
+    {
+      label: "Accept for National Adjudication",
+      status: "APPROVED_FOR_NATIONAL_ADJUDICATION",
+    },
+    {
+      label: "Request Correction",
+      status: "CORRECTION_REQUIRED",
+      variant: "secondary",
+    },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+  ],
+  APPROVED_FOR_NATIONAL_ADJUDICATION: [],
+  EXCLUDED: [],
+  ALTERNATE: [
+    {
+      label: "Mark Chapter Winner",
+      status: "PENDING_NATIONAL_ACCEPTANCE",
+    },
+    { label: "Mark Did Not Advance", status: "DID_NOT_ADVANCE", variant: "outline" },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+  ],
+  DID_NOT_ADVANCE: [],
+  WITHDRAWN: [],
+  SUBMITTED_PENDING_APPROVAL: [
+    { label: "Approve for Chapter Adjudication", status: "APPROVED_FOR_CHAPTER_ADJUDICATION" },
+    { label: "Mark Correction Required", status: "CORRECTION_REQUIRED", variant: "secondary" },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+  ],
+  CHAPTER_ADJUDICATION: [
+    { label: "Mark Chapter Winner", status: "PENDING_NATIONAL_ACCEPTANCE" },
+  ],
   NATIONAL_FINALS: [],
   SUBMITTED: [
-    { label: "Approve to Chapter Adjudication", status: "CHAPTER_ADJUDICATION" },
-    { label: "Reject", status: "CHAPTER_REJECTED", variant: "destructive" },
+    { label: "Approve for Chapter Adjudication", status: "APPROVED_FOR_CHAPTER_ADJUDICATION" },
+    { label: "Mark Correction Required", status: "CORRECTION_REQUIRED", variant: "secondary" },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
   ],
   CHAPTER_REVIEW: [
-    { label: "Advance to National Finals", status: "NATIONAL_FINALS" },
-    { label: "Reject Chapter", status: "CHAPTER_REJECTED", variant: "destructive" },
+    { label: "Mark Chapter Winner", status: "PENDING_NATIONAL_ACCEPTANCE" },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
   ],
-  CHAPTER_APPROVED: [{ label: "Advance to National Finals", status: "NATIONAL_FINALS" }],
+  CHAPTER_APPROVED: [
+    { label: "Accept for National Adjudication", status: "APPROVED_FOR_NATIONAL_ADJUDICATION" },
+  ],
   CHAPTER_REJECTED: [],
   NATIONAL_REVIEW: [
-    { label: "Approve National", status: "NATIONAL_APPROVED" },
-    { label: "Reject National", status: "NATIONAL_REJECTED", variant: "destructive" },
+    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
   ],
-  NATIONAL_APPROVED: [{ label: "Mark Decided", status: "DECIDED" }],
-  NATIONAL_REJECTED: [{ label: "Mark Decided", status: "DECIDED", variant: "outline" }],
+  NATIONAL_APPROVED: [],
+  NATIONAL_REJECTED: [],
   DECIDED: [],
 };
 
 const STATUS_OPTIONS: Array<{ value: ApplicationStatus; label: string }> = [
-  { value: "SUBMITTED_PENDING_APPROVAL", label: "Submitted — Pending Approval" },
-  { value: "CHAPTER_ADJUDICATION", label: "Chapter Adjudication" },
-  { value: "NATIONAL_FINALS", label: "National Finals" },
-  { value: "CHAPTER_REJECTED", label: "Chapter Rejected" },
-  { value: "NATIONAL_REJECTED", label: "National Rejected" },
-  { value: "DECIDED", label: "Decided" },
+  { value: "PENDING_APPROVAL", label: "Pending Approval" },
+  { value: "CORRECTION_REQUIRED", label: "Correction Required" },
+  { value: "APPROVED_FOR_CHAPTER_ADJUDICATION", label: "Approved for Chapter Adjudication" },
+  { value: "PENDING_NATIONAL_ACCEPTANCE", label: "Chapter Winner - Advanced to National Adjudication (Pending Approval)" },
+  { value: "APPROVED_FOR_NATIONAL_ADJUDICATION", label: "Approved for National Adjudication" },
+  { value: "ALTERNATE", label: "Alternate" },
+  { value: "DID_NOT_ADVANCE", label: "Did Not Advance" },
+  { value: "EXCLUDED", label: "Excluded" },
+  { value: "WITHDRAWN", label: "Withdrawn" },
 ];
 
 const FORWARD_STATUSES = new Set<ApplicationStatus>([
+  "APPROVED_FOR_CHAPTER_ADJUDICATION",
+  "PENDING_NATIONAL_ACCEPTANCE",
+  "APPROVED_FOR_NATIONAL_ADJUDICATION",
   "CHAPTER_ADJUDICATION",
   "CHAPTER_REVIEW",
   "CHAPTER_APPROVED",
@@ -101,7 +169,7 @@ export default function AdvanceApplicationStatusButtons({
 
       // Reject actions can move the record outside the current role's visibility.
       // Navigate back to the list to avoid landing on a 404 detail route.
-      if (status === "CHAPTER_REJECTED" || status === "NATIONAL_REJECTED") {
+      if (status === "EXCLUDED" || status === "CHAPTER_REJECTED" || status === "NATIONAL_REJECTED") {
         router.push("/dashboard/applications");
         return;
       }
@@ -142,6 +210,11 @@ export default function AdvanceApplicationStatusButtons({
             key={action.status}
             type="button"
             variant={action.variant ?? "default"}
+            className={
+              !action.variant
+                ? "bg-[#147a58] text-white shadow hover:bg-[#0f6047]"
+                : undefined
+            }
             onClick={() => void advance(action.status)}
             disabled={isSubmitting || blockedByCitizenship}
             title={

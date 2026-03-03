@@ -16,7 +16,7 @@ import { parseRepertoireEntries } from "@/lib/repertoire";
 import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
-import FavouriteButton from "@/components/judging/favourite-button";
+import JudgeBookmarkButton from "@/components/judging/favourite-button";
 import styles from "./scoring.module.css";
 
 export default async function ScoreApplicationPage({
@@ -24,7 +24,14 @@ export default async function ScoreApplicationPage({
   searchParams,
 }: {
   params: { applicationId: string };
-  searchParams: { division?: string };
+  searchParams: {
+    division?: string;
+    view?: string;
+    voicePart?: string;
+    sort?: string;
+    bookmarks?: string;
+    layout?: string;
+  };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
@@ -36,16 +43,28 @@ export default async function ScoreApplicationPage({
     searchParams.division === "16-18" || searchParams.division === "19-22"
       ? searchParams.division
       : undefined;
+  const queueParams = new URLSearchParams();
+  if (searchParams.division) queueParams.set("division", searchParams.division);
+  if (searchParams.view) queueParams.set("view", searchParams.view);
+  if (searchParams.voicePart) queueParams.set("voicePart", searchParams.voicePart);
+  if (searchParams.sort) queueParams.set("sort", searchParams.sort);
+  if (searchParams.bookmarks) queueParams.set("bookmarks", searchParams.bookmarks);
+  if (searchParams.layout) queueParams.set("layout", searchParams.layout);
+  const queueHref = queueParams.toString()
+    ? `/dashboard/scoring?${queueParams.toString()}`
+    : "/dashboard/scoring";
 
   const [scoringContext, judgingList] = await Promise.all([
     getScoringApplicationForJudge(
       params.applicationId,
       session.user.id,
       session.user.organizationId,
-      session.user.role
+      session.user.role,
+      session.user.chapter
     ),
     getJudgeScoringQueue(session.user.id, session.user.organizationId, session.user.role, {
       division: requestedDivision,
+      userChapter: session.user.chapter,
     }),
   ]);
 
@@ -56,6 +75,10 @@ export default async function ScoreApplicationPage({
     criteria,
     existingScores,
     finalComment,
+    submission,
+    certification,
+    isBookmarked,
+    prizeSuggestions,
     videoUrls,
     videoTitles,
   } = scoringContext;
@@ -106,13 +129,12 @@ export default async function ScoreApplicationPage({
             <div>
               <div className={styles.nameRow}>
                 <h1 className={styles.name}>{application.applicant.name}</h1>
-                <FavouriteButton />
+                <JudgeBookmarkButton
+                  applicationId={application.id}
+                  initialActive={isBookmarked}
+                />
               </div>
-              <p className={styles.email}>{application.applicant.email}</p>
-              <p className={styles.meta}>
-                {formatVoicePart(application.notes)}
-                {application.chapter ? ` · ${application.chapter}` : ""}
-              </p>
+              <p className={styles.meta}>{formatVoicePart(application.notes)}</p>
             </div>
           </section>
 
@@ -165,6 +187,9 @@ export default async function ScoreApplicationPage({
               applicantName={application.applicant.name}
               judgeName={session.user.name ?? "Adjudication Judge"}
               criteria={criteria}
+              submission={submission}
+              certification={certification}
+              initialPrizeSuggestions={prizeSuggestions}
               existingFinalComment={finalComment}
               existingScores={existingScores.map((score) => ({
                 criteriaId: score.criteriaId,
@@ -174,14 +199,7 @@ export default async function ScoreApplicationPage({
             />
           </section>
 
-          <Link
-            href={
-              requestedDivision
-                ? `/dashboard/scoring?division=${requestedDivision}`
-                : "/dashboard/scoring"
-            }
-            className={styles.backLink}
-          >
+          <Link href={queueHref} className={styles.backLink}>
             ← Back to judging list
           </Link>
         </div>

@@ -111,7 +111,7 @@ export default async function DashboardPage() {
             title="Pending Approval"
             value={stats.pendingApplications}
             sub="awaiting approval to enter chapter adjudication"
-            href="/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL"
+            href="/dashboard/applications?status=PENDING_APPROVAL"
           />
         </section>
 
@@ -124,19 +124,19 @@ export default async function DashboardPage() {
                 <p className={styles.analyticsTitle}>Application Pipeline</p>
                 <div className={styles.analyticsRows}>
                   {[
-                    { label: "Submitted", value: stats.statusBreakdown.submitted },
+                    { label: "Pending Approval", value: stats.statusBreakdown.submitted },
                     { label: "Chapter Adjudication", value: stats.statusBreakdown.chapterReview },
-                    { label: "National Finals", value: stats.statusBreakdown.nationalReview },
-                    { label: "Decided", value: stats.statusBreakdown.decided },
+                    { label: "National Adjudication", value: stats.statusBreakdown.nationalReview },
+                    { label: "Withdrawn", value: stats.statusBreakdown.decided },
                   ].map((item) => {
                     const href =
-                      item.label === "Submitted"
-                        ? "/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL"
+                      item.label === "Pending Approval"
+                        ? "/dashboard/applications?status=PENDING_APPROVAL"
                         : item.label === "Chapter Adjudication"
-                          ? "/dashboard/applications?status=CHAPTER_ADJUDICATION"
-                          : item.label === "National Finals"
-                            ? "/dashboard/applications?status=NATIONAL_FINALS"
-                            : "/dashboard/applications?status=DECIDED";
+                          ? "/dashboard/applications?status=APPROVED_FOR_CHAPTER_ADJUDICATION"
+                          : item.label === "National Adjudication"
+                            ? "/dashboard/applications?status=APPROVED_FOR_NATIONAL_ADJUDICATION"
+                            : "/dashboard/applications?status=WITHDRAWN";
                     return (
                     <Link key={item.label} href={href} className={styles.analyticsRowLink}>
                       <div className={styles.analyticsRow}>
@@ -259,13 +259,13 @@ export default async function DashboardPage() {
             title="Pending Approval"
             value={stats.pendingApprovalsForChapter}
             sub="in your chapter"
-            href="/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL"
+            href="/dashboard/applications?status=PENDING_APPROVAL"
           />
           <StatCard
             title="Chapter Adjudication"
             value={stats.chapterAdjudicationCount}
-            sub="visible across chapters"
-            href="/dashboard/applications?status=CHAPTER_ADJUDICATION"
+            sub="approved for your chapter"
+            href="/dashboard/applications?status=APPROVED_FOR_CHAPTER_ADJUDICATION"
           />
         </section>
 
@@ -321,7 +321,8 @@ export default async function DashboardPage() {
     const stats = await getJudgeDashboardStats(
       user.id,
       user.organizationId,
-      user.role
+      user.role,
+      user.chapter
     );
 
     const remaining =

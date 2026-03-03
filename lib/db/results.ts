@@ -1,12 +1,40 @@
 import { prisma } from "@/lib/prisma";
 import { ScoreRound } from "@prisma/client";
 import { parseApplicationMetadata } from "@/lib/application-metadata";
+import { getRoundCertificationReadiness } from "@/lib/db/governance";
+
+function normalizeChapter(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function chapterMatchKey(value: string | null | undefined) {
+  const normalized = normalizeChapter(value);
+  if (!normalized) return "";
+
+  const withoutParens = normalized.replace(/\(.*?\)/g, " ").replace(/\s+/g, " ").trim();
+  const base = withoutParens.split(/[–—-]/)[0]?.trim() ?? withoutParens;
+  return base.replace(/\bchapter\b/g, "").replace(/\s+/g, " ").trim();
+}
+
+function isChapterMatch(
+  applicationChapter: string | null | undefined,
+  requestedChapter: string | null | undefined
+) {
+  const app = chapterMatchKey(applicationChapter);
+  const requested = chapterMatchKey(requestedChapter);
+  if (!app || !requested) return false;
+  if (app === requested) return true;
+  if (app.length >= 3 && requested.includes(app)) return true;
+  if (requested.length >= 3 && app.includes(requested)) return true;
+  return false;
+}
 
 export type RankedResult = {
   rank: number;
   tied: boolean;
   applicationId: string;
   applicantName: string;
+  chapter: string | null;
   voicePart: string | null;
   status: string;
   totalScore: number;
@@ -23,15 +51,29 @@ export type RoundResultsSummary = {
   roundId: string;
   roundName: string;
   roundType: string;
+  advancementSlots: number | null;
   applicationCount: number;
   averageTotalScore: number;
   highestScore: number;
   lowestScore: number;
+  certification: {
+    certifiedAt: Date;
+    certifiedByName: string;
+  } | null;
+  readiness: {
+    assignedJudgeCount: number;
+    requiredFinalizations: number;
+    finalizedCount: number;
+    missingCount: number;
+  };
   results: RankedResult[];
 };
 
 export async function getRankedResultsForRound(
-  roundId: string
+  roundId: string,
+  options?: {
+    chapterFilter?: string | null;
+  }
 ): Promise<RankedResult[]> {
   const round = await prisma.round.findUnique({
     where: { id: roundId },
@@ -63,20 +105,41 @@ export async function getRankedResultsForRound(
   if (!round || !round.event.rubric) return [];
 
   const { criteria } = round.event.rubric;
-  const judgeIds = round.judgeAssignments.map((a) => a.judgeId);
+  const assignedJudgeIds = round.judgeAssignments.map((a) => a.judgeId);
   const scoreRound: ScoreRound = round.type === "CHAPTER" ? "CHAPTER" : "NATIONAL";
 
-  if (judgeIds.length === 0 || criteria.length === 0) return [];
+  if ((round.type === "NATIONAL" && assignedJudgeIds.length === 0) || criteria.length === 0) {
+    return [];
+  }
 
   const applicationIds = round.event.applications.map((a) => a.id);
   if (applicationIds.length === 0) return [];
+
+  const finalizedSubmissions = await prisma.judgeSubmission.findMany({
+    where: {
+      roundId,
+      applicationId: { in: applicationIds },
+      ...(round.type === "NATIONAL" ? { judgeId: { in: assignedJudgeIds } } : {}),
+      status: "FINALIZED",
+    },
+    select: {
+      applicationId: true,
+      judgeId: true,
+    },
+  });
+
+  const finalizedPairs = new Set(
+    finalizedSubmissions.map((submission) => `${submission.applicationId}:${submission.judgeId}`)
+  );
+
+  if (finalizedPairs.size === 0) return [];
 
   // Fetch all scores from judges assigned to this round
   const allScores = await prisma.score.findMany({
     where: {
       applicationId: { in: applicationIds },
       criteriaId: { in: criteria.map((c) => c.id) },
-      judgeId: { in: judgeIds },
+      ...(round.type === "NATIONAL" ? { judgeId: { in: assignedJudgeIds } } : {}),
       round: scoreRound,
     },
     select: {
@@ -87,10 +150,16 @@ export async function getRankedResultsForRound(
     },
   });
 
+  const finalizedScores = allScores.filter((score) =>
+    finalizedPairs.has(`${score.applicationId}:${score.judgeId}`)
+  );
+
   // Only include applications that have at least one score
-  const scoredAppIds = new Set(allScores.map((s) => s.applicationId));
-  const scoredApplications = round.event.applications.filter((a) =>
-    scoredAppIds.has(a.id)
+  const scoredAppIds = new Set(finalizedScores.map((s) => s.applicationId));
+  const scoredApplications = round.event.applications.filter(
+    (a) =>
+      scoredAppIds.has(a.id) &&
+      (!options?.chapterFilter || isChapterMatch(a.chapter, options.chapterFilter))
   );
 
   if (scoredApplications.length === 0) return [];
@@ -99,7 +168,7 @@ export async function getRankedResultsForRound(
   type ScoreKey = `${string}:${string}`;
   const scoresByKey = new Map<ScoreKey, number[]>();
 
-  for (const score of allScores) {
+  for (const score of finalizedScores) {
     const key: ScoreKey = `${score.applicationId}:${score.criteriaId}`;
     const existing = scoresByKey.get(key) ?? [];
     existing.push(score.value);
@@ -132,6 +201,7 @@ export async function getRankedResultsForRound(
     // Judge count = unique judges who scored this application for this round
     const judgesForApp = new Set(
       allScores
+        .filter((s) => finalizedPairs.has(`${s.applicationId}:${s.judgeId}`))
         .filter((s) => s.applicationId === application.id)
         .map((s) => s.judgeId)
     );
@@ -143,6 +213,7 @@ export async function getRankedResultsForRound(
       tied: false,
       applicationId: application.id,
       applicantName: application.applicant.name,
+      chapter: application.chapter ?? null,
       voicePart: metadata.voicePart,
       status: application.status as string,
       totalScore,
@@ -192,7 +263,13 @@ export async function getResultsSummaryForEvent(
 
   const summaries = await Promise.all(
     event.rounds.map(async (round) => {
-      const results = await getRankedResultsForRound(round.id);
+      const [results, readiness] = await Promise.all([
+        getRankedResultsForRound(round.id),
+        getRoundCertificationReadiness({
+          organizationId: event.organizationId,
+          roundId: round.id,
+        }),
+      ]);
 
       const scores = results.map((r) => r.totalScore);
       const applicationCount = results.length;
@@ -207,10 +284,23 @@ export async function getResultsSummaryForEvent(
         roundId: round.id,
         roundName: round.name,
         roundType: round.type as string,
+        advancementSlots: round.advancementSlots ?? null,
         applicationCount,
         averageTotalScore,
         highestScore,
         lowestScore,
+        certification: readiness?.certification
+          ? {
+              certifiedAt: readiness.certification.certifiedAt,
+              certifiedByName: readiness.certification.certifiedBy.name,
+            }
+          : null,
+        readiness: {
+          assignedJudgeCount: readiness?.assignedJudgeCount ?? 0,
+          requiredFinalizations: readiness?.requiredFinalizations ?? 0,
+          finalizedCount: readiness?.finalizedCount ?? 0,
+          missingCount: readiness?.missing.length ?? 0,
+        },
         results,
       };
     })

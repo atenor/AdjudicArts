@@ -17,6 +17,66 @@ type ExistingScore = {
   comment: string | null;
 };
 
+type PrizeSuggestion = {
+  label: string;
+  amountCents: number | null;
+  comment: string | null;
+};
+
+type SubmissionEvent = {
+  id: string;
+  eventType: "FINALIZED" | "REOPENED";
+  reason: string | null;
+  createdAt: string | Date;
+  actorRole: string;
+  actor: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+};
+
+type SubmissionState = {
+  status: "DRAFT" | "FINALIZED";
+  finalizedAt: string | Date | null;
+  events: SubmissionEvent[];
+} | null;
+
+type CertificationState = {
+  certifiedAt: string | Date;
+  certifiedBy: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+} | null;
+
+type SuggestionDraft = {
+  label: string;
+  amount: string;
+  comment: string;
+};
+
+function formatTimestamp(value: string | Date | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString("en-US");
+}
+
+function centsToDisplay(amountCents: number | null | undefined) {
+  if (typeof amountCents !== "number") return "";
+  return (amountCents / 100).toFixed(2);
+}
+
+function displayToCents(raw: string) {
+  const normalized = raw.trim();
+  if (!normalized) return null;
+  const numeric = Number(normalized.replace(/[^0-9.]/g, ""));
+  if (Number.isNaN(numeric) || numeric < 0) return NaN;
+  return Math.round(numeric * 100);
+}
+
 export default function ScoringForm({
   applicationId,
   applicantName,
@@ -24,6 +84,9 @@ export default function ScoringForm({
   criteria,
   existingScores,
   existingFinalComment,
+  submission,
+  certification,
+  initialPrizeSuggestions,
 }: {
   applicationId: string;
   applicantName: string;
@@ -31,11 +94,18 @@ export default function ScoringForm({
   criteria: Criterion[];
   existingScores: ExistingScore[];
   existingFinalComment?: string | null;
+  submission: SubmissionState;
+  certification: CertificationState;
+  initialPrizeSuggestions: PrizeSuggestion[];
 }) {
   const SCORE_OPTIONS = Array.from({ length: 11 }, (_, value) => value);
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [finalizeStepOpen, setFinalizeStepOpen] = useState(false);
+  const [finalizeConfirmation, setFinalizeConfirmation] = useState("");
   const [finalComment, setFinalComment] = useState(existingFinalComment ?? "");
   const [compiledFeedback, setCompiledFeedback] = useState("");
 
@@ -61,6 +131,19 @@ export default function ScoringForm({
         return acc;
       }, {})
   );
+
+  const [prizeSuggestions, setPrizeSuggestions] = useState<SuggestionDraft[]>(
+    () =>
+      initialPrizeSuggestions.length > 0
+        ? initialPrizeSuggestions.map((suggestion) => ({
+            label: suggestion.label,
+            amount: centsToDisplay(suggestion.amountCents),
+            comment: suggestion.comment ?? "",
+          }))
+        : [{ label: "", amount: "", comment: "" }]
+  );
+
+  const isLocked = Boolean(certification) || submission?.status === "FINALIZED";
 
   const scoreSummary = useMemo(() => {
     const numericScores = criteria
@@ -164,9 +247,25 @@ export default function ScoringForm({
     };
   }, [aggregatedNotes, applicationId, finalComment]);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setServerError(null);
+  function updateSuggestion(index: number, patch: Partial<SuggestionDraft>) {
+    setPrizeSuggestions((current) =>
+      current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row))
+    );
+  }
+
+  function addSuggestionRow() {
+    setPrizeSuggestions((current) => [...current, { label: "", amount: "", comment: "" }]);
+  }
+
+  function removeSuggestionRow(index: number) {
+    setPrizeSuggestions((current) =>
+      current.length === 1
+        ? [{ label: "", amount: "", comment: "" }]
+        : current.filter((_, rowIndex) => rowIndex !== index)
+    );
+  }
+
+  function buildPayload(requireSuggestions: boolean) {
     const trimmedFinalComment = finalComment.trim();
 
     const scores = criteria.map((criterion) => {
@@ -184,65 +283,178 @@ export default function ScoringForm({
           Number.isNaN(score.value) || score.value < 0 || score.value > 10
       )
     ) {
-      setServerError("Each criterion must be scored from 0 to 10.");
-      return;
+      return { error: "Each criterion must be scored from 0 to 10." };
     }
     if (!trimmedFinalComment) {
-      setServerError("Final comments are required before saving.");
+      return { error: "Final comments are required before saving." };
+    }
+
+    const normalizedSuggestions: Array<{
+      label: string;
+      amountCents: number | null;
+      comment: string | null;
+    }> = [];
+    for (const suggestion of prizeSuggestions) {
+      const label = suggestion.label.trim();
+      const comment = suggestion.comment.trim();
+      const hasAnyValue =
+        label.length > 0 || suggestion.amount.trim().length > 0 || comment.length > 0;
+      if (!hasAnyValue) continue;
+
+      const amountCents = displayToCents(suggestion.amount);
+      if (Number.isNaN(amountCents)) {
+        return { error: "Prize suggestion amounts must be valid non-negative dollar amounts." };
+      }
+
+      if (!label) {
+        return { error: "Each prize suggestion must include a prize label." };
+      }
+
+      normalizedSuggestions.push({
+        label,
+        amountCents,
+        comment: comment || null,
+      });
+    }
+
+    if (requireSuggestions && normalizedSuggestions.length === 0) {
+      return { error: "At least one prize suggestion is required before finalizing." };
+    }
+
+    return {
+      scores,
+      finalComment: trimmedFinalComment,
+      prizeSuggestions: normalizedSuggestions,
+    };
+  }
+
+  async function onSaveDraft() {
+    setServerError(null);
+    setSuccessMessage(null);
+
+    const payload = buildPayload(false);
+    if ("error" in payload) {
+      setServerError(payload.error ?? "Unable to save the draft.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      if (aggregatedNotes.length > 0) {
-        try {
-          const compileResponse = await fetch(`/api/scoring/${applicationId}/compile`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              notes: aggregatedNotes.map((item) => ({
-                criteriaId: item.criteriaId,
-                value: item.value,
-                comment: item.comment,
-              })),
-              existingFinalComment: trimmedFinalComment,
-            }),
-          });
-
-          if (compileResponse.ok) {
-            // We intentionally keep finalComment judge-authored.
-            // Compiled feedback is for applicant-facing output, not to overwrite the judge's final note.
-            await compileResponse.json();
-          }
-        } catch {
-          // If compile service fails, still allow score submission with judge-entered final comment.
-        }
-      }
-
       const response = await fetch(`/api/scoring/${applicationId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ scores, finalComment: trimmedFinalComment }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        setServerError("Unable to save scores. Please try again.");
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        setServerError(data?.error ?? "Unable to save the draft. Please try again.");
         return;
       }
 
-      router.push("/dashboard/scoring");
+      setSuccessMessage("Draft saved. This judge submission is still editable until finalized.");
       router.refresh();
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  async function onFinalize() {
+    setServerError(null);
+    setSuccessMessage(null);
+
+    const payload = buildPayload(true);
+    if ("error" in payload) {
+      setServerError(payload.error ?? "Unable to finalize this judge submission.");
+      return;
+    }
+
+    if (finalizeConfirmation.trim() !== "FINALIZE") {
+      setServerError('Type FINALIZE exactly to finalize this judge submission.');
+      return;
+    }
+
+    setIsFinalizing(true);
+    try {
+      const response = await fetch(`/api/scoring/${applicationId}/finalize`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirmationText: finalizeConfirmation.trim(),
+          ...payload,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        setServerError(data?.error ?? "Unable to finalize this judge submission.");
+        return;
+      }
+
+      setFinalizeStepOpen(false);
+      setFinalizeConfirmation("");
+      setSuccessMessage(
+        "Judge submission finalized. Scores, feedback, and prize suggestions are now locked."
+      );
+      router.refresh();
+    } finally {
+      setIsFinalizing(false);
+    }
+  }
+
   return (
-    <form onSubmit={onSubmit} className={styles.form}>
+    <div className={styles.form}>
+      {certification ? (
+        <section className={`${styles.banner} ${styles.bannerSuccess}`}>
+          <p className={styles.bannerTitle}>Certified Round Lock</p>
+          <p className={styles.bannerText}>
+            This round was certified and all scoring, feedback, and prize decisions are locked.
+          </p>
+          <p className={styles.bannerMeta}>
+            Certified {formatTimestamp(certification.certifiedAt)} by{" "}
+            {certification.certifiedBy.name ?? certification.certifiedBy.email}
+          </p>
+        </section>
+      ) : submission?.status === "FINALIZED" ? (
+        <section className={`${styles.banner} ${styles.bannerInfo}`}>
+          <p className={styles.bannerTitle}>Finalized Judge Submission</p>
+          <p className={styles.bannerText}>
+            You finalized this scorecard. It is now read-only unless a chair or admin reopens it.
+          </p>
+          <p className={styles.bannerMeta}>
+            Finalized {formatTimestamp(submission.finalizedAt)}
+          </p>
+        </section>
+      ) : (
+        <section className={`${styles.banner} ${styles.bannerNeutral}`}>
+          <p className={styles.bannerTitle}>Draft Judge Submission</p>
+          <p className={styles.bannerText}>
+            Save draft to preserve your work. Finalize only when you are ready to lock your scores,
+            feedback, and prize suggestions for this applicant.
+          </p>
+        </section>
+      )}
+
+      {submission?.events.length ? (
+        <section className={`${styles.banner} ${styles.bannerNeutral}`}>
+          <p className={styles.bannerTitle}>Submission History</p>
+          <ol className={styles.eventList}>
+            {submission.events.map((event) => (
+              <li key={event.id}>
+                {event.eventType === "FINALIZED" ? "Finalized" : "Reopened"} by{" "}
+                {event.actor.name ?? event.actor.email} ({event.actorRole}) on{" "}
+                {formatTimestamp(event.createdAt)}
+                {event.reason ? ` - ${event.reason}` : ""}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       <div className={styles.summaryBand}>
         <div>
           <p className={styles.summaryLabel}>Running Total</p>
@@ -282,6 +494,7 @@ export default function ScoringForm({
                     className={`${styles.scoreChip} ${isFilled ? styles.scoreChipFilled : ""} ${
                       isSelected ? styles.scoreChipSelected : ""
                     }`}
+                    disabled={isLocked}
                     onClick={() =>
                       setValues((current) => ({
                         ...current,
@@ -300,6 +513,7 @@ export default function ScoringForm({
                 id={`comment-${criterion.id}`}
                 className={styles.quickNote}
                 value={comments[criterion.id]}
+                disabled={isLocked}
                 onChange={(e) =>
                   setComments((current) => ({
                     ...current,
@@ -325,11 +539,73 @@ export default function ScoringForm({
           rows={5}
           placeholder="Final comments (required)"
           value={finalComment}
+          disabled={isLocked}
           onChange={(event) => setFinalComment(event.target.value)}
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
         />
+      </section>
+
+      <section className={styles.prizeWrap}>
+        <p className={styles.label}>Prize Suggestions</p>
+        <p className={styles.helperText}>
+          Prize suggestions are recommendations only. Final prize decisions are made separately by
+          the chair.
+        </p>
+
+        {prizeSuggestions.map((suggestion, index) => (
+          <div key={`prize-suggestion-${index}`} className={styles.prizeRow}>
+            <div className={styles.prizeTopRow}>
+              <input
+                className={styles.smallInput}
+                placeholder="Prize suggestion label"
+                value={suggestion.label}
+                disabled={isLocked}
+                onChange={(event) => updateSuggestion(index, { label: event.target.value })}
+              />
+              <input
+                className={styles.smallInput}
+                placeholder="Amount (optional)"
+                inputMode="decimal"
+                value={suggestion.amount}
+                disabled={isLocked}
+                onChange={(event) => updateSuggestion(index, { amount: event.target.value })}
+              />
+            </div>
+            <textarea
+              className={styles.noteBox}
+              rows={2}
+              placeholder="Reason for this recommendation (optional)"
+              value={suggestion.comment}
+              disabled={isLocked}
+              onChange={(event) => updateSuggestion(index, { comment: event.target.value })}
+            />
+            {!isLocked ? (
+              <div className={styles.inlineActions}>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.buttonSecondary}`}
+                  onClick={() => removeSuggestionRow(index)}
+                >
+                  Remove suggestion
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ))}
+
+        {!isLocked ? (
+          <div className={styles.inlineActions}>
+            <button
+              type="button"
+              className={`${styles.button} ${styles.buttonSecondary}`}
+              onClick={addSuggestionRow}
+            >
+              Add suggestion
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <section className={styles.aggregateWrap}>
@@ -343,11 +619,73 @@ export default function ScoringForm({
           placeholder="On save, this will be compiled into a polished applicant-facing feedback message."
         />
       </section>
-      {serverError ? <p className={styles.error}>{serverError}</p> : null}
 
-      <button className={styles.submit} type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Saving..." : "Save Scores"}
-      </button>
-    </form>
+      {serverError ? <p className={styles.error}>{serverError}</p> : null}
+      {successMessage ? <p className={styles.success}>{successMessage}</p> : null}
+
+      {!isLocked ? (
+        <>
+          <div className={styles.actionRow}>
+            <button
+              className={`${styles.button} ${styles.buttonSecondary}`}
+              type="button"
+              disabled={isSubmitting || isFinalizing}
+              onClick={onSaveDraft}
+            >
+              {isSubmitting ? "Saving Draft..." : "Save Draft"}
+            </button>
+            <button
+              className={`${styles.button} ${styles.buttonPrimary}`}
+              type="button"
+              disabled={isSubmitting || isFinalizing}
+              onClick={() => setFinalizeStepOpen((current) => !current)}
+            >
+              Finalize Scores
+            </button>
+          </div>
+
+          {finalizeStepOpen ? (
+            <section className={styles.confirmWrap}>
+              <p className={styles.bannerTitle}>Finalize This Judge Submission</p>
+              <p className={styles.bannerText}>
+                Finalizing locks your scores, final comments, and prize suggestions. You cannot edit
+                again unless a chair or admin reopens this submission.
+              </p>
+              <input
+                className={styles.smallInput}
+                placeholder='Type "FINALIZE" to confirm'
+                value={finalizeConfirmation}
+                onChange={(event) => setFinalizeConfirmation(event.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+              <div className={styles.actionRow}>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.buttonSecondary}`}
+                  disabled={isFinalizing}
+                  onClick={() => {
+                    setFinalizeStepOpen(false);
+                    setFinalizeConfirmation("");
+                    setServerError(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.buttonDanger}`}
+                  disabled={isFinalizing}
+                  onClick={onFinalize}
+                >
+                  {isFinalizing ? "Finalizing..." : "Confirm Finalize"}
+                </button>
+              </div>
+            </section>
+          ) : null}
+        </>
+      ) : null}
+    </div>
   );
 }

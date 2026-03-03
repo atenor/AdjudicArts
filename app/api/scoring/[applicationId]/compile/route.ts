@@ -291,7 +291,8 @@ export async function POST(
     params.applicationId,
     session.user.id,
     session.user.organizationId,
-    session.user.role
+    session.user.role,
+    session.user.chapter
   );
 
   if (!scoringContext) {

@@ -1,373 +1,751 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-type VideoEntry = {
-  id: "video1" | "video2" | "video3";
-  title: string;
-  url: string;
+// ─── Exported types ────────────────────────────────────────────────────────────
+
+export type ProfileData = {
+  applicantName: string;
+  applicantEmail: string;
+  chapter: string;
+  dateOfBirth: string;
+  gender: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  schoolName: string;
+  schoolCity: string;
+  schoolState: string;
+  highSchoolName: string;
+  collegeName: string;
+  major: string;
+  bio: string;
+  careerPlans: string;
+  scholarshipUse: string;
+  parentName: string;
+  parentEmail: string;
+  headshotUrl: string;
+  voicePart: string;
+  citizenshipStatus: string;
+  citizenshipDocumentUrl: string;
+  repertoire: string;
+  adminNote: string;
+  video1Title: string;
+  video1Url: string;
+  video2Title: string;
+  video2Url: string;
+  video3Title: string;
+  video3Url: string;
 };
 
-function reorderEntries(entries: VideoEntry[], from: number, to: number) {
-  if (from === to || from < 0 || to < 0 || from >= entries.length || to >= entries.length) {
-    return entries;
-  }
-  const next = [...entries];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return next;
+export type ProfileViewUrls = {
+  headshot?: string;
+  citizenshipDocument?: string;
+};
+
+// ─── Internal types ────────────────────────────────────────────────────────────
+
+type EditorState = ProfileData;
+
+type SectionKey = "contact" | "education" | "bio" | "videos" | "documents" | "adminNote";
+
+const SECTION_FIELDS: Record<SectionKey, (keyof EditorState)[]> = {
+  contact: [
+    "applicantName", "applicantEmail", "chapter", "dateOfBirth", "gender",
+    "voicePart", "phone", "address", "city", "state", "zip", "parentName", "parentEmail",
+  ],
+  education: ["schoolName", "schoolCity", "schoolState", "highSchoolName", "collegeName", "major"],
+  bio: ["bio", "careerPlans", "scholarshipUse"],
+  videos: ["video1Title", "video1Url", "video2Title", "video2Url", "video3Title", "video3Url"],
+  documents: ["headshotUrl", "citizenshipStatus", "citizenshipDocumentUrl"],
+  adminNote: ["adminNote"],
+};
+
+// Sections that start collapsed
+const COLLAPSIBLE_SECTIONS: SectionKey[] = ["contact", "education", "documents", "adminNote"];
+
+// ─── Sub-components ─────────────────────────────────────────────────────────────
+
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-[#8b7ab5]">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
 }
+
+function SectionActions({
+  sectionKey,
+  editingSection,
+  isSaving,
+  serverError,
+  onSave,
+  onCancel,
+}: {
+  sectionKey: SectionKey;
+  editingSection: SectionKey | null;
+  isSaving: boolean;
+  serverError: string | null;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  if (editingSection !== sectionKey) return null;
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#e5dbf3] pt-3">
+      {serverError ? (
+        <p className="text-sm font-medium text-[#b42318]">{serverError}</p>
+      ) : (
+        <span />
+      )}
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="border-[#d7cde9] text-[#5f2ec8] hover:bg-[#f4effb]"
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          onClick={onSave}
+          disabled={isSaving}
+          className="bg-[#5f2ec8] text-white hover:bg-[#4f26a8]"
+        >
+          {isSaving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+
+function valueOrDash(value: string | null | undefined) {
+  if (!value || value.trim().length === 0) return "--";
+  return value;
+}
+
+function formatDate(value: string) {
+  if (!value) return "--";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "--";
+  return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatTraditionalPhone(value: string | null | undefined) {
+  if (!value) return "--";
+  const trimmed = value.trim();
+  if (!trimmed) return "--";
+  if (trimmed.includes("@")) return trimmed;
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  return trimmed;
+}
+
+function formatPhoneOrEmail(value: string | null | undefined) {
+  if (!value) return "--";
+  const trimmed = value.trim();
+  if (!trimmed) return "--";
+  if (trimmed.includes("@")) return trimmed;
+  const parts = trimmed.split(/[/,;]/).map((p) => p.trim()).filter((p) => p.length > 0);
+  if (parts.length === 0) return "--";
+  return parts.map((p) => formatTraditionalPhone(p)).join(" / ");
+}
+
+function cx(...classes: string[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
+const inputCls = "border-[#d7cde9] focus-visible:ring-[#5f2ec8]";
+
+// ─── Main component ─────────────────────────────────────────────────────────────
 
 export default function ApplicationProfileEditor({
   applicationId,
-  initialApplicantName,
-  initialChapter,
-  initialAdminNote,
-  initialVideo1Title,
-  initialVideo1Url,
-  initialVideo2Title,
-  initialVideo2Url,
-  initialVideo3Title,
-  initialVideo3Url,
-  initialCitizenship,
-  initialCitizenshipDocumentUrl,
-  initialCitizenshipVerified,
-  canEditChapter = false,
+  canEdit,
+  data,
+  viewUrls,
+  citizenshipVerificationNote,
+  schoolStatus,
+  altContact,
+  altPhoneOrEmail,
+  mediaRelease,
+  hasMediaConsent,
+  intakeResourceUrls,
+  youtubePlaylist,
 }: {
   applicationId: string;
-  initialApplicantName: string;
-  initialChapter: string;
-  initialAdminNote: string;
-  initialVideo1Title: string;
-  initialVideo1Url: string;
-  initialVideo2Title: string;
-  initialVideo2Url: string;
-  initialVideo3Title: string;
-  initialVideo3Url: string;
-  initialCitizenship: string;
-  initialCitizenshipDocumentUrl: string;
-  initialCitizenshipVerified: boolean;
-  canEditChapter?: boolean;
+  canEdit: boolean;
+  data: ProfileData;
+  viewUrls: ProfileViewUrls;
+  citizenshipVerificationNote?: string | null;
+  schoolStatus: string;
+  altContact: string;
+  altPhoneOrEmail: string;
+  mediaRelease: string;
+  hasMediaConsent: boolean;
+  intakeResourceUrls: string[];
+  youtubePlaylist: string;
 }) {
   const router = useRouter();
-  const [applicantName, setApplicantName] = useState(initialApplicantName);
-  const [chapter, setChapter] = useState(initialChapter);
-  const [adminNote, setAdminNote] = useState(initialAdminNote);
-  const [citizenshipVerified, setCitizenshipVerified] = useState(
-    initialCitizenshipVerified
-  );
-  const [videoEntries, setVideoEntries] = useState<VideoEntry[]>([
-    { id: "video1", title: initialVideo1Title, url: initialVideo1Url },
-    { id: "video2", title: initialVideo2Title, url: initialVideo2Url },
-    { id: "video3", title: initialVideo3Title, url: initialVideo3Url },
-  ]);
-  const [editingVideoOrder, setEditingVideoOrder] = useState(false);
-  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+
+  const [form, setForm] = useState<EditorState>({ ...data });
+  const [editingSection, setEditingSection] = useState<SectionKey | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [showSaved, setShowSaved] = useState(false);
+  const [savedSection, setSavedSection] = useState<SectionKey | null>(null);
 
-  function updateVideoEntry(index: number, patch: Partial<VideoEntry>) {
-    setVideoEntries((prev) =>
-      prev.map((entry, entryIndex) =>
-        entryIndex === index
-          ? {
-              ...entry,
-              ...patch,
-            }
-          : entry
-      )
-    );
+  function updateField<K extends keyof EditorState>(key: K, value: EditorState[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function resetVideoOrder() {
-    setVideoEntries([
-      { id: "video1", title: initialVideo1Title, url: initialVideo1Url },
-      { id: "video2", title: initialVideo2Title, url: initialVideo2Url },
-      { id: "video3", title: initialVideo3Title, url: initialVideo3Url },
-    ]);
-    setEditingVideoOrder(false);
-    setDraggingIndex(null);
+  function toggleSection(key: SectionKey) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
-  function moveVideo(index: number, direction: -1 | 1) {
-    const destination = index + direction;
-    setVideoEntries((prev) => reorderEntries(prev, index, destination));
+  function startEditing(key: SectionKey) {
+    setEditingSection(key);
+    setExpandedSections((prev) => { const next = new Set(prev); next.add(key); return next; });
+    setServerError(null);
+    setSavedSection(null);
   }
 
-  async function onSave() {
+  function cancelSection(key: SectionKey) {
+    const fields = SECTION_FIELDS[key];
+    const reset: Partial<EditorState> = {};
+    for (const field of fields) {
+      (reset as Record<string, unknown>)[field] = data[field];
+    }
+    setForm((current) => ({ ...current, ...reset }));
+    setEditingSection(null);
+    setServerError(null);
+  }
+
+  async function saveSectionFields(key: SectionKey) {
     setIsSaving(true);
     setServerError(null);
-    setShowSaved(false);
+
+    const fields = SECTION_FIELDS[key];
+    const body: Record<string, string> = {};
+    const trimmedFields: Partial<EditorState> = {};
+    for (const field of fields) {
+      const trimmed = (form[field] as string).trim();
+      body[field] = trimmed;
+      (trimmedFields as Record<string, unknown>)[field] = trimmed;
+    }
+
     try {
-      const [video1, video2, video3] = videoEntries;
-      const payload: Record<string, unknown> = {
-        applicantName: applicantName.trim(),
-        citizenshipVerified,
-        adminNote: adminNote.trim(),
-        video1Title: video1?.title.trim() ?? "",
-        video1Url: video1?.url.trim() ?? "",
-        video2Title: video2?.title.trim() ?? "",
-        video2Url: video2?.url.trim() ?? "",
-        video3Title: video3?.title.trim() ?? "",
-        video3Url: video3?.url.trim() ?? "",
-      };
-      if (canEditChapter) {
-        payload.chapter = chapter.trim();
-      }
       const response = await fetch(`/api/applications/${applicationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
-        let message = "Unable to save profile changes.";
+        let message = "Unable to save changes.";
         try {
-          const data = (await response.json()) as { error?: string };
-          if (typeof data.error === "string" && data.error.trim().length > 0) {
-            message = data.error;
+          const responseData = (await response.json()) as { error?: string };
+          if (typeof responseData.error === "string" && responseData.error.trim()) {
+            message = responseData.error;
           }
-        } catch {
-          // no-op
-        }
+        } catch { /* no-op */ }
         setServerError(message);
         return;
       }
 
-      setShowSaved(true);
-      setEditingVideoOrder(false);
+      setForm((current) => ({ ...current, ...trimmedFields }));
+      setSavedSection(key);
+      setEditingSection(null);
       router.refresh();
+      setTimeout(() => setSavedSection((prev) => (prev === key ? null : prev)), 3000);
     } catch {
-      setServerError("Unable to save profile changes.");
+      setServerError("Unable to save changes.");
     } finally {
       setIsSaving(false);
     }
   }
 
+  function editButton(key: SectionKey): ReactNode {
+    if (!canEdit || editingSection !== null) return null;
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); startEditing(key); }}
+        className="shrink-0 rounded-md border border-[#c7b6e5] px-2.5 py-1 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]"
+      >
+        Edit
+      </button>
+    );
+  }
+
+  const videos = [
+    { title: form.video1Title, url: form.video1Url, num: 1 },
+    { title: form.video2Title, url: form.video2Url, num: 2 },
+    { title: form.video3Title, url: form.video3Url, num: 3 },
+  ];
+
+  // ── Collapsible section wrapper ────────────────────────────────────────────
+  function Accordion({
+    sectionKey,
+    title,
+    children,
+  }: {
+    sectionKey: SectionKey;
+    title: string;
+    children: ReactNode;
+  }) {
+    const isOpen = expandedSections.has(sectionKey) || editingSection === sectionKey;
+    return (
+      <div className="rounded-xl border border-[#d8cce9] bg-white">
+        <div className="flex items-center justify-between p-3.5">
+          <button
+            type="button"
+            onClick={() => toggleSection(sectionKey)}
+            className="flex min-w-0 items-center gap-2 text-left"
+          >
+            <span className="text-[10px] text-[#9284b0]">{isOpen ? "▼" : "▶"}</span>
+            <span className="text-sm font-bold tracking-wide text-[#5f2ec8]">{title}</span>
+            {savedSection === sectionKey ? (
+              <span className="ml-1 text-xs font-medium text-[#0d7b5f]">✓ Saved</span>
+            ) : null}
+          </button>
+          {editButton(sectionKey)}
+        </div>
+        {isOpen ? (
+          <div className="border-t border-[#e5dbf3] p-3.5">{children}</div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <section className="rounded-xl border border-[#d8cce9] bg-white p-4">
-      <h2 className="text-lg font-semibold text-[#1e1538]">Profile Editor</h2>
-      <div className="mt-3 space-y-3">
-        <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
-          <p className="text-sm font-semibold text-[#5f4d87]">
-            {canEditChapter ? "Chapter Assignment" : "Applicant Info"}
-          </p>
-          <div className="space-y-1.5">
-            <label htmlFor="applicant-name" className="text-sm font-medium text-[#5f4d87]">
-              Applicant Name
-            </label>
-            <Input
-              id="applicant-name"
-              value={applicantName}
-              onChange={(event) => setApplicantName(event.target.value)}
-              placeholder="First Last"
-              className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-            />
+    <div className="space-y-3">
+
+      {/* ── PERFORMANCE VIDEOS ────────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold tracking-wide text-[#5f2ec8]">PERFORMANCE VIDEOS</h2>
+          <div className="flex items-center gap-2">
+            {youtubePlaylist ? (
+              <a
+                href={youtubePlaylist}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md border border-[#4d2d91] bg-[#5f2ec8] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#5327b2]"
+              >
+                Playlist
+              </a>
+            ) : null}
+            {editButton("videos")}
           </div>
-          {canEditChapter ? (
-            <div className="space-y-1.5">
-              <label htmlFor="chapter" className="text-sm font-medium text-[#5f4d87]">
-                Chapter
-              </label>
-              <Input
-                id="chapter"
-                value={chapter}
-                onChange={(event) => setChapter(event.target.value)}
-                placeholder="Example: Washington DC Chapter"
-                className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-              />
-            </div>
-          ) : null}
         </div>
 
-        <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
-          <p className="text-sm font-semibold text-[#5f4d87]">Citizenship Verification</p>
-          <p className="text-xs text-[#7b6e9d]">
-            Reported citizenship: {initialCitizenship.trim() || "Not provided"}
-          </p>
-          {initialCitizenshipDocumentUrl.trim() ? (
-            <a
-              href={initialCitizenshipDocumentUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex rounded-md border border-[#c7b6e5] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]"
-            >
-              View citizenship document
-            </a>
-          ) : (
-            <p className="text-xs text-[#8a7aa9]">No citizenship document link on file.</p>
-          )}
-          <label className="flex items-center gap-2 text-sm font-medium text-[#5f4d87]">
-            <input
-              type="checkbox"
-              checked={citizenshipVerified}
-              onChange={(event) => setCitizenshipVerified(event.target.checked)}
-              className="h-4 w-4 rounded border-[#bca9df]"
-            />
-            Mark citizenship as verified
-          </label>
-        </div>
-
-        <div className="space-y-2 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-[#5f4d87]">Video Order Corrections</p>
-            {editingVideoOrder ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 border-[#d7cde9] bg-white text-[#5f4d87] hover:bg-[#f3ecff]"
-                onClick={resetVideoOrder}
-              >
-                Cancel
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 border-[#d7cde9] bg-white text-[#5f4d87] hover:bg-[#f3ecff]"
-                onClick={() => setEditingVideoOrder(true)}
-              >
-                Edit
-              </Button>
-            )}
-          </div>
-
-          {editingVideoOrder ? (
-            <>
-              <p className="text-xs text-[#7b6e9d]">
-                Drag and drop to reorder videos. You can also use Up/Down for touch devices.
-              </p>
-              <div className="space-y-2">
-                {videoEntries.map((entry, index) => (
-                  <div
-                    key={entry.id}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => {
-                      if (draggingIndex === null) return;
-                      setVideoEntries((prev) => reorderEntries(prev, draggingIndex, index));
-                      setDraggingIndex(null);
-                    }}
-                    onDragEnd={() => setDraggingIndex(null)}
-                    className="space-y-2 rounded-lg border border-[#d7cde9] bg-white p-2.5"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
-                        Video {index + 1}
-                      </p>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-[#7b6e9d]">Reorder</span>
-                        <button
-                          type="button"
-                          draggable
-                          onDragStart={() => setDraggingIndex(index)}
-                          onDragEnd={() => setDraggingIndex(null)}
-                          className="cursor-grab rounded border border-[#d7cde9] px-2 py-0.5 text-xs font-semibold text-[#6b5a92] hover:bg-[#f3ecff]"
-                          aria-label={`Drag to reorder video ${index + 1}`}
-                          title={`Drag to reorder video ${index + 1}`}
-                        >
-                          Drag
-                        </button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-7 border-[#d7cde9] bg-white px-2 text-xs text-[#5f4d87] hover:bg-[#f3ecff]"
-                          onClick={() => moveVideo(index, -1)}
-                          disabled={index === 0}
-                        >
-                          Up
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-7 border-[#d7cde9] bg-white px-2 text-xs text-[#5f4d87] hover:bg-[#f3ecff]"
-                          onClick={() => moveVideo(index, 1)}
-                          disabled={index === videoEntries.length - 1}
-                        >
-                          Down
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
-                          Video title
-                        </label>
-                        <Input
-                          value={entry.title}
-                          onChange={(event) =>
-                            updateVideoEntry(index, { title: event.target.value })
-                          }
-                          placeholder={`Video ${index + 1} title`}
-                          className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
-                          YouTube URL
-                        </label>
-                        <Input
-                          value={entry.url}
-                          onChange={(event) =>
-                            updateVideoEntry(index, { url: event.target.value })
-                          }
-                          placeholder={`https://www.youtube.com/watch?v=...`}
-                          className="border-[#d7cde9] focus-visible:ring-[#5f2ec8]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="space-y-2">
-              {videoEntries.map((entry, index) => (
-                <div key={entry.id} className="rounded-lg border border-[#d7cde9] bg-white p-2.5">
-                  <p className="text-xs font-semibold tracking-wide text-[#7b6e9d]">
-                    Video {index + 1}
+        {editingSection === "videos" ? (
+          <>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              {[
+                { num: 1, titleKey: "video1Title" as const, urlKey: "video1Url" as const },
+                { num: 2, titleKey: "video2Title" as const, urlKey: "video2Url" as const },
+                { num: 3, titleKey: "video3Title" as const, urlKey: "video3Url" as const },
+              ].map(({ num, titleKey, urlKey }) => (
+                <div key={num} className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#7b6e9d]">
+                    Video {num}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1e1538]">
-                    {entry.title.trim() || `Video ${index + 1} title not set`}
-                  </p>
-                  <p className="mt-1 truncate text-xs text-[#5f2ec8]">
-                    {entry.url.trim() || "No URL set"}
-                  </p>
+                  <Field label="Title / Label" htmlFor={`video${num}-title`}>
+                    <Input
+                      id={`video${num}-title`}
+                      value={form[titleKey]}
+                      onChange={(e) => updateField(titleKey, e.target.value)}
+                      className={inputCls}
+                      placeholder="Title, Composer, Poet…"
+                    />
+                  </Field>
+                  <Field label="YouTube URL" htmlFor={`video${num}-url`}>
+                    <Input
+                      id={`video${num}-url`}
+                      value={form[urlKey]}
+                      onChange={(e) => updateField(urlKey, e.target.value)}
+                      className={inputCls}
+                      placeholder="https://youtube.com/…"
+                    />
+                  </Field>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        <div className="space-y-1.5 rounded-lg border border-[#d7cde9] bg-[#f8f4ff] p-3">
-          <label htmlFor="admin-note" className="text-sm font-semibold text-[#5f4d87]">
-            General Admin Notes
-          </label>
-          <Textarea
-            id="admin-note"
-            value={adminNote}
-            onChange={(event) => setAdminNote(event.target.value)}
-            placeholder="General profile notes (sponsorship, special handling, follow-ups, etc.)"
-            className="min-h-[120px] border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]"
-          />
-        </div>
-
-        <Button
-          type="button"
-          onClick={onSave}
-          disabled={isSaving}
-          className="w-full bg-gradient-to-r from-[#5f2ec8] to-[#462b7c] text-white hover:from-[#5327b2] hover:to-[#3e256f]"
-        >
-          {isSaving ? "Saving..." : "Save"}
-        </Button>
-
-        {showSaved ? <p className="text-sm text-emerald-700">Saved.</p> : null}
-        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
+            <SectionActions
+              sectionKey="videos"
+              editingSection={editingSection}
+              isSaving={isSaving}
+              serverError={serverError}
+              onSave={() => void saveSectionFields("videos")}
+              onCancel={() => cancelSection("videos")}
+            />
+          </>
+        ) : (
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {videos.map((video) => (
+              <div
+                key={video.num}
+                className={cx(
+                  "rounded-xl border p-3 space-y-1.5",
+                  video.title || video.url
+                    ? "border-[#d7cde9] bg-[#f8f4ff]"
+                    : "border-dashed border-[#e2d8f0] bg-[#faf7ff]"
+                )}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#9284b0]">
+                  Video {video.num}
+                </p>
+                {video.title ? (
+                  <p className="text-sm font-medium leading-snug text-[#1e1538]">{video.title}</p>
+                ) : (
+                  <p className="text-sm text-[#b0a0cc]">No title</p>
+                )}
+                {video.url ? (
+                  <a
+                    href={video.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-xs text-[#5f2ec8] underline hover:text-[#4f26a8]"
+                  >
+                    {video.url}
+                  </a>
+                ) : (
+                  <p className="text-xs text-[#b42318]">No URL</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {savedSection === "videos" ? (
+          <p className="mt-2 text-sm font-medium text-[#0d7b5f]">Saved</p>
+        ) : null}
       </div>
-    </section>
+
+      {/* ── BIO & WRITTEN RESPONSES ────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-[#d8cce9] bg-white p-3.5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold tracking-wide text-[#5f2ec8]">BIO & WRITTEN RESPONSES</h2>
+          {editButton("bio")}
+        </div>
+
+        {editingSection === "bio" ? (
+          <>
+            <div className="mt-4 space-y-4">
+              <Field label="Bio" htmlFor="bio">
+                <Textarea id="bio" rows={6} value={form.bio} onChange={(e) => updateField("bio", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Career Plans" htmlFor="career-plans">
+                <Textarea id="career-plans" rows={5} value={form.careerPlans} onChange={(e) => updateField("careerPlans", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Use of Scholarship Funds" htmlFor="scholarship-use">
+                <Textarea id="scholarship-use" rows={5} value={form.scholarshipUse} onChange={(e) => updateField("scholarshipUse", e.target.value)} className={inputCls} />
+              </Field>
+            </div>
+            <SectionActions
+              sectionKey="bio"
+              editingSection={editingSection}
+              isSaving={isSaving}
+              serverError={serverError}
+              onSave={() => void saveSectionFields("bio")}
+              onCancel={() => cancelSection("bio")}
+            />
+          </>
+        ) : (
+          <div className="mt-3 space-y-5">
+            <div>
+              <h3 className="mb-1.5 text-sm font-bold text-[#3d2d72]">Biography</h3>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#1e1538]">
+                {valueOrDash(form.bio)}
+              </p>
+            </div>
+            {form.careerPlans.trim() ? (
+              <div>
+                <h3 className="mb-1.5 text-sm font-bold text-[#3d2d72]">Career Plans</h3>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#1e1538]">
+                  {form.careerPlans}
+                </p>
+              </div>
+            ) : null}
+            {form.scholarshipUse.trim() ? (
+              <div>
+                <h3 className="mb-1.5 text-sm font-bold text-[#3d2d72]">Use of Scholarship Funds</h3>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#1e1538]">
+                  {form.scholarshipUse}
+                </p>
+              </div>
+            ) : null}
+            {savedSection === "bio" ? (
+              <p className="text-sm font-medium text-[#0d7b5f]">Saved</p>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {/* ── CONTACT & PERSONAL (collapsible) ─────────────────────────────────── */}
+      <Accordion sectionKey="contact" title="CONTACT & PERSONAL">
+        {editingSection === "contact" ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Applicant Name" htmlFor="applicant-name">
+                <Input id="applicant-name" value={form.applicantName} onChange={(e) => updateField("applicantName", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Applicant Email" htmlFor="applicant-email">
+                <Input id="applicant-email" type="email" value={form.applicantEmail} onChange={(e) => updateField("applicantEmail", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Chapter" htmlFor="chapter">
+                <Input id="chapter" value={form.chapter} onChange={(e) => updateField("chapter", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Voice Part / Division" htmlFor="voice-part">
+                <Input id="voice-part" value={form.voicePart} onChange={(e) => updateField("voicePart", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Date of Birth" htmlFor="date-of-birth">
+                <Input id="date-of-birth" type="date" value={form.dateOfBirth} onChange={(e) => updateField("dateOfBirth", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Gender" htmlFor="gender">
+                <Input id="gender" value={form.gender} onChange={(e) => updateField("gender", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Phone" htmlFor="phone">
+                <Input id="phone" value={form.phone} onChange={(e) => updateField("phone", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Address" htmlFor="address">
+                <Input id="address" value={form.address} onChange={(e) => updateField("address", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="City" htmlFor="city">
+                <Input id="city" value={form.city} onChange={(e) => updateField("city", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="State" htmlFor="state">
+                <Input id="state" value={form.state} onChange={(e) => updateField("state", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="ZIP" htmlFor="zip">
+                <Input id="zip" value={form.zip} onChange={(e) => updateField("zip", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Parent / Guardian Name" htmlFor="parent-name">
+                <Input id="parent-name" value={form.parentName} onChange={(e) => updateField("parentName", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Parent / Guardian Email" htmlFor="parent-email">
+                <Input id="parent-email" type="email" value={form.parentEmail} onChange={(e) => updateField("parentEmail", e.target.value)} className={inputCls} />
+              </Field>
+            </div>
+            <SectionActions
+              sectionKey="contact"
+              editingSection={editingSection}
+              isSaving={isSaving}
+              serverError={serverError}
+              onSave={() => void saveSectionFields("contact")}
+              onCancel={() => cancelSection("contact")}
+            />
+          </>
+        ) : (
+          <dl className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+            {[
+              { label: "Name", value: valueOrDash(form.applicantName) },
+              { label: "Email", value: valueOrDash(form.applicantEmail) },
+              { label: "Phone", value: formatTraditionalPhone(form.phone) },
+              { label: "Date of Birth", value: formatDate(form.dateOfBirth) },
+              {
+                label: "Address",
+                value: [form.address, form.city, form.state, form.zip].filter((p) => p?.trim()).join(", ") || "--",
+              },
+              { label: "Alt Contact", value: valueOrDash(altContact) },
+              { label: "Alt Phone / Email", value: formatPhoneOrEmail(altPhoneOrEmail) },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-[#9284b0]">{label}</dt>
+                <dd className="mt-0.5 text-sm text-[#1e1538]">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {intakeResourceUrls.length > 0 && editingSection !== "contact" ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {intakeResourceUrls.map((url, idx) => (
+              <a
+                key={`${url}-${idx}`}
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex rounded-lg border border-[#c7b6e5] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]"
+              >
+                Intake resource {idx + 1}
+              </a>
+            ))}
+          </div>
+        ) : null}
+      </Accordion>
+
+      {/* ── EDUCATION (collapsible) ───────────────────────────────────────────── */}
+      <Accordion sectionKey="education" title="EDUCATION">
+        {editingSection === "education" ? (
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="School Name" htmlFor="school-name">
+                <Input id="school-name" value={form.schoolName} onChange={(e) => updateField("schoolName", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="School City" htmlFor="school-city">
+                <Input id="school-city" value={form.schoolCity} onChange={(e) => updateField("schoolCity", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="School State" htmlFor="school-state">
+                <Input id="school-state" value={form.schoolState} onChange={(e) => updateField("schoolState", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="High School" htmlFor="high-school-name">
+                <Input id="high-school-name" value={form.highSchoolName} onChange={(e) => updateField("highSchoolName", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="College / University" htmlFor="college-name">
+                <Input id="college-name" value={form.collegeName} onChange={(e) => updateField("collegeName", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Major" htmlFor="major">
+                <Input id="major" value={form.major} onChange={(e) => updateField("major", e.target.value)} className={inputCls} />
+              </Field>
+            </div>
+            <SectionActions
+              sectionKey="education"
+              editingSection={editingSection}
+              isSaving={isSaving}
+              serverError={serverError}
+              onSave={() => void saveSectionFields("education")}
+              onCancel={() => cancelSection("education")}
+            />
+          </>
+        ) : (
+          <dl className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+            {[
+              { label: "College / University", value: valueOrDash(form.collegeName) },
+              { label: "Major", value: valueOrDash(form.major) },
+              { label: "High School", value: valueOrDash(form.highSchoolName) },
+              { label: "Enrollment Status", value: valueOrDash(schoolStatus) },
+              {
+                label: "School Location",
+                value: [form.schoolCity, form.schoolState].filter((p) => p?.trim()).join(", ") || "--",
+              },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-[#9284b0]">{label}</dt>
+                <dd className="mt-0.5 text-sm text-[#1e1538]">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </Accordion>
+
+      {/* ── DOCUMENTS & ELIGIBILITY (collapsible) ────────────────────────────── */}
+      <Accordion sectionKey="documents" title="DOCUMENTS & ELIGIBILITY">
+        {editingSection === "documents" ? (
+          <>
+            <p className="mb-3 text-xs text-[#9284b0]">
+              Stored values may be private blob references. Use the view links to inspect attached files.
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Headshot Reference / URL" htmlFor="headshot-url">
+                <Input id="headshot-url" value={form.headshotUrl} onChange={(e) => updateField("headshotUrl", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Citizenship / Residency Status" htmlFor="citizenship-status">
+                <Input id="citizenship-status" value={form.citizenshipStatus} onChange={(e) => updateField("citizenshipStatus", e.target.value)} className={inputCls} />
+              </Field>
+              <Field label="Citizenship Proof URL / Reference" htmlFor="citizenship-document-url">
+                <Input id="citizenship-document-url" value={form.citizenshipDocumentUrl} onChange={(e) => updateField("citizenshipDocumentUrl", e.target.value)} className={inputCls} />
+              </Field>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {viewUrls.headshot ? (
+                <a href={viewUrls.headshot} target="_blank" rel="noreferrer" className="inline-flex rounded-md border border-[#c7b6e5] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]">
+                  View headshot
+                </a>
+              ) : null}
+              {viewUrls.citizenshipDocument ? (
+                <a href={viewUrls.citizenshipDocument} target="_blank" rel="noreferrer" className="inline-flex rounded-md border border-[#c7b6e5] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]">
+                  View citizenship document
+                </a>
+              ) : null}
+            </div>
+            <SectionActions
+              sectionKey="documents"
+              editingSection={editingSection}
+              isSaving={isSaving}
+              serverError={serverError}
+              onSave={() => void saveSectionFields("documents")}
+              onCancel={() => cancelSection("documents")}
+            />
+          </>
+        ) : (
+          <>
+            <dl className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+              {[
+                { label: "Headshot", value: viewUrls.headshot ? "Photo on file" : "No headshot" },
+                { label: "Citizenship / Residency", value: valueOrDash(form.citizenshipStatus) },
+                { label: "Citizenship Proof", value: viewUrls.citizenshipDocument ? "Document on file" : "No document" },
+                { label: "Verification Status", value: citizenshipVerificationNote ?? "Not yet verified" },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-[#9284b0]">{label}</dt>
+                  <dd className="mt-0.5 text-sm text-[#1e1538]">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {viewUrls.headshot ? (
+                <a href={viewUrls.headshot} target="_blank" rel="noreferrer" className="inline-flex rounded-lg border border-[#c7b6e5] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]">
+                  View headshot
+                </a>
+              ) : null}
+              {viewUrls.citizenshipDocument ? (
+                <a href={viewUrls.citizenshipDocument} target="_blank" rel="noreferrer" className="inline-flex rounded-lg border border-[#c7b6e5] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]">
+                  View citizenship document
+                </a>
+              ) : null}
+            </div>
+            {mediaRelease ? (
+              <p className="mt-3 text-xs text-[#6d5b91]">
+                Media Release: {hasMediaConsent ? "Consented" : mediaRelease}
+              </p>
+            ) : null}
+          </>
+        )}
+      </Accordion>
+
+      {/* ── ADMIN NOTE (collapsible, hidden when empty and not editor) ─────────── */}
+      {form.adminNote.trim().length > 0 || canEdit ? (
+        <Accordion sectionKey="adminNote" title="ADMIN NOTE">
+          {editingSection === "adminNote" ? (
+            <>
+              <Field label="Note" htmlFor="admin-note">
+                <Textarea id="admin-note" rows={4} value={form.adminNote} onChange={(e) => updateField("adminNote", e.target.value)} className={inputCls} />
+              </Field>
+              <SectionActions
+                sectionKey="adminNote"
+                editingSection={editingSection}
+                isSaving={isSaving}
+                serverError={serverError}
+                onSave={() => void saveSectionFields("adminNote")}
+                onCancel={() => cancelSection("adminNote")}
+              />
+            </>
+          ) : (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#1e1538]">
+              {valueOrDash(form.adminNote)}
+            </p>
+          )}
+        </Accordion>
+      ) : null}
+    </div>
   );
 }

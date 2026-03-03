@@ -19,17 +19,26 @@ import { getDisplayHeadshot } from "@/lib/headshots";
 import BatchApplicationsTable from "@/components/applications/batch-applications-table";
 
 const STATUS_LABELS: Record<ApplicationStatus, string> = {
-  SUBMITTED_PENDING_APPROVAL: "Submitted — Pending Approval",
-  CHAPTER_ADJUDICATION: "Chapter Adjudication",
-  NATIONAL_FINALS: "National Finals",
-  SUBMITTED: "Submitted — Pending Approval",
-  CHAPTER_REVIEW: "Chapter Adjudication",
-  CHAPTER_APPROVED: "Chapter Approved",
-  CHAPTER_REJECTED: "Chapter Rejected",
-  NATIONAL_REVIEW: "National Finals",
-  NATIONAL_APPROVED: "National Approved",
-  NATIONAL_REJECTED: "National Rejected",
-  DECIDED: "Decided",
+  PENDING_APPROVAL: "Pending Approval",
+  CORRECTION_REQUIRED: "Correction Required",
+  APPROVED_FOR_CHAPTER_ADJUDICATION: "Approved for Chapter Adjudication",
+  PENDING_NATIONAL_ACCEPTANCE: "Chapter Winner - Advanced to National Adjudication (Pending Approval)",
+  APPROVED_FOR_NATIONAL_ADJUDICATION: "Approved for National Adjudication",
+  EXCLUDED: "Excluded",
+  ALTERNATE: "Alternate",
+  DID_NOT_ADVANCE: "Did Not Advance",
+  WITHDRAWN: "Withdrawn",
+  SUBMITTED_PENDING_APPROVAL: "Pending Approval",
+  CHAPTER_ADJUDICATION: "Approved for Chapter Adjudication",
+  NATIONAL_FINALS: "Approved for National Adjudication",
+  SUBMITTED: "Pending Approval",
+  CHAPTER_REVIEW: "Approved for Chapter Adjudication",
+  CHAPTER_APPROVED: "Chapter Winner - Advanced to National Adjudication (Pending Approval)",
+  CHAPTER_REJECTED: "Excluded",
+  NATIONAL_REVIEW: "Approved for National Adjudication",
+  NATIONAL_APPROVED: "Withdrawn",
+  NATIONAL_REJECTED: "Excluded",
+  DECIDED: "Withdrawn",
 };
 
 function formatDate(date: Date) {
@@ -84,30 +93,64 @@ function statusFilterClasses(status: ApplicationStatus | undefined, active: bool
       : "bg-[#fffdf5] border-[#e5d8ab] text-[#6b5a23] hover:bg-[#f9f2da]";
   }
 
-  if (status === "SUBMITTED_PENDING_APPROVAL" || status === "SUBMITTED") {
+  if (
+    status === "PENDING_APPROVAL" ||
+    status === "SUBMITTED_PENDING_APPROVAL" ||
+    status === "SUBMITTED"
+  ) {
     return active
       ? "bg-[#fff3cf] border-[#d1ab3f] text-[#7a5c10]"
       : "bg-[#fffaf0] border-[#eadbb0] text-[#7a5c10] hover:bg-[#fff3dc]";
   }
-  if (status === "CHAPTER_ADJUDICATION" || status === "CHAPTER_REVIEW") {
+  if (
+    status === "CORRECTION_REQUIRED"
+  ) {
+    return active
+      ? "bg-[#fff0df] border-[#d98c2f] text-[#925408]"
+      : "bg-[#fff8ee] border-[#edd1a6] text-[#925408] hover:bg-[#fff1e1]";
+  }
+  if (
+    status === "APPROVED_FOR_CHAPTER_ADJUDICATION" ||
+    status === "CHAPTER_ADJUDICATION" ||
+    status === "CHAPTER_REVIEW"
+  ) {
     return active
       ? "bg-[#e4efff] border-[#5b83d6] text-[#214f9b]"
       : "bg-[#f3f8ff] border-[#c8d9f7] text-[#305fae] hover:bg-[#e9f1ff]";
   }
-  if (status === "NATIONAL_FINALS" || status === "NATIONAL_REVIEW") {
+  if (status === "PENDING_NATIONAL_ACCEPTANCE" || status === "CHAPTER_APPROVED") {
+    return active
+      ? "bg-[#f4eeff] border-[#7e58c4] text-[#54329f]"
+      : "bg-[#fbf7ff] border-[#d9ccf2] text-[#5b3eab] hover:bg-[#f2e9ff]";
+  }
+  if (
+    status === "APPROVED_FOR_NATIONAL_ADJUDICATION" ||
+    status === "NATIONAL_FINALS" ||
+    status === "NATIONAL_REVIEW"
+  ) {
     return active
       ? "bg-[#efe8ff] border-[#7b5dc8] text-[#472d96]"
       : "bg-[#f7f2ff] border-[#d9ccf2] text-[#5b3eab] hover:bg-[#eee5ff]";
   }
-  if (status === "CHAPTER_REJECTED" || status === "NATIONAL_REJECTED") {
+  if (status === "EXCLUDED" || status === "CHAPTER_REJECTED" || status === "NATIONAL_REJECTED") {
     return active
       ? "bg-[#ffe6e6] border-[#dc6d6d] text-[#a22525]"
       : "bg-[#fff4f4] border-[#f0c6c6] text-[#a43b3b] hover:bg-[#ffeaea]";
   }
-  if (status === "CHAPTER_APPROVED" || status === "NATIONAL_APPROVED" || status === "DECIDED") {
+  if (status === "ALTERNATE") {
     return active
-      ? "bg-[#ddf5e6] border-[#57ad7a] text-[#1f6a3d]"
-      : "bg-[#f2fbf5] border-[#b7e3c8] text-[#2f7d4c] hover:bg-[#e8f7ee]";
+      ? "bg-[#e7fbf6] border-[#0b7c74] text-[#0b6a63]"
+      : "bg-[#f4fffd] border-[#b7e8de] text-[#0b6a63] hover:bg-[#ebfdf9]";
+  }
+  if (status === "DID_NOT_ADVANCE") {
+    return active
+      ? "bg-[#f0f3f8] border-[#96a0b2] text-[#505969]"
+      : "bg-[#f8fafc] border-[#d8dfe8] text-[#505969] hover:bg-[#f1f5f9]";
+  }
+  if (status === "WITHDRAWN" || status === "NATIONAL_APPROVED" || status === "DECIDED") {
+    return active
+      ? "bg-[#eef2f8] border-[#8892a6] text-[#485166]"
+      : "bg-[#f5f8fc] border-[#d7dde8] text-[#485166] hover:bg-[#edf2f8]";
   }
 
   return active

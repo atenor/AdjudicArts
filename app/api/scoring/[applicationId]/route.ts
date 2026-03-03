@@ -9,6 +9,10 @@ import {
   packScoreComment,
   upsertScore,
 } from "@/lib/db/scores";
+import {
+  replaceJudgePrizeSuggestions,
+  touchJudgeSubmissionDraft,
+} from "@/lib/db/governance";
 
 const scoreSchema = z.object({
   criteriaId: z.string().min(1),
@@ -19,6 +23,16 @@ const scoreSchema = z.object({
 const requestSchema = z.object({
   scores: z.array(scoreSchema).min(1),
   finalComment: z.string().optional().nullable(),
+  prizeSuggestions: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1),
+        amountCents: z.number().int().nonnegative().nullable().optional(),
+        comment: z.string().trim().nullable().optional(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export async function POST(
@@ -40,11 +54,26 @@ export async function POST(
     params.applicationId,
     session.user.id,
     session.user.organizationId,
-    session.user.role
+    session.user.role,
+    session.user.chapter
   );
 
   if (!scoringContext) {
     return Response.json({ error: "Application is not available for scoring" }, { status: 404 });
+  }
+
+  if (scoringContext.certification) {
+    return Response.json(
+      { error: "This round is certified and no further score edits are allowed." },
+      { status: 409 }
+    );
+  }
+
+  if (scoringContext.submission?.status === "FINALIZED") {
+    return Response.json(
+      { error: "This submission has been finalized and cannot be edited." },
+      { status: 409 }
+    );
   }
 
   let body: unknown;
@@ -90,6 +119,51 @@ export async function POST(
       })
     )
   );
+
+  const draftResult = await touchJudgeSubmissionDraft({
+    organizationId: session.user.organizationId,
+    eventId: scoringContext.application.event.id,
+    roundId: scoringContext.round.id,
+    applicationId: params.applicationId,
+    judgeId: session.user.id,
+  });
+
+  if (draftResult.reason !== "OK") {
+    return Response.json(
+      {
+        error:
+          draftResult.reason === "ROUND_CERTIFIED"
+            ? "This round is certified and no further score edits are allowed."
+            : "This submission has been finalized and cannot be edited.",
+      },
+      { status: 409 }
+    );
+  }
+
+  const suggestionResult = await replaceJudgePrizeSuggestions({
+    organizationId: session.user.organizationId,
+    eventId: scoringContext.application.event.id,
+    roundId: scoringContext.round.id,
+    applicationId: params.applicationId,
+    judgeId: session.user.id,
+    suggestions: parsed.data.prizeSuggestions.map((suggestion) => ({
+      label: suggestion.label,
+      amountCents: suggestion.amountCents ?? null,
+      comment: suggestion.comment ?? null,
+    })),
+  });
+
+  if (suggestionResult.reason !== "OK") {
+    return Response.json(
+      {
+        error:
+          suggestionResult.reason === "ROUND_CERTIFIED"
+            ? "This round is certified and no further prize suggestion edits are allowed."
+            : "This submission has been finalized and cannot be edited.",
+      },
+      { status: 409 }
+    );
+  }
 
   return Response.json({ success: true });
 }

@@ -10,28 +10,45 @@ import { ApplicationStatus } from "@prisma/client";
 import { getDisplayHeadshot } from "@/lib/headshots";
 
 const STATUS_MESSAGES: Record<ApplicationStatus, string> = {
+  PENDING_APPROVAL: "Your application has been received and is awaiting review.",
+  CORRECTION_REQUIRED:
+    "Your application needs a correction before it can be approved for adjudication.",
+  APPROVED_FOR_CHAPTER_ADJUDICATION:
+    "Your application has been approved for chapter adjudication.",
+  PENDING_NATIONAL_ACCEPTANCE:
+    "Your application has been selected as a chapter winner and is awaiting national approval.",
+  APPROVED_FOR_NATIONAL_ADJUDICATION:
+    "Your application has been accepted for national adjudication.",
+  EXCLUDED:
+    "Your application has been excluded from this cycle. If you believe this is in error, please contact the program and we will review it with you.",
+  ALTERNATE:
+    "Your application has been designated as an alternate and may still advance if space opens.",
+  DID_NOT_ADVANCE:
+    "Your application completed adjudication but was not selected to advance to the next round.",
+  WITHDRAWN:
+    "This application is no longer active in the current cycle.",
   SUBMITTED_PENDING_APPROVAL:
-    "Your application has been received and is awaiting approval.",
+    "Your application has been received and is awaiting review.",
   CHAPTER_ADJUDICATION:
-    "Your application is currently in chapter adjudication.",
+    "Your application has been approved for chapter adjudication.",
   NATIONAL_FINALS:
-    "Your application has advanced to national finals.",
+    "Your application has been accepted for national adjudication.",
   SUBMITTED:
-    "Your application has been received and is awaiting approval.",
+    "Your application has been received and is awaiting review.",
   CHAPTER_REVIEW:
-    "Your application is currently in chapter adjudication.",
+    "Your application has been approved for chapter adjudication.",
   CHAPTER_APPROVED:
-    "Congratulations! Your application has been approved to advance to national finals.",
+    "Your application has been selected as a chapter winner and is awaiting national approval.",
   CHAPTER_REJECTED:
-    "Thank you for applying. Unfortunately your application was not selected to advance at this time.",
+    "Your application has been excluded from this cycle. If you believe this is in error, please contact the program and we will review it with you.",
   NATIONAL_REVIEW:
-    "Your application is currently in national finals adjudication.",
+    "Your application has been accepted for national adjudication.",
   NATIONAL_APPROVED:
-    "Congratulations! Your application has been approved.",
+    "This application is no longer active in the current cycle.",
   NATIONAL_REJECTED:
-    "Thank you for applying. Unfortunately your application was not selected.",
+    "Your application has been excluded from this cycle. If you believe this is in error, please contact the program and we will review it with you.",
   DECIDED:
-    "A final decision has been made. Please check your email for details.",
+    "This application is no longer active in the current cycle.",
 };
 
 type StepState = "complete" | "active" | "pending" | "rejected";
@@ -43,13 +60,53 @@ interface Step {
 
 function getSteps(status: ApplicationStatus): Step[] {
   const steps: Step[] = [
-    { label: "Submitted — Pending Approval", state: "pending" },
-    { label: "Chapter Adjudication", state: "pending" },
-    { label: "National Finals", state: "pending" },
-    { label: "Decision", state: "pending" },
+    { label: "Pending Approval", state: "pending" },
+    { label: "Approved for Chapter Adjudication", state: "pending" },
+    { label: "Chapter Winner - Advanced to National Adjudication (Pending Approval)", state: "pending" },
+    { label: "Approved for National Adjudication", state: "pending" },
   ];
 
   switch (status) {
+    case "PENDING_APPROVAL":
+      steps[0].state = "active";
+      break;
+    case "CORRECTION_REQUIRED":
+      steps[0].state = "complete";
+      steps[1].state = "rejected";
+      break;
+    case "APPROVED_FOR_CHAPTER_ADJUDICATION":
+      steps[0].state = "complete";
+      steps[1].state = "active";
+      break;
+    case "PENDING_NATIONAL_ACCEPTANCE":
+      steps[0].state = "complete";
+      steps[1].state = "complete";
+      steps[2].state = "active";
+      break;
+    case "APPROVED_FOR_NATIONAL_ADJUDICATION":
+      steps[0].state = "complete";
+      steps[1].state = "complete";
+      steps[2].state = "complete";
+      steps[3].state = "active";
+      break;
+    case "EXCLUDED":
+      steps[0].state = "complete";
+      steps[1].state = "rejected";
+      break;
+    case "ALTERNATE":
+      steps[0].state = "complete";
+      steps[1].state = "complete";
+      steps[2].state = "active";
+      break;
+    case "WITHDRAWN":
+      steps[0].state = "complete";
+      steps[3].state = "rejected";
+      break;
+    case "DID_NOT_ADVANCE":
+      steps[0].state = "complete";
+      steps[1].state = "complete";
+      steps[2].state = "rejected";
+      break;
     case "SUBMITTED_PENDING_APPROVAL":
       steps[0].state = "active";
       break;
@@ -60,7 +117,8 @@ function getSteps(status: ApplicationStatus): Step[] {
     case "NATIONAL_FINALS":
       steps[0].state = "complete";
       steps[1].state = "complete";
-      steps[2].state = "active";
+      steps[2].state = "complete";
+      steps[3].state = "active";
       break;
     case "SUBMITTED":
       steps[0].state = "active";
@@ -72,36 +130,28 @@ function getSteps(status: ApplicationStatus): Step[] {
     case "CHAPTER_APPROVED":
       steps[0].state = "complete";
       steps[1].state = "complete";
-      steps[2].state = "pending";
+      steps[2].state = "active";
       break;
     case "CHAPTER_REJECTED":
       steps[0].state = "complete";
       steps[1].state = "rejected";
-      steps[2].state = "pending";
-      steps[3].state = "pending";
       break;
     case "NATIONAL_REVIEW":
       steps[0].state = "complete";
       steps[1].state = "complete";
-      steps[2].state = "active";
+      steps[2].state = "complete";
+      steps[3].state = "active";
       break;
     case "NATIONAL_APPROVED":
-      steps[0].state = "complete";
-      steps[1].state = "complete";
-      steps[2].state = "complete";
-      steps[3].state = "pending";
+      steps[3].state = "rejected";
       break;
     case "NATIONAL_REJECTED":
       steps[0].state = "complete";
       steps[1].state = "complete";
-      steps[2].state = "rejected";
-      steps[3].state = "pending";
+      steps[3].state = "rejected";
       break;
     case "DECIDED":
-      steps[0].state = "complete";
-      steps[1].state = "complete";
-      steps[2].state = "complete";
-      steps[3].state = "complete";
+      steps[3].state = "rejected";
       break;
   }
 

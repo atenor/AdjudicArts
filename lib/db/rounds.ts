@@ -6,6 +6,7 @@ export async function createRound(data: {
   eventId: string;
   name: string;
   type: RoundType;
+  advancementSlots?: number;
   startAt?: Date;
   endAt?: Date;
 }) {

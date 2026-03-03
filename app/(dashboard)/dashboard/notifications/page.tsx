@@ -67,7 +67,7 @@ export default async function NotificationsPage() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-[#1e1538]">Notifications</h1>
         <Link
-          href="/dashboard/applications?status=SUBMITTED_PENDING_APPROVAL"
+          href="/dashboard/applications?status=PENDING_APPROVAL"
           className="rounded-full border border-[#c7b7e5] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#4a3d6b] hover:bg-[#f4effb]"
         >
           Open Pending Approval List

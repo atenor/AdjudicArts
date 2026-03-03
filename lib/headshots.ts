@@ -1,3 +1,5 @@
+import { getPrivateBlobHeadshotUrl, isPrivateBlobRef } from "@/lib/blob-refs";
+
 const FALLBACK_HEADSHOTS = [
   "/headshots/sample-aria-1.jpg",
   "/headshots/sample-aria-2.jpg",
@@ -57,6 +59,9 @@ export function getFallbackHeadshot(seed: string) {
 export function getDisplayHeadshot(headshot: string | null | undefined, seed: string) {
   if (!headshot || headshot.trim().length === 0) {
     return getFallbackHeadshot(seed);
+  }
+  if (isPrivateBlobRef(headshot)) {
+    return getPrivateBlobHeadshotUrl(seed);
   }
   return toHighResHeadshotUrl(headshot);
 }

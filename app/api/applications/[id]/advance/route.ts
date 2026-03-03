@@ -59,6 +59,15 @@ export async function POST(
       { status: 409 }
     );
   }
+  if (result.reason === "CHAPTERS_UNRESOLVED") {
+    return Response.json(
+      {
+        error:
+          "National adjudication cannot begin until all chapter applicants are resolved, unless a national override reason is provided.",
+      },
+      { status: 409 }
+    );
+  }
   if (result.reason === "NOT_FOUND") {
     return Response.json({ error: "Not found" }, { status: 404 });
   }

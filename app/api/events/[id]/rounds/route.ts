@@ -13,6 +13,7 @@ const createRoundSchema = z.object({
   type: z.nativeEnum(RoundType),
   startAt: z.string().datetime({ offset: true }).optional().nullable(),
   endAt: z.string().datetime({ offset: true }).optional().nullable(),
+  advancementSlots: z.number().int().positive().optional().nullable(),
 });
 
 export async function POST(
@@ -47,7 +48,7 @@ export async function POST(
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const { name, type, startAt, endAt } = parsed.data;
+  const { name, type, startAt, endAt, advancementSlots } = parsed.data;
 
   const round = await createRound({
     organizationId: session.user.organizationId,
@@ -56,6 +57,7 @@ export async function POST(
     type,
     startAt: startAt ? new Date(startAt) : undefined,
     endAt: endAt ? new Date(endAt) : undefined,
+    advancementSlots: advancementSlots ?? undefined,
   });
 
   return Response.json(round, { status: 201 });

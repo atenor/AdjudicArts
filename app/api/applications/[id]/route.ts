@@ -13,8 +13,32 @@ import {
 
 const patchSchema = z.object({
   applicantName: z.string().trim().min(1).optional(),
+  applicantEmail: z.string().trim().email().optional(),
   chapter: z.string().trim().min(1).optional(),
+  dateOfBirth: z.string().trim().optional(),
+  gender: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+  state: z.string().trim().optional(),
+  zip: z.string().trim().optional(),
+  schoolName: z.string().trim().optional(),
+  schoolCity: z.string().trim().optional(),
+  schoolState: z.string().trim().optional(),
+  highSchoolName: z.string().trim().optional(),
+  collegeName: z.string().trim().optional(),
+  major: z.string().trim().optional(),
+  bio: z.string().trim().optional(),
+  careerPlans: z.string().trim().optional(),
+  scholarshipUse: z.string().trim().optional(),
+  parentName: z.string().trim().optional(),
+  parentEmail: z.string().trim().optional(),
+  headshotUrl: z.string().trim().optional(),
+  voicePart: z.string().trim().optional(),
+  citizenshipStatus: z.string().trim().optional(),
+  citizenshipDocumentUrl: z.string().trim().optional(),
   citizenshipVerified: z.boolean().optional(),
+  repertoire: z.string().trim().optional(),
   adminNote: z.string().trim().optional(),
   video1Title: z.string().trim().optional(),
   video1Url: z.string().trim().optional(),
@@ -114,15 +138,6 @@ export async function PATCH(
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const canEditChapter =
-    session.user.role === "ADMIN" || session.user.role === "NATIONAL_CHAIR";
-  if (typeof parsed.data.chapter !== "undefined" && !canEditChapter) {
-    return Response.json(
-      { error: "Only Admin/National Chair can reassign chapter." },
-      { status: 403 }
-    );
-  }
-
   const visibleApplication = await getApplicationById(
     params.id,
     session.user.organizationId,
@@ -139,8 +154,37 @@ export async function PATCH(
     id: params.id,
     organizationId: session.user.organizationId,
     applicantName: parsed.data.applicantName,
+    applicantEmail: parsed.data.applicantEmail,
     chapter: parsed.data.chapter,
+    dateOfBirth:
+      typeof parsed.data.dateOfBirth !== "undefined"
+        ? parsed.data.dateOfBirth
+          ? new Date(parsed.data.dateOfBirth)
+          : null
+        : undefined,
+    gender: parsed.data.gender,
+    phone: parsed.data.phone,
+    address: parsed.data.address,
+    city: parsed.data.city,
+    state: parsed.data.state,
+    zip: parsed.data.zip,
+    schoolName: parsed.data.schoolName,
+    schoolCity: parsed.data.schoolCity,
+    schoolState: parsed.data.schoolState,
+    highSchoolName: parsed.data.highSchoolName,
+    collegeName: parsed.data.collegeName,
+    major: parsed.data.major,
+    bio: parsed.data.bio,
+    careerPlans: parsed.data.careerPlans,
+    scholarshipUse: parsed.data.scholarshipUse,
+    parentName: parsed.data.parentName,
+    parentEmail: parsed.data.parentEmail,
+    headshotUrl: parsed.data.headshotUrl,
+    voicePart: parsed.data.voicePart,
+    citizenshipStatus: parsed.data.citizenshipStatus,
+    citizenshipDocumentUrl: parsed.data.citizenshipDocumentUrl,
     citizenshipVerified: parsed.data.citizenshipVerified,
+    repertoire: parsed.data.repertoire,
     adminNote: parsed.data.adminNote,
     video1Title: parsed.data.video1Title,
     video1Url: parsed.data.video1Url,

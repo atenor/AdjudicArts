@@ -1,27 +1,14 @@
 export const dynamic = 'force-dynamic';
 
-import { z } from "zod";
 import {
   getPublicEventForApply,
   createPublicApplication,
+  findPriorDivisionFirstPlace,
   hasExistingApplication,
 } from "@/lib/db/applications";
 import { EventStatus } from "@prisma/client";
 import { sendApplicationConfirmation } from "@/lib/email";
-
-const applySchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Valid email required"),
-  voicePart: z.enum(["soprano", "mezzo", "tenor", "baritone", "bass"] as const),
-  repertoire: z.string().min(1, "Repertoire is required"),
-  videoUrl1: z.string().url().optional().or(z.literal("")),
-  videoUrl2: z.string().url().optional().or(z.literal("")),
-  videoUrl3: z.string().url().optional().or(z.literal("")),
-  headshotUrl: z.string().url().optional().or(z.literal("")),
-  citizenshipDocumentUrl: z.string().url().optional().or(z.literal("")),
-  resourceUrl1: z.string().url().optional().or(z.literal("")),
-  resourceUrl2: z.string().url().optional().or(z.literal("")),
-});
+import { applicantIntakeSchema } from "@/lib/validation/apply";
 
 export async function POST(
   request: Request,
@@ -47,7 +34,7 @@ export async function POST(
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const parsed = applySchema.safeParse(body);
+  const parsed = applicantIntakeSchema.safeParse(body);
   if (!parsed.success) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
   }
@@ -55,15 +42,38 @@ export async function POST(
   const {
     name,
     email,
+    dateOfBirth,
+    gender,
+    phone,
+    address,
+    city,
+    state,
+    zip,
+    chapter,
+    schoolName,
+    schoolCity,
+    schoolState,
+    highSchoolName,
+    collegeName,
+    major,
     voicePart,
-    repertoire,
-    videoUrl1,
-    videoUrl2,
-    videoUrl3,
+    video1Title,
+    video1Url,
+    video2Title,
+    video2Url,
+    video3Title,
+    video3Url,
     headshotUrl,
+    bio,
+    careerPlans,
+    scholarshipUse,
+    parentName,
+    parentEmail,
+    citizenshipStatus,
     citizenshipDocumentUrl,
-    resourceUrl1,
-    resourceUrl2,
+    mediaRelease,
+    acceptPrivacyPolicy,
+    acceptTerms,
   } =
     parsed.data;
 
@@ -75,21 +85,59 @@ export async function POST(
     );
   }
 
+  const priorDivisionWin = await findPriorDivisionFirstPlace({
+    organizationId: event.organizationId,
+    currentEventId: event.id,
+    email,
+    dateOfBirth: new Date(dateOfBirth),
+  });
+
+  if (priorDivisionWin) {
+    return Response.json(
+      {
+        error: `Previous first-place winners may not compete again in Division ${priorDivisionWin.division}. Prior result: ${priorDivisionWin.eventName}.`,
+      },
+      { status: 409 }
+    );
+  }
+
   const application = await createPublicApplication({
     eventId: event.id,
     organizationId: event.organizationId,
     name,
     email,
+    chapter,
+    dateOfBirth: new Date(dateOfBirth),
+    gender: gender || null,
     voicePart,
-    repertoire,
-    videoUrls: [videoUrl1, videoUrl2, videoUrl3].filter(
-      (url): url is string => Boolean(url && url.length > 0)
-    ),
+    phone,
+    address,
+    city,
+    state,
+    zip,
+    schoolName: schoolName || null,
+    schoolCity: schoolCity || null,
+    schoolState: schoolState || null,
+    highSchoolName: highSchoolName || null,
+    collegeName: collegeName || null,
+    major: major || null,
+    video1Title,
+    video1Url,
+    video2Title,
+    video2Url,
+    video3Title,
+    video3Url,
     headshotUrl: headshotUrl || null,
+    bio,
+    careerPlans,
+    scholarshipUse,
+    parentName: parentName || null,
+    parentEmail: parentEmail || null,
+    citizenshipStatus,
     citizenshipDocumentUrl: citizenshipDocumentUrl || null,
-    resourceUrls: [resourceUrl1, resourceUrl2].filter(
-      (url): url is string => Boolean(url && url.length > 0)
-    ),
+    mediaRelease,
+    acceptPrivacyPolicy,
+    acceptTerms,
   });
 
   const statusUrl = `${process.env.NEXTAUTH_URL ?? ""}/status/${application.id}`;

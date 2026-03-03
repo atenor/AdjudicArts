@@ -739,20 +739,20 @@ export default function MarketingHomepage() {
               tier="Starter" name="Chapter" price="49"
               desc="For smaller organizations running a single annual competition."
               features={['1 active event','Up to 75 applicants','Up to 5 judges','Custom scoring rubric','Email notifications','CSV export']}
-              ctaText="Get Started" ctaHref="#"
+              ctaText="Get Started" ctaHref="/signup"
             />
             <PricingCard
               tier="Professional" name="Regional" price="99"
               desc="For regional organizations managing multiple rounds with larger panels."
               features={['3 concurrent events','Up to 200 applicants','Unlimited judges','Multi-round management','Video integration','CSV import','Priority support']}
-              ctaText="Start Free Trial" ctaHref="#"
+              ctaText="Start Free Trial" ctaHref="/signup"
               featured badge="Most Popular"
             />
             <PricingCard
               tier="Enterprise" name="National" price="249"
               desc="For national organizations across multiple chapters and disciplines."
               features={['Unlimited events','Unlimited applicants','Multi-org management','Custom rubric per event','White-label option','Dedicated onboarding']}
-              ctaText="Contact Us" ctaHref="#"
+              ctaText="Contact Us" ctaHref="/contact"
             />
           </div>
         </div>
@@ -767,7 +767,7 @@ export default function MarketingHomepage() {
           <h2 className={styles.ctaH2}>Your next competition<br />starts <em>here.</em></h2>
           <p className={styles.ctaP}>Set up in an afternoon. Running by tomorrow. Your panel will thank you.</p>
           <div className={styles.ctaBtns}>
-            <Link href="#" className={styles.btnCtaWhite}>Get Started →</Link>
+            <Link href="/signup" className={styles.btnCtaWhite}>Get Started →</Link>
             <Link href="/login" className={styles.btnCtaGhost}>Sign In</Link>
           </div>
         </div>
@@ -778,9 +778,9 @@ export default function MarketingHomepage() {
         <div className={`${styles.footerLogo} cormorant`}>Adjudic<span>arts</span></div>
         <div className={styles.footerCopy}>© 2026 AdjudicArts. Built for the adjudication world.</div>
         <div className={styles.footerLinks}>
-          <Link href="#">Privacy</Link>
-          <Link href="#">Terms</Link>
-          <Link href="#">Support</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/contact">Support</Link>
           <Link href="/login">Sign In</Link>
         </div>
       </footer>

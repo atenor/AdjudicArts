@@ -32,7 +32,7 @@ function formatDate(date: Date | null) {
 export default async function EventsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (!hasRole(session, "ADMIN", "NATIONAL_CHAIR")) redirect("/dashboard");
+  if (!hasRole(session, "ADMIN", "NATIONAL_CHAIR", "CHAPTER_CHAIR")) redirect("/dashboard");
 
   const events = await listEventsByOrg(session.user.organizationId);
 
@@ -40,9 +40,11 @@ export default async function EventsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Events</h1>
-        <Button asChild>
-          <Link href="/dashboard/events/new">New Event</Link>
-        </Button>
+        {hasRole(session, "ADMIN", "NATIONAL_CHAIR") ? (
+          <Button asChild>
+            <Link href="/dashboard/events/new">New Event</Link>
+          </Button>
+        ) : null}
       </div>
 
       {events.length === 0 ? (

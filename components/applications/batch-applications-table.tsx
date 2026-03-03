@@ -24,36 +24,57 @@ type ApplicationRow = {
 
 function statusSurface(status: ApplicationStatus) {
   switch (status) {
+    case "PENDING_APPROVAL":
+    case "CORRECTION_REQUIRED":
     case "SUBMITTED_PENDING_APPROVAL":
     case "SUBMITTED":
       return {
         card: "border-[#e4c56f] bg-[#fffef7]",
         list: "odd:bg-[#fffef7] even:bg-[#fffbee] hover:!bg-[#fff6d8]",
       };
+    case "APPROVED_FOR_CHAPTER_ADJUDICATION":
     case "CHAPTER_ADJUDICATION":
     case "CHAPTER_REVIEW":
       return {
         card: "border-[#b8caef] bg-[#f7faff]",
         list: "odd:bg-[#f7faff] even:bg-[#f1f6ff] hover:!bg-[#e6efff]",
       };
+    case "PENDING_NATIONAL_ACCEPTANCE":
+      return {
+        card: "border-[#d9ccf2] bg-[#fcf9ff]",
+        list: "odd:bg-[#fcf9ff] even:bg-[#f8f2ff] hover:!bg-[#eee4ff]",
+      };
+    case "APPROVED_FOR_NATIONAL_ADJUDICATION":
     case "NATIONAL_FINALS":
     case "NATIONAL_REVIEW":
       return {
         card: "border-[#d4c8f2] bg-[#faf7ff]",
         list: "odd:bg-[#faf7ff] even:bg-[#f4eeff] hover:!bg-[#ece2ff]",
       };
+    case "EXCLUDED":
     case "CHAPTER_REJECTED":
     case "NATIONAL_REJECTED":
       return {
         card: "border-[#efc7c7] bg-[#fff7f7]",
         list: "odd:bg-[#fff8f8] even:bg-[#fff2f2] hover:!bg-[#ffe7e7]",
       };
+    case "ALTERNATE":
+      return {
+        card: "border-[#b9e7df] bg-[#f5fffd]",
+        list: "odd:bg-[#f5fffd] even:bg-[#effcf9] hover:!bg-[#e1f7f2]",
+      };
+    case "DID_NOT_ADVANCE":
+      return {
+        card: "border-[#d7dde8] bg-[#f7f9fc]",
+        list: "odd:bg-[#f7f9fc] even:bg-[#f0f4f8] hover:!bg-[#e7edf5]",
+      };
+    case "WITHDRAWN":
     case "CHAPTER_APPROVED":
     case "NATIONAL_APPROVED":
     case "DECIDED":
       return {
-        card: "border-[#c6e7d2] bg-[#f7fffa]",
-        list: "odd:bg-[#f7fffa] even:bg-[#f0fcf4] hover:!bg-[#e4f7ea]",
+        card: "border-[#d7dde8] bg-[#f7f9fc]",
+        list: "odd:bg-[#f7f9fc] even:bg-[#f0f4f8] hover:!bg-[#e7edf5]",
       };
     default:
       return {

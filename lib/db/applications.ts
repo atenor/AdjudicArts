@@ -1,27 +1,58 @@
 import { prisma } from "@/lib/prisma";
-import { ApplicationStatus, Prisma, Role } from "@prisma/client";
+import { ApplicationStatus, Prisma, Role, RoundType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { buildApplicationMetadata } from "@/lib/application-metadata";
+import { getRankedResultsForRound } from "@/lib/db/results";
+import { resolveApplicationDivision } from "@/lib/application-division";
 
 export const PENDING_APPROVAL_STATUSES: ApplicationStatus[] = [
+  "PENDING_APPROVAL",
   "SUBMITTED_PENDING_APPROVAL",
   "SUBMITTED",
 ];
 
+export const CORRECTION_REQUIRED_STATUSES: ApplicationStatus[] = [
+  "CORRECTION_REQUIRED",
+];
+
 export const CHAPTER_ADJUDICATION_STATUSES: ApplicationStatus[] = [
+  "APPROVED_FOR_CHAPTER_ADJUDICATION",
   "CHAPTER_ADJUDICATION",
   "CHAPTER_REVIEW",
 ];
 
 export const NATIONAL_FINALS_STATUSES: ApplicationStatus[] = [
+  "APPROVED_FOR_NATIONAL_ADJUDICATION",
   "NATIONAL_FINALS",
   "NATIONAL_REVIEW",
 ];
 
+export const PENDING_NATIONAL_ACCEPTANCE_STATUSES: ApplicationStatus[] = [
+  "PENDING_NATIONAL_ACCEPTANCE",
+  "CHAPTER_APPROVED",
+];
+
+export const NON_SCORING_TERMINAL_STATUSES: ApplicationStatus[] = [
+  "EXCLUDED",
+  "ALTERNATE",
+  "DID_NOT_ADVANCE",
+  "WITHDRAWN",
+  "CHAPTER_REJECTED",
+  "NATIONAL_REJECTED",
+  "NATIONAL_APPROVED",
+  "DECIDED",
+];
+
 const NON_FORWARD_STATUSES: ApplicationStatus[] = [
+  "PENDING_APPROVAL",
+  "CORRECTION_REQUIRED",
   "SUBMITTED_PENDING_APPROVAL",
   "SUBMITTED",
+  "EXCLUDED",
+  "ALTERNATE",
+  "DID_NOT_ADVANCE",
+  "WITHDRAWN",
   "CHAPTER_REJECTED",
   "NATIONAL_REJECTED",
 ];
@@ -95,6 +126,15 @@ function isInStatusSet(status: ApplicationStatus, statuses: ApplicationStatus[])
 export function getAllowedApplicationStatusesForRole(role: Role): ApplicationStatus[] {
   if (role === "ADMIN" || role === "NATIONAL_CHAIR") {
     return [
+      "PENDING_APPROVAL",
+      "CORRECTION_REQUIRED",
+      "APPROVED_FOR_CHAPTER_ADJUDICATION",
+      "PENDING_NATIONAL_ACCEPTANCE",
+      "APPROVED_FOR_NATIONAL_ADJUDICATION",
+      "ALTERNATE",
+      "DID_NOT_ADVANCE",
+      "EXCLUDED",
+      "WITHDRAWN",
       "SUBMITTED_PENDING_APPROVAL",
       "CHAPTER_ADJUDICATION",
       "NATIONAL_FINALS",
@@ -109,7 +149,16 @@ export function getAllowedApplicationStatusesForRole(role: Role): ApplicationSta
     ];
   }
   if (role === "CHAPTER_CHAIR") {
-    return [...PENDING_APPROVAL_STATUSES, ...CHAPTER_ADJUDICATION_STATUSES];
+    return [
+      ...PENDING_APPROVAL_STATUSES,
+      ...CORRECTION_REQUIRED_STATUSES,
+      ...CHAPTER_ADJUDICATION_STATUSES,
+      ...PENDING_NATIONAL_ACCEPTANCE_STATUSES,
+      "ALTERNATE",
+      "DID_NOT_ADVANCE",
+      "EXCLUDED",
+      "WITHDRAWN",
+    ];
   }
   if (role === "CHAPTER_JUDGE") {
     return [...CHAPTER_ADJUDICATION_STATUSES];
@@ -129,15 +178,14 @@ export function canViewApplicationByRole(input: {
   if (input.role === "ADMIN" || input.role === "NATIONAL_CHAIR") return true;
 
   if (input.role === "CHAPTER_CHAIR") {
-    if (isInStatusSet(input.status, CHAPTER_ADJUDICATION_STATUSES)) return true;
-    if (isInStatusSet(input.status, PENDING_APPROVAL_STATUSES)) {
-      return isChapterMatch(input.applicationChapter, input.userChapter);
-    }
-    return false;
+    return isChapterMatch(input.applicationChapter, input.userChapter);
   }
 
   if (input.role === "CHAPTER_JUDGE") {
-    return isInStatusSet(input.status, CHAPTER_ADJUDICATION_STATUSES);
+    return (
+      isChapterMatch(input.applicationChapter, input.userChapter) &&
+      isInStatusSet(input.status, CHAPTER_ADJUDICATION_STATUSES)
+    );
   }
 
   if (input.role === "NATIONAL_JUDGE") {
@@ -176,9 +224,13 @@ function buildVisibilityWhere(input: {
     if (statusFilter && !isInStatusSet(statusFilter, CHAPTER_ADJUDICATION_STATUSES)) {
       return { id: "__none__" };
     }
+    if (!normalizeChapter(input.userChapter)) {
+      return { id: "__none__" };
+    }
+    const chapterWhere = buildChapterFilterWhere(input.userChapter ?? "");
     return statusFilter
-      ? { status: statusFilter }
-      : { status: { in: CHAPTER_ADJUDICATION_STATUSES } };
+      ? { AND: [{ status: statusFilter }, chapterWhere] }
+      : { AND: [{ status: { in: CHAPTER_ADJUDICATION_STATUSES } }, chapterWhere] };
   }
 
   if (input.role === "NATIONAL_JUDGE") {
@@ -192,33 +244,22 @@ function buildVisibilityWhere(input: {
 
   if (input.role === "CHAPTER_CHAIR") {
     const normalizedUserChapter = normalizeChapter(input.userChapter);
-    const chapterPendingWhere = normalizedUserChapter
+    const chapterWhere = normalizedUserChapter
       ? buildChapterFilterWhere(input.userChapter ?? "")
       : { id: "__none__" };
 
+    if (!normalizedUserChapter) return { id: "__none__" };
+
     if (statusFilter) {
-      if (isInStatusSet(statusFilter, CHAPTER_ADJUDICATION_STATUSES)) {
-        return { status: statusFilter };
-      }
-      if (isInStatusSet(statusFilter, PENDING_APPROVAL_STATUSES)) {
-        if (!normalizedUserChapter) return { id: "__none__" };
-        return { status: statusFilter, ...chapterPendingWhere };
-      }
-      return { id: "__none__" };
+      return {
+        AND: [
+          { status: statusFilter },
+          chapterWhere,
+        ],
+      };
     }
 
-    const clauses: Prisma.ApplicationWhereInput[] = [
-      { status: { in: CHAPTER_ADJUDICATION_STATUSES } },
-    ];
-
-    if (normalizedUserChapter) {
-      clauses.push({
-        status: { in: PENDING_APPROVAL_STATUSES },
-        ...chapterPendingWhere,
-      });
-    }
-
-    return { OR: clauses };
+    return chapterWhere;
   }
 
   return { id: "__none__" };
@@ -235,27 +276,51 @@ export function canAdvanceApplicationStatusByRole(input: {
     return true;
   }
 
-  const fromPending = isInStatusSet(input.currentStatus, PENDING_APPROVAL_STATUSES);
-  if (!fromPending) {
+  if (input.role !== "CHAPTER_CHAIR") {
     return false;
   }
 
-  const isPendingApprovalAction =
-    input.nextStatus === "CHAPTER_ADJUDICATION" ||
-    input.nextStatus === "CHAPTER_REJECTED" ||
-    input.nextStatus === "SUBMITTED_PENDING_APPROVAL";
-
-  if (!isPendingApprovalAction) return false;
-  if (input.role === "CHAPTER_CHAIR") {
-    return isChapterMatch(input.applicationChapter, input.userChapter);
+  if (!isChapterMatch(input.applicationChapter, input.userChapter)) {
+    return false;
   }
+
+  if (
+    isInStatusSet(input.currentStatus, PENDING_APPROVAL_STATUSES) ||
+    isInStatusSet(input.currentStatus, CORRECTION_REQUIRED_STATUSES)
+  ) {
+    return (
+      input.nextStatus === "PENDING_APPROVAL" ||
+      input.nextStatus === "CORRECTION_REQUIRED" ||
+      input.nextStatus === "APPROVED_FOR_CHAPTER_ADJUDICATION" ||
+      input.nextStatus === "DID_NOT_ADVANCE" ||
+      input.nextStatus === "EXCLUDED" ||
+      input.nextStatus === "WITHDRAWN"
+    );
+  }
+
+  if (isInStatusSet(input.currentStatus, CHAPTER_ADJUDICATION_STATUSES)) {
+    return (
+      input.nextStatus === "PENDING_NATIONAL_ACCEPTANCE" ||
+      input.nextStatus === "ALTERNATE" ||
+      input.nextStatus === "DID_NOT_ADVANCE" ||
+      input.nextStatus === "EXCLUDED" ||
+      input.nextStatus === "WITHDRAWN"
+    );
+  }
+
+  if (isInStatusSet(input.currentStatus, PENDING_NATIONAL_ACCEPTANCE_STATUSES)) {
+    return (
+      input.nextStatus === "ALTERNATE" ||
+      input.nextStatus === "DID_NOT_ADVANCE" ||
+      input.nextStatus === "EXCLUDED"
+    );
+  }
+
   return false;
 }
 
 const FORWARD_TO_NATIONALS_ELIGIBLE_STATUSES: ApplicationStatus[] = [
-  ...PENDING_APPROVAL_STATUSES,
   ...CHAPTER_ADJUDICATION_STATUSES,
-  "CHAPTER_APPROVED",
 ];
 
 export function canForwardApplicationToNationalsByRole(input: {
@@ -264,14 +329,6 @@ export function canForwardApplicationToNationalsByRole(input: {
   applicationChapter?: string | null;
   userChapter?: string | null;
 }) {
-  if (
-    input.role !== "ADMIN" &&
-    input.role !== "NATIONAL_CHAIR" &&
-    input.role !== "CHAPTER_CHAIR"
-  ) {
-    return false;
-  }
-
   if (!FORWARD_TO_NATIONALS_ELIGIBLE_STATUSES.includes(input.currentStatus)) {
     return false;
   }
@@ -280,12 +337,11 @@ export function canForwardApplicationToNationalsByRole(input: {
     return true;
   }
 
-  return canViewApplicationByRole({
-    role: input.role,
-    status: input.currentStatus,
-    applicationChapter: input.applicationChapter,
-    userChapter: input.userChapter,
-  });
+  if (input.role === "CHAPTER_CHAIR") {
+    return isChapterMatch(input.applicationChapter, input.userChapter);
+  }
+
+  return false;
 }
 
 export async function getPublicEventForApply(eventId: string) {
@@ -301,17 +357,199 @@ export async function getPublicEventForApply(eventId: string) {
   });
 }
 
+export async function listPublicApplicationChapters(organizationId: string) {
+  const [applicationRows, userRows] = await Promise.all([
+    prisma.application.findMany({
+      where: {
+        organizationId,
+        chapter: {
+          not: null,
+        },
+      },
+      select: {
+        chapter: true,
+      },
+      distinct: ["chapter"],
+      orderBy: {
+        chapter: "asc",
+      },
+    }),
+    prisma.user.findMany({
+      where: {
+        organizationId,
+        chapter: {
+          not: null,
+        },
+      },
+      select: {
+        chapter: true,
+      },
+      distinct: ["chapter"],
+      orderBy: {
+        chapter: "asc",
+      },
+    }),
+  ]);
+
+  return Array.from(
+    new Set(
+      [...applicationRows, ...userRows]
+        .map((row) => row.chapter?.trim() ?? "")
+        .filter((chapter): chapter is string => chapter.length > 0)
+    )
+  ).sort((left, right) => left.localeCompare(right));
+}
+
+function getDivisionForSubmission(dateOfBirth: Date) {
+  return resolveApplicationDivision({ dateOfBirth });
+}
+
+export async function findPriorDivisionFirstPlace(input: {
+  organizationId: string;
+  currentEventId: string;
+  email: string;
+  dateOfBirth: Date;
+}) {
+  const division = getDivisionForSubmission(input.dateOfBirth);
+  if (!division) return null;
+
+  const historicalApplications = await prisma.application.findMany({
+    where: {
+      organizationId: input.organizationId,
+      eventId: {
+        not: input.currentEventId,
+      },
+      applicant: {
+        email: input.email,
+      },
+      event: {
+        status: {
+          in: ["DECIDED", "CLOSED"],
+        },
+      },
+    },
+    select: {
+      id: true,
+      eventId: true,
+      dateOfBirth: true,
+      notes: true,
+      event: {
+        select: {
+          id: true,
+          name: true,
+          rounds: {
+            select: {
+              id: true,
+              type: true,
+              endAt: true,
+              startAt: true,
+            },
+            orderBy: [
+              { type: "desc" },
+              { endAt: "desc" },
+              { startAt: "desc" },
+            ],
+          },
+        },
+      },
+    },
+  });
+
+  const eventsById = new Map<
+    string,
+    {
+      name: string;
+      rounds: Array<{
+        id: string;
+        type: RoundType;
+        endAt: Date | null;
+        startAt: Date | null;
+      }>;
+      applicationIds: Set<string>;
+    }
+  >();
+
+  for (const application of historicalApplications) {
+    const existing = eventsById.get(application.eventId) ?? {
+      name: application.event.name,
+      rounds: application.event.rounds,
+      applicationIds: new Set<string>(),
+    };
+    existing.applicationIds.add(application.id);
+    eventsById.set(application.eventId, existing);
+  }
+
+  for (const event of Array.from(eventsById.values())) {
+    const finalRound =
+      event.rounds.find((round) => round.type === "NATIONAL") ?? event.rounds[0];
+
+    if (!finalRound) continue;
+
+    const rankedResults = await getRankedResultsForRound(finalRound.id);
+    const firstPlaceIds = new Set(
+      rankedResults.filter((result) => result.rank === 1).map((result) => result.applicationId)
+    );
+
+    for (const application of historicalApplications) {
+      if (!event.applicationIds.has(application.id)) continue;
+      if (!firstPlaceIds.has(application.id)) continue;
+
+      const previousDivision = resolveApplicationDivision({
+        dateOfBirth: application.dateOfBirth,
+        notes: application.notes,
+      });
+
+      if (previousDivision === division) {
+        return {
+          division,
+          eventName: event.name,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function createPublicApplication(data: {
   eventId: string;
   organizationId: string;
   name: string;
   email: string;
+  chapter: string;
+  dateOfBirth: Date;
+  gender?: string | null;
   voicePart: string;
-  repertoire: string;
-  videoUrls?: string[];
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  schoolName?: string | null;
+  schoolCity?: string | null;
+  schoolState?: string | null;
+  highSchoolName?: string | null;
+  collegeName?: string | null;
+  major?: string | null;
+  video1Title: string;
+  video1Url: string;
+  video2Title: string;
+  video2Url: string;
+  video3Title: string;
+  video3Url: string;
+  youtubePlaylist?: string | null;
   headshotUrl?: string | null;
+  bio: string;
+  careerPlans: string;
+  scholarshipUse: string;
+  parentName?: string | null;
+  parentEmail?: string | null;
+  citizenshipStatus?: string | null;
   citizenshipDocumentUrl?: string | null;
   resourceUrls?: string[];
+  mediaRelease: boolean;
+  acceptPrivacyPolicy: boolean;
+  acceptTerms: boolean;
 }) {
   // Find or create applicant user by email
   let user = await prisma.user.findUnique({
@@ -331,6 +569,13 @@ export async function createPublicApplication(data: {
       },
       select: { id: true },
     });
+  } else {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        name: data.name,
+      },
+    });
   }
 
   return prisma.application.create({
@@ -338,15 +583,45 @@ export async function createPublicApplication(data: {
       organizationId: data.organizationId,
       eventId: data.eventId,
       applicantId: user.id,
-      status: ApplicationStatus.SUBMITTED_PENDING_APPROVAL,
-      repertoire: data.repertoire,
+      status: ApplicationStatus.PENDING_APPROVAL,
+      chapter: data.chapter,
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender ?? null,
+      phone: data.phone,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      zip: data.zip,
+      schoolName: data.schoolName ?? null,
+      schoolCity: data.schoolCity ?? null,
+      schoolState: data.schoolState ?? null,
+      highSchoolName: data.highSchoolName ?? null,
+      collegeName: data.collegeName ?? null,
+      major: data.major ?? null,
+      repertoire: null,
+      video1Title: data.video1Title,
+      video1Url: data.video1Url,
+      video2Title: data.video2Title,
+      video2Url: data.video2Url,
+      video3Title: data.video3Title,
+      video3Url: data.video3Url,
+      youtubePlaylist: data.youtubePlaylist ?? null,
       headshot: data.headshotUrl ?? null,
+      bio: data.bio,
+      careerPlans: data.careerPlans,
+      scholarshipUse: data.scholarshipUse,
+      parentName: data.parentName ?? null,
+      parentEmail: data.parentEmail ?? null,
       notes: buildApplicationMetadata({
         voicePart: data.voicePart,
-        videoUrls: data.videoUrls ?? [],
+        videoUrls: [data.video1Url, data.video2Url, data.video3Url],
+        citizenshipStatus: data.citizenshipStatus ?? null,
         citizenshipDocumentUrl: data.citizenshipDocumentUrl ?? null,
         resourceUrls: data.resourceUrls ?? [],
         intakeHeadshotUrl: data.headshotUrl ?? null,
+        mediaReleaseAccepted: data.mediaRelease,
+        privacyPolicyAccepted: data.acceptPrivacyPolicy,
+        submissionTermsAccepted: data.acceptTerms,
       }),
     },
   });
@@ -541,6 +816,18 @@ export async function getPublicApplicationById(id: string) {
   });
 }
 
+export async function getApplicationDocumentRefsById(id: string) {
+  return prisma.application.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      organizationId: true,
+      headshot: true,
+      notes: true,
+    },
+  });
+}
+
 export async function advanceApplicationStatus(
   id: string,
   nextStatus: ApplicationStatus,
@@ -578,7 +865,7 @@ export async function advanceApplicationStatusWithPermissions(input: {
 }) {
   const existing = await prisma.application.findFirst({
     where: { id: input.id, organizationId: input.organizationId },
-    select: { id: true, status: true, chapter: true, notes: true },
+    select: { id: true, status: true, chapter: true, notes: true, eventId: true },
   });
 
   if (!existing) {
@@ -602,8 +889,35 @@ export async function advanceApplicationStatusWithPermissions(input: {
     return { reason: "CITIZENSHIP_NOT_VERIFIED" as const };
   }
 
-  const notesObject = parseNotesObject(existing.notes);
   const normalizedReason = input.reason?.trim() || null;
+  if (input.nextStatus === "APPROVED_FOR_NATIONAL_ADJUDICATION") {
+    const unresolvedChapterApplications = await prisma.application.count({
+      where: {
+        organizationId: input.organizationId,
+        eventId: existing.eventId,
+        status: {
+          in: [
+            "PENDING_APPROVAL",
+            "CORRECTION_REQUIRED",
+            "APPROVED_FOR_CHAPTER_ADJUDICATION",
+            "SUBMITTED_PENDING_APPROVAL",
+            "CHAPTER_ADJUDICATION",
+            "SUBMITTED",
+            "CHAPTER_REVIEW",
+          ],
+        },
+      },
+    });
+
+    if (
+      unresolvedChapterApplications > 0 &&
+      !(normalizedReason && (input.actorRole === "ADMIN" || input.actorRole === "NATIONAL_CHAIR"))
+    ) {
+      return { reason: "CHAPTERS_UNRESOLVED" as const };
+    }
+  }
+
+  const notesObject = parseNotesObject(existing.notes);
   const auditHistory = Array.isArray(notesObject.auditHistory)
     ? [...notesObject.auditHistory]
     : [];
@@ -619,6 +933,9 @@ export async function advanceApplicationStatusWithPermissions(input: {
       input.actorRole === "ADMIN" || input.actorRole === "NATIONAL_CHAIR"
         ? true
         : false,
+    chaptersResolvedOverride:
+      input.nextStatus === "APPROVED_FOR_NATIONAL_ADJUDICATION" &&
+      Boolean(normalizedReason),
   });
   notesObject.auditHistory = auditHistory;
 
@@ -694,7 +1011,7 @@ export async function forwardApplicationToNationalsWithBypass(
     actorUserId: input.actorUserId,
     actorRole: input.actorRole,
     fromStatus: existing.status,
-    toStatus: "NATIONAL_FINALS",
+    toStatus: "PENDING_NATIONAL_ACCEPTANCE",
     reason: normalizedReason,
   });
 
@@ -710,7 +1027,7 @@ export async function forwardApplicationToNationalsWithBypass(
   const updated = await prisma.application.update({
     where: { id: existing.id },
     data: {
-      status: "NATIONAL_FINALS",
+      status: "PENDING_NATIONAL_ACCEPTANCE",
       notes: JSON.stringify(notesObject),
     },
     include: {
@@ -724,6 +1041,309 @@ export async function forwardApplicationToNationalsWithBypass(
   });
 
   return { reason: "OK" as const, updated };
+}
+
+type ChapterCloseoutInput = {
+  organizationId: string;
+  eventId: string;
+  roundId: string;
+  actorUserId: string;
+  actorRole: Role;
+  actorChapter?: string | null;
+  chapter?: string | null;
+  winnerApplicationIds: string[];
+  alternateApplicationId?: string | null;
+};
+
+type ChapterCloseoutPreview =
+  | { reason: "NOT_FOUND" | "NOT_CHAPTER_ROUND" | "ROUND_CERTIFIED" | "ADVANCEMENT_SLOTS_NOT_CONFIGURED" | "CHAPTER_REQUIRED" | "FORBIDDEN" | "INVALID_WINNER_COUNT" | "INVALID_SELECTION" | "UNRESOLVED_APPLICATIONS" | "INCOMPLETE_RESULTS" }
+  | {
+      reason: "OK";
+      chapter: string;
+      advancementSlots: number;
+      winners: Array<{ applicationId: string; applicantName: string }>;
+      suggestedAlternate: { applicationId: string; applicantName: string } | null;
+      didNotAdvanceCount: number;
+    };
+
+async function buildChapterCloseoutPreview(
+  input: ChapterCloseoutInput
+): Promise<ChapterCloseoutPreview> {
+  const round = await prisma.round.findFirst({
+    where: {
+      id: input.roundId,
+      eventId: input.eventId,
+      organizationId: input.organizationId,
+    },
+    select: {
+      id: true,
+      type: true,
+      advancementSlots: true,
+      eventId: true,
+    },
+  });
+
+  if (!round) return { reason: "NOT_FOUND" };
+  if (round.type !== "CHAPTER") return { reason: "NOT_CHAPTER_ROUND" };
+
+  const certification = await prisma.roundCertification.findUnique({
+    where: { roundId: round.id },
+    select: { id: true },
+  });
+  if (certification) return { reason: "ROUND_CERTIFIED" };
+
+  const advancementSlots = round.advancementSlots ?? 0;
+  if (advancementSlots < 1) {
+    return { reason: "ADVANCEMENT_SLOTS_NOT_CONFIGURED" };
+  }
+
+  const chapter =
+    input.actorRole === "CHAPTER_CHAIR"
+      ? input.actorChapter?.trim() ?? ""
+      : input.chapter?.trim() ?? "";
+
+  if (!chapter) return { reason: "CHAPTER_REQUIRED" };
+  if (
+    input.actorRole === "CHAPTER_CHAIR" &&
+    !isChapterMatch(chapter, input.actorChapter)
+  ) {
+    return { reason: "FORBIDDEN" };
+  }
+
+  const unresolvedChapterApplications = await prisma.application.count({
+    where: {
+      organizationId: input.organizationId,
+      eventId: input.eventId,
+      AND: [buildChapterFilterWhere(chapter)],
+      status: {
+        in: [...PENDING_APPROVAL_STATUSES, ...CORRECTION_REQUIRED_STATUSES],
+      },
+    },
+  });
+
+  if (unresolvedChapterApplications > 0) {
+    return { reason: "UNRESOLVED_APPLICATIONS" };
+  }
+
+  const rankedResults = await getRankedResultsForRound(round.id, {
+    chapterFilter: chapter,
+  });
+
+  if (rankedResults.length === 0) {
+    return { reason: "INCOMPLETE_RESULTS" };
+  }
+
+  const chapterApplications = await prisma.application.findMany({
+    where: {
+      organizationId: input.organizationId,
+      eventId: input.eventId,
+      AND: [buildChapterFilterWhere(chapter)],
+      status: {
+        in: [
+          ...CHAPTER_ADJUDICATION_STATUSES,
+          ...PENDING_NATIONAL_ACCEPTANCE_STATUSES,
+          "ALTERNATE",
+          "DID_NOT_ADVANCE",
+        ],
+      },
+    },
+    include: {
+      applicant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  const rankedIds = new Set(rankedResults.map((result) => result.applicationId));
+  const unrankedChapterApps = chapterApplications.filter(
+    (application) =>
+      CHAPTER_ADJUDICATION_STATUSES.includes(application.status) &&
+      !rankedIds.has(application.id)
+  );
+  if (unrankedChapterApps.length > 0) {
+    return { reason: "INCOMPLETE_RESULTS" };
+  }
+
+  const uniqueWinnerIds = Array.from(
+    new Set(input.winnerApplicationIds.map((id) => id.trim()).filter(Boolean))
+  );
+  if (uniqueWinnerIds.length !== advancementSlots) {
+    return { reason: "INVALID_WINNER_COUNT" };
+  }
+
+  const applicationById = new Map(
+    chapterApplications.map((application) => [application.id, application])
+  );
+
+  for (const winnerId of uniqueWinnerIds) {
+    if (!applicationById.has(winnerId)) {
+      return { reason: "INVALID_SELECTION" };
+    }
+  }
+
+  if (
+    input.alternateApplicationId &&
+    (!applicationById.has(input.alternateApplicationId) ||
+      uniqueWinnerIds.includes(input.alternateApplicationId))
+  ) {
+    return { reason: "INVALID_SELECTION" };
+  }
+
+  const winners = uniqueWinnerIds
+    .map((applicationId) => {
+      const application = applicationById.get(applicationId);
+      return application
+        ? {
+            applicationId,
+            applicantName: application.applicant.name,
+          }
+        : null;
+    })
+    .filter(
+      (entry): entry is { applicationId: string; applicantName: string } => entry !== null
+    );
+
+  const rankedAlternate = rankedResults.find(
+    (result) => !uniqueWinnerIds.includes(result.applicationId)
+  );
+  const computedAlternate =
+    input.alternateApplicationId && applicationById.has(input.alternateApplicationId)
+      ? {
+          applicationId: input.alternateApplicationId,
+          applicantName: applicationById.get(input.alternateApplicationId)!.applicant.name,
+        }
+      : rankedAlternate
+          ? {
+              applicationId: rankedAlternate.applicationId,
+              applicantName: rankedAlternate.applicantName,
+            }
+          : null;
+
+  const didNotAdvanceCount = chapterApplications.filter(
+    (application) =>
+      !uniqueWinnerIds.includes(application.id) &&
+      application.id !== computedAlternate?.applicationId
+  ).length;
+
+  return {
+    reason: "OK",
+    chapter,
+    advancementSlots,
+    winners,
+    suggestedAlternate: computedAlternate,
+    didNotAdvanceCount,
+  };
+}
+
+export async function closeOutChapterAdjudication(
+  input: ChapterCloseoutInput
+) {
+  const preview = await buildChapterCloseoutPreview(input);
+  if (preview.reason !== "OK") return preview;
+
+  const chapterApplications = await prisma.application.findMany({
+    where: {
+      organizationId: input.organizationId,
+      eventId: input.eventId,
+      AND: [buildChapterFilterWhere(preview.chapter)],
+      status: {
+        in: [
+          ...CHAPTER_ADJUDICATION_STATUSES,
+          ...PENDING_NATIONAL_ACCEPTANCE_STATUSES,
+          "ALTERNATE",
+          "DID_NOT_ADVANCE",
+        ],
+      },
+    },
+    include: {
+      applicant: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  const winnerIds = new Set(preview.winners.map((winner) => winner.applicationId));
+  const alternateId = preview.suggestedAlternate?.applicationId ?? null;
+  const timestamp = new Date().toISOString();
+
+  const updatedApplications = await prisma.$transaction(async (tx) => {
+    const updates = [];
+
+    for (const application of chapterApplications) {
+      const nextStatus: ApplicationStatus = winnerIds.has(application.id)
+        ? "PENDING_NATIONAL_ACCEPTANCE"
+        : application.id === alternateId
+          ? "ALTERNATE"
+          : "DID_NOT_ADVANCE";
+
+      if (application.status === nextStatus) {
+        continue;
+      }
+
+      const notesObject = parseNotesObject(application.notes);
+      const auditHistory = Array.isArray(notesObject.auditHistory)
+        ? [...notesObject.auditHistory]
+        : [];
+      auditHistory.push({
+        type: "STATUS_UPDATE",
+        at: timestamp,
+        actorUserId: input.actorUserId,
+        actorRole: input.actorRole,
+        fromStatus: application.status,
+        toStatus: nextStatus,
+        reason: `Chapter closeout for ${preview.chapter}.`,
+        chapterCloseout: true,
+      });
+      notesObject.auditHistory = auditHistory;
+
+      const updated = await tx.application.update({
+        where: { id: application.id },
+        data: {
+          status: nextStatus,
+          notes: JSON.stringify(notesObject),
+        },
+        include: {
+          applicant: {
+            select: { id: true, name: true, email: true },
+          },
+          event: {
+            select: { id: true, name: true },
+          },
+        },
+      });
+      updates.push(updated);
+    }
+
+    return updates;
+  });
+
+  return {
+    reason: "OK" as const,
+    chapter: preview.chapter,
+    winners: preview.winners,
+    alternate: preview.suggestedAlternate,
+    updatedApplications,
+  };
 }
 
 export async function deleteApplicationById(id: string, organizationId: string) {
@@ -873,8 +1493,32 @@ type ApplicationProfileUpdateInput = {
   id: string;
   organizationId: string;
   applicantName?: string | null;
+  applicantEmail?: string | null;
   chapter?: string | null;
+  dateOfBirth?: Date | null;
+  gender?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  schoolName?: string | null;
+  schoolCity?: string | null;
+  schoolState?: string | null;
+  highSchoolName?: string | null;
+  collegeName?: string | null;
+  major?: string | null;
+  bio?: string | null;
+  careerPlans?: string | null;
+  scholarshipUse?: string | null;
+  parentName?: string | null;
+  parentEmail?: string | null;
+  headshotUrl?: string | null;
+  voicePart?: string | null;
+  citizenshipStatus?: string | null;
+  citizenshipDocumentUrl?: string | null;
   citizenshipVerified?: boolean | null;
+  repertoire?: string | null;
   adminNote?: string | null;
   video1Title?: string | null;
   video1Url?: string | null;
@@ -919,8 +1563,25 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
   const nextChapter = hasChapterUpdate ? input.chapter?.trim() ?? null : undefined;
   const hasAdminNoteUpdate = typeof input.adminNote !== "undefined";
   const nextAdminNote = hasAdminNoteUpdate ? input.adminNote?.trim() ?? null : undefined;
-  const nextApplicantName = input.applicantName?.trim() ?? null;
+  const hasApplicantNameUpdate = typeof input.applicantName !== "undefined";
+  const nextApplicantName = hasApplicantNameUpdate
+    ? input.applicantName?.trim() || undefined
+    : undefined;
+  const hasApplicantEmailUpdate = typeof input.applicantEmail !== "undefined";
+  const nextApplicantEmail = hasApplicantEmailUpdate
+    ? input.applicantEmail?.trim() || undefined
+    : undefined;
   const actor = input.actor?.trim() || "admin";
+  const nextVoicePart =
+    typeof input.voicePart !== "undefined" ? input.voicePart?.trim() ?? null : undefined;
+  const nextCitizenshipStatus =
+    typeof input.citizenshipStatus !== "undefined"
+      ? input.citizenshipStatus?.trim() ?? null
+      : undefined;
+  const nextCitizenshipDocumentUrl =
+    typeof input.citizenshipDocumentUrl !== "undefined"
+      ? input.citizenshipDocumentUrl?.trim() ?? null
+      : undefined;
 
   if (hasAdminNoteUpdate) {
     if (nextAdminNote) {
@@ -958,11 +1619,38 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
     };
   }
 
+  if (typeof nextVoicePart !== "undefined") {
+    if (nextVoicePart) {
+      notesObject.voicePart = nextVoicePart;
+    } else {
+      delete notesObject.voicePart;
+    }
+  }
+
+  if (typeof nextCitizenshipStatus !== "undefined") {
+    if (nextCitizenshipStatus) {
+      notesObject.citizenshipStatus = nextCitizenshipStatus;
+    } else {
+      delete notesObject.citizenshipStatus;
+    }
+  }
+
+  if (typeof nextCitizenshipDocumentUrl !== "undefined") {
+    if (nextCitizenshipDocumentUrl) {
+      notesObject.citizenshipDocumentUrl = nextCitizenshipDocumentUrl;
+    } else {
+      delete notesObject.citizenshipDocumentUrl;
+    }
+  }
+
   return prisma.$transaction(async (tx) => {
-    if (nextApplicantName) {
+    if (hasApplicantNameUpdate || hasApplicantEmailUpdate) {
       await tx.user.update({
         where: { id: existing.applicantId },
-        data: { name: nextApplicantName },
+        data: {
+          name: typeof nextApplicantName !== "undefined" ? nextApplicantName : undefined,
+          email: typeof nextApplicantEmail !== "undefined" ? nextApplicantEmail : undefined,
+        },
       });
     }
 
@@ -970,6 +1658,41 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
       where: { id: existing.id },
       data: {
         chapter: hasChapterUpdate ? nextChapter : undefined,
+        dateOfBirth: typeof input.dateOfBirth !== "undefined" ? input.dateOfBirth : undefined,
+        gender: typeof input.gender !== "undefined" ? input.gender?.trim() || null : undefined,
+        phone: typeof input.phone !== "undefined" ? input.phone?.trim() || null : undefined,
+        address: typeof input.address !== "undefined" ? input.address?.trim() || null : undefined,
+        city: typeof input.city !== "undefined" ? input.city?.trim() || null : undefined,
+        state: typeof input.state !== "undefined" ? input.state?.trim() || null : undefined,
+        zip: typeof input.zip !== "undefined" ? input.zip?.trim() || null : undefined,
+        schoolName:
+          typeof input.schoolName !== "undefined" ? input.schoolName?.trim() || null : undefined,
+        schoolCity:
+          typeof input.schoolCity !== "undefined" ? input.schoolCity?.trim() || null : undefined,
+        schoolState:
+          typeof input.schoolState !== "undefined" ? input.schoolState?.trim() || null : undefined,
+        highSchoolName:
+          typeof input.highSchoolName !== "undefined"
+            ? input.highSchoolName?.trim() || null
+            : undefined,
+        collegeName:
+          typeof input.collegeName !== "undefined" ? input.collegeName?.trim() || null : undefined,
+        major: typeof input.major !== "undefined" ? input.major?.trim() || null : undefined,
+        bio: typeof input.bio !== "undefined" ? input.bio?.trim() || null : undefined,
+        careerPlans:
+          typeof input.careerPlans !== "undefined" ? input.careerPlans?.trim() || null : undefined,
+        scholarshipUse:
+          typeof input.scholarshipUse !== "undefined"
+            ? input.scholarshipUse?.trim() || null
+            : undefined,
+        parentName:
+          typeof input.parentName !== "undefined" ? input.parentName?.trim() || null : undefined,
+        parentEmail:
+          typeof input.parentEmail !== "undefined" ? input.parentEmail?.trim() || null : undefined,
+        headshot:
+          typeof input.headshotUrl !== "undefined" ? input.headshotUrl?.trim() || null : undefined,
+        repertoire:
+          typeof input.repertoire !== "undefined" ? input.repertoire?.trim() || null : undefined,
         notes: JSON.stringify(notesObject),
         video1Title: input.video1Title?.trim() || null,
         video1Url: input.video1Url?.trim() || null,

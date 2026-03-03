@@ -11,8 +11,38 @@ import {
 } from "@/lib/application-division";
 import { parseApplicationMetadata } from "@/lib/application-metadata";
 import { getYouTubeVideoId } from "@/lib/youtube";
+import {
+  getJudgeSubmission,
+  getRoundCertification,
+} from "@/lib/db/governance";
 
 const FINAL_COMMENT_PREFIX = "__ADJUDICARTS_FINAL_COMMENT__:";
+
+function normalizeChapter(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function chapterMatchKey(value: string | null | undefined) {
+  const normalized = normalizeChapter(value);
+  if (!normalized) return "";
+
+  const withoutParens = normalized.replace(/\(.*?\)/g, " ").replace(/\s+/g, " ").trim();
+  const base = withoutParens.split(/[–—-]/)[0]?.trim() ?? withoutParens;
+  return base.replace(/\bchapter\b/g, "").replace(/\s+/g, " ").trim();
+}
+
+function isChapterMatch(
+  applicationChapter: string | null | undefined,
+  userChapter: string | null | undefined
+) {
+  const app = chapterMatchKey(applicationChapter);
+  const user = chapterMatchKey(userChapter);
+  if (!app || !user) return false;
+  if (app === user) return true;
+  if (app.length >= 3 && user.includes(app)) return true;
+  if (user.length >= 3 && app.includes(user)) return true;
+  return false;
+}
 
 function unpackScoreComment(stored: string | null) {
   if (!stored) {
@@ -72,9 +102,9 @@ function isRoleRoundMatch(role: Role, roundType: RoundType): boolean {
 
 function applicationStatusesForRoundType(roundType: RoundType): ApplicationStatus[] {
   if (roundType === "CHAPTER") {
-    return ["CHAPTER_ADJUDICATION"];
+    return ["APPROVED_FOR_CHAPTER_ADJUDICATION", "CHAPTER_ADJUDICATION"];
   }
-  return ["NATIONAL_FINALS"];
+  return ["APPROVED_FOR_NATIONAL_ADJUDICATION", "NATIONAL_FINALS"];
 }
 
 function scoreRoundForRoundType(roundType: RoundType): ScoreRound {
@@ -85,32 +115,54 @@ export async function getJudgeScoringQueue(
   judgeId: string,
   organizationId: string,
   role: Role,
-  options?: { division?: ApplicationDivision }
+  options?: { division?: ApplicationDivision; userChapter?: string | null }
 ) {
-  const assignments = await prisma.judgeAssignment.findMany({
-    where: {
-      judgeId,
-      organizationId,
-    },
-    include: {
-      round: {
-        include: {
-          event: {
-            include: {
-              rubric: {
-                include: {
-                  criteria: {
-                    select: { id: true },
+  const assignments =
+    role === "CHAPTER_JUDGE"
+      ? (await prisma.round.findMany({
+          where: {
+            organizationId,
+            type: "CHAPTER",
+          },
+          include: {
+            event: {
+              include: {
+                rubric: {
+                  include: {
+                    criteria: {
+                      select: { id: true },
+                    },
                   },
                 },
               },
             },
           },
-        },
-      },
-    },
-    orderBy: [{ round: { event: { name: "asc" } } }, { round: { name: "asc" } }],
-  });
+          orderBy: [{ event: { name: "asc" } }, { name: "asc" }],
+        })).map((round) => ({ round }))
+      : await prisma.judgeAssignment.findMany({
+          where: {
+            judgeId,
+            organizationId,
+          },
+          include: {
+            round: {
+              include: {
+                event: {
+                  include: {
+                    rubric: {
+                      include: {
+                        criteria: {
+                          select: { id: true },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: [{ round: { event: { name: "asc" } } }, { round: { name: "asc" } }],
+        });
 
   const rows = await Promise.all(
     assignments.map(async (assignment) => {
@@ -133,14 +185,60 @@ export async function getJudgeScoringQueue(
             select: {
               id: true,
               name: true,
-              email: true,
             },
           },
         },
         orderBy: { submittedAt: "asc" },
       });
 
-      const applicationIds = applications.map((application) => application.id);
+      const chapterScopedApplications =
+        role === "CHAPTER_JUDGE"
+          ? applications.filter((application) =>
+              isChapterMatch(application.chapter, options?.userChapter)
+            )
+          : applications;
+
+      let blockedReason: string | null = null;
+      if (role === "CHAPTER_JUDGE" && options?.userChapter) {
+        const unresolvedApplications = await prisma.application.findMany({
+          where: {
+            organizationId,
+            eventId: event.id,
+            status: {
+              in: [
+                "PENDING_APPROVAL",
+                "CORRECTION_REQUIRED",
+                "SUBMITTED_PENDING_APPROVAL",
+                "SUBMITTED",
+              ],
+            },
+          },
+          select: { chapter: true },
+        });
+
+        const unresolvedCount = unresolvedApplications.filter((application) =>
+          isChapterMatch(application.chapter, options.userChapter)
+        ).length;
+
+        if (unresolvedCount > 0) {
+          blockedReason =
+            "Chapter adjudication is locked until all applicants in your chapter are resolved out of pending approval or correction-required status.";
+        }
+      }
+
+      const applicationIds = chapterScopedApplications.map((application) => application.id);
+      const bookmarks = applicationIds.length
+        ? await prisma.judgeBookmark.findMany({
+            where: {
+              organizationId,
+              judgeId,
+              applicationId: { in: applicationIds },
+            },
+            select: {
+              applicationId: true,
+            },
+          })
+        : [];
       const scoreCounts =
         applicationIds.length === 0
           ? []
@@ -157,6 +255,29 @@ export async function getJudgeScoringQueue(
               },
             });
 
+      const submissions = applicationIds.length
+        ? await prisma.judgeSubmission.findMany({
+            where: {
+              organizationId,
+              roundId: round.id,
+              judgeId,
+              applicationId: { in: applicationIds },
+            },
+            select: {
+              applicationId: true,
+              status: true,
+              finalizedAt: true,
+            },
+          })
+        : [];
+
+      const submissionByApplication = new Map(
+        submissions.map((submission) => [submission.applicationId, submission])
+      );
+      const bookmarkedApplicationIds = new Set(
+        bookmarks.map((bookmark) => bookmark.applicationId)
+      );
+
       const scoreCountByApplication = new Map(
         scoreCounts.map((scoreCount) => [
           scoreCount.applicationId,
@@ -164,14 +285,16 @@ export async function getJudgeScoringQueue(
         ])
       );
 
-      const queueItems = applications
+      const queueItems = chapterScopedApplications
         .map((application) => {
           const criterionScores = scoreCountByApplication.get(application.id) ?? 0;
-          const isScored = criteriaCount > 0 && criterionScores >= criteriaCount;
+          const submission = submissionByApplication.get(application.id);
+          const isScored = submission?.status === "FINALIZED";
           const division = resolveApplicationDivision({
             notes: application.notes,
             dateOfBirth: application.dateOfBirth,
           });
+          const metadata = parseApplicationMetadata(application.notes);
 
           return {
             id: application.id,
@@ -179,9 +302,14 @@ export async function getJudgeScoringQueue(
             chapter: application.chapter,
             status: application.status,
             division,
+            voicePart: metadata.voicePart,
             submittedAt: application.submittedAt,
             applicant: application.applicant,
             isScored,
+            isBookmarked: bookmarkedApplicationIds.has(application.id),
+            submissionStatus: submission?.status ?? "DRAFT",
+            finalizedAt: submission?.finalizedAt ?? null,
+            hasAllCriteria: criteriaCount > 0 && criterionScores >= criteriaCount,
           };
         })
         .filter((item) => !options?.division || item.division === options.division);
@@ -202,7 +330,8 @@ export async function getJudgeScoringQueue(
         criteriaCount,
         scoredCount,
         totalCount: queueItems.length,
-        applications: queueItems,
+        applications: blockedReason ? [] : queueItems,
+        blockedReason,
       };
     })
   );
@@ -214,7 +343,8 @@ export async function getScoringApplicationForJudge(
   applicationId: string,
   judgeId: string,
   organizationId: string,
-  role: Role
+  role: Role,
+  userChapter?: string | null
 ) {
   const application = await prisma.application.findFirst({
     where: {
@@ -245,7 +375,6 @@ export async function getScoringApplicationForJudge(
         select: {
           id: true,
           name: true,
-          email: true,
         },
       },
     },
@@ -257,14 +386,65 @@ export async function getScoringApplicationForJudge(
   const scoreRound = scoreRoundForRoundType(expectedRoundType);
   const expectedApplicationStatuses = applicationStatusesForRoundType(expectedRoundType);
   if (!expectedApplicationStatuses.includes(application.status)) return null;
+  if (role === "CHAPTER_JUDGE" && !isChapterMatch(application.chapter, userChapter)) return null;
 
-  const hasAssignment = application.event.rounds.some(
-    (round) =>
-      round.type === expectedRoundType && round.judgeAssignments.length > 0
+  if (role === "CHAPTER_JUDGE" && userChapter) {
+    const unresolvedApplications = await prisma.application.findMany({
+      where: {
+        organizationId,
+        eventId: application.eventId,
+        status: {
+          in: [
+            "PENDING_APPROVAL",
+            "CORRECTION_REQUIRED",
+            "SUBMITTED_PENDING_APPROVAL",
+            "SUBMITTED",
+          ],
+        },
+      },
+      select: { chapter: true },
+    });
+    const unresolvedCount = unresolvedApplications.filter((item) =>
+      isChapterMatch(item.chapter, userChapter)
+    ).length;
+    if (unresolvedCount > 0) return null;
+  }
+
+  const assignedRound = application.event.rounds.find((round) =>
+    role === "CHAPTER_JUDGE"
+      ? round.type === expectedRoundType
+      : round.type === expectedRoundType && round.judgeAssignments.length > 0
   );
 
-  if (!hasAssignment) return null;
+  if (!assignedRound) return null;
   if (!application.event.rubric) return null;
+
+  const [submission, certification, prizeSuggestions] = await Promise.all([
+    getJudgeSubmission({
+      applicationId,
+      judgeId,
+      roundId: assignedRound.id,
+    }),
+    getRoundCertification(assignedRound.id),
+    prisma.judgePrizeSuggestion.findMany({
+      where: {
+        organizationId,
+        roundId: assignedRound.id,
+        applicationId,
+        judgeId,
+      },
+      orderBy: { sortOrder: "asc" },
+    }),
+  ]);
+  const bookmark = await prisma.judgeBookmark.findUnique({
+    where: {
+      judgeId_applicationId: {
+        judgeId,
+        applicationId,
+      },
+    },
+    select: { id: true },
+  });
 
   const existingScores = await getScoresForApplication(
     applicationId,
@@ -321,9 +501,50 @@ export async function getScoringApplicationForJudge(
     existingScores,
     finalComment,
     scoreRound,
+    round: {
+      id: assignedRound.id,
+      name: assignedRound.name,
+      type: assignedRound.type,
+    },
+    submission,
+    certification,
+    isBookmarked: Boolean(bookmark),
+    prizeSuggestions,
     videoUrls,
     videoTitles,
   };
+}
+
+export async function setJudgeBookmark(input: {
+  organizationId: string;
+  judgeId: string;
+  applicationId: string;
+  active: boolean;
+}) {
+  if (input.active) {
+    return prisma.judgeBookmark.upsert({
+      where: {
+        judgeId_applicationId: {
+          judgeId: input.judgeId,
+          applicationId: input.applicationId,
+        },
+      },
+      update: {},
+      create: {
+        organizationId: input.organizationId,
+        judgeId: input.judgeId,
+        applicationId: input.applicationId,
+      },
+    });
+  }
+
+  return prisma.judgeBookmark.deleteMany({
+    where: {
+      organizationId: input.organizationId,
+      judgeId: input.judgeId,
+      applicationId: input.applicationId,
+    },
+  });
 }
 
 export async function getScoresForApplication(

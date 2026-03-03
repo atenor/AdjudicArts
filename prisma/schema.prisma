@@ -39,6 +39,15 @@ enum RoundType {
 }
 
 enum ApplicationStatus {
+  PENDING_APPROVAL
+  CORRECTION_REQUIRED
+  APPROVED_FOR_CHAPTER_ADJUDICATION
+  PENDING_NATIONAL_ACCEPTANCE
+  APPROVED_FOR_NATIONAL_ADJUDICATION
+  EXCLUDED
+  ALTERNATE
+  DID_NOT_ADVANCE
+  WITHDRAWN
   SUBMITTED_PENDING_APPROVAL
   CHAPTER_ADJUDICATION
   NATIONAL_FINALS
@@ -77,6 +86,27 @@ enum EmailDeliveryStatus {
   FAILED
 }
 
+enum JudgeSubmissionStatus {
+  DRAFT
+  FINALIZED
+}
+
+enum JudgeSubmissionEventType {
+  FINALIZED
+  REOPENED
+}
+
+enum AudienceFavoriteSnapshotType {
+  BASELINE
+  END
+}
+
+enum AudienceFavoriteDispositionStatus {
+  ELIGIBLE
+  FLAGGED
+  DISQUALIFIED
+}
+
 // ---------------------------------------------------------------------------
 // Organization
 // Single-tenant for now; organizationId on all entities enables future multi-tenancy.
@@ -98,6 +128,14 @@ model Organization {
   outboundEmails OutboundEmail[]
   inviteTokens   InviteToken[]
   supportTickets SupportTicket[]
+  judgeSubmissions JudgeSubmission[]
+  judgeSubmissionEvents JudgeSubmissionEvent[]
+  roundCertifications RoundCertification[]
+  judgePrizeSuggestions JudgePrizeSuggestion[]
+  chairPrizeAllocations ChairPrizeAllocation[]
+  audienceFavoriteSnapshots AudienceFavoriteSnapshot[]
+  audienceFavoriteDispositions AudienceFavoriteDisposition[]
+  judgeBookmarks JudgeBookmark[]
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +162,14 @@ model User {
   outboundEmails   OutboundEmail[]
   invitesSent      InviteToken[]     @relation("InvitesSent")
   ticketsSubmitted SupportTicket[]   @relation("TicketsSubmitted")
+  finalizedJudgeSubmissions JudgeSubmission[] @relation("JudgeSubmissionJudge")
+  judgeSubmissionEvents JudgeSubmissionEvent[] @relation("JudgeSubmissionEventActor")
+  roundCertifications RoundCertification[] @relation("RoundCertificationActor")
+  judgePrizeSuggestions JudgePrizeSuggestion[] @relation("JudgePrizeSuggestionJudge")
+  chairPrizeAllocationsCreated ChairPrizeAllocation[] @relation("ChairPrizeAllocationActor")
+  audienceFavoriteSnapshotsCaptured AudienceFavoriteSnapshot[] @relation("AudienceFavoriteSnapshotActor")
+  audienceFavoriteDispositionsActed AudienceFavoriteDisposition[] @relation("AudienceFavoriteDispositionActor")
+  judgeBookmarks JudgeBookmark[] @relation("JudgeBookmarkUser")
 
   @@index([organizationId])
   @@index([email])
@@ -144,6 +190,7 @@ model Event {
   status         EventStatus @default(DRAFT)
   openAt         DateTime?
   closeAt        DateTime?
+  timeline       Json?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -151,6 +198,12 @@ model Event {
   rounds       Round[]
   applications Application[]
   rubric       Rubric?
+  judgeSubmissions JudgeSubmission[]
+  roundCertifications RoundCertification[]
+  judgePrizeSuggestions JudgePrizeSuggestion[]
+  chairPrizeAllocations ChairPrizeAllocation[]
+  audienceFavoriteSnapshots AudienceFavoriteSnapshot[]
+  audienceFavoriteDispositions AudienceFavoriteDisposition[]
 
   @@index([organizationId])
   @@index([status])
@@ -167,6 +220,7 @@ model Round {
   eventId        String
   name           String
   type           RoundType
+  advancementSlots Int?
   startAt        DateTime?
   endAt          DateTime?
   createdAt      DateTime  @default(now())
@@ -174,6 +228,12 @@ model Round {
 
   event            Event             @relation(fields: [eventId], references: [id])
   judgeAssignments JudgeAssignment[]
+  judgeSubmissions JudgeSubmission[]
+  roundCertification RoundCertification?
+  judgePrizeSuggestions JudgePrizeSuggestion[]
+  chairPrizeAllocations ChairPrizeAllocation[]
+  audienceFavoriteSnapshots AudienceFavoriteSnapshot[]
+  audienceFavoriteDispositions AudienceFavoriteDisposition[]
 
   @@index([organizationId])
   @@index([eventId])
@@ -189,7 +249,7 @@ model Application {
   organizationId String
   eventId        String
   applicantId    String
-  status         ApplicationStatus @default(SUBMITTED_PENDING_APPROVAL)
+  status         ApplicationStatus @default(PENDING_APPROVAL)
   repertoire     String?
   notes          String?
   chapter        String?
@@ -226,6 +286,12 @@ model Application {
   event        Event        @relation(fields: [eventId], references: [id])
   applicant    User         @relation(fields: [applicantId], references: [id])
   scores       Score[]
+  judgeSubmissions JudgeSubmission[]
+  judgePrizeSuggestions JudgePrizeSuggestion[]
+  chairPrizeAllocations ChairPrizeAllocation[]
+  audienceFavoriteSnapshots AudienceFavoriteSnapshot[]
+  audienceFavoriteDispositions AudienceFavoriteDisposition[]
+  judgeBookmarks JudgeBookmark[]
 
   @@index([organizationId])
   @@index([eventId])
@@ -295,6 +361,176 @@ model Score {
   @@index([organizationId])
   @@index([applicationId])
   @@index([judgeId])
+}
+
+model JudgeBookmark {
+  id             String   @id @default(cuid())
+  organizationId String
+  judgeId        String
+  applicationId  String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  judge        User         @relation("JudgeBookmarkUser", fields: [judgeId], references: [id])
+  application  Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([judgeId, applicationId])
+  @@index([organizationId])
+  @@index([applicationId])
+}
+
+model JudgeSubmission {
+  id             String                @id @default(cuid())
+  organizationId String
+  eventId        String
+  roundId        String
+  applicationId  String
+  judgeId        String
+  status         JudgeSubmissionStatus @default(DRAFT)
+  finalizedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  round        Round        @relation(fields: [roundId], references: [id])
+  application  Application  @relation(fields: [applicationId], references: [id])
+  judge        User         @relation("JudgeSubmissionJudge", fields: [judgeId], references: [id])
+  events       JudgeSubmissionEvent[]
+
+  @@unique([applicationId, judgeId, roundId])
+  @@index([organizationId])
+  @@index([roundId, status])
+  @@index([judgeId, roundId])
+}
+
+model JudgeSubmissionEvent {
+  id             String                   @id @default(cuid())
+  organizationId String
+  submissionId   String
+  actorUserId    String
+  actorRole      Role
+  eventType      JudgeSubmissionEventType
+  reason         String?
+  createdAt      DateTime                 @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id])
+  submission   JudgeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actor        User           @relation("JudgeSubmissionEventActor", fields: [actorUserId], references: [id])
+
+  @@index([organizationId])
+  @@index([submissionId, createdAt])
+}
+
+model RoundCertification {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  roundId        String   @unique
+  certifiedById  String
+  certifiedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  round        Round        @relation(fields: [roundId], references: [id])
+  certifiedBy  User         @relation("RoundCertificationActor", fields: [certifiedById], references: [id])
+
+  @@index([organizationId])
+  @@index([eventId])
+}
+
+model JudgePrizeSuggestion {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  roundId        String
+  applicationId  String
+  judgeId        String
+  label          String
+  amountCents    Int?
+  sortOrder      Int      @default(0)
+  comment        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  round        Round        @relation(fields: [roundId], references: [id])
+  application  Application  @relation(fields: [applicationId], references: [id])
+  judge        User         @relation("JudgePrizeSuggestionJudge", fields: [judgeId], references: [id])
+
+  @@index([organizationId])
+  @@index([roundId, applicationId])
+  @@index([judgeId, roundId])
+}
+
+model ChairPrizeAllocation {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventId        String
+  roundId        String
+  applicationId  String
+  label          String
+  amountCents    Int?
+  sortOrder      Int      @default(0)
+  internalNote   String?
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  round        Round        @relation(fields: [roundId], references: [id])
+  application  Application  @relation(fields: [applicationId], references: [id])
+  createdBy    User         @relation("ChairPrizeAllocationActor", fields: [createdById], references: [id])
+
+  @@index([organizationId])
+  @@index([roundId, applicationId])
+}
+
+model AudienceFavoriteSnapshot {
+  id             String                     @id @default(cuid())
+  organizationId String
+  eventId        String
+  roundId        String
+  applicationId  String
+  snapshotType   AudienceFavoriteSnapshotType
+  viewCount      Int
+  capturedById   String
+  capturedAt     DateTime                   @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  round        Round        @relation(fields: [roundId], references: [id])
+  application  Application  @relation(fields: [applicationId], references: [id])
+  capturedBy   User         @relation("AudienceFavoriteSnapshotActor", fields: [capturedById], references: [id])
+
+  @@unique([roundId, applicationId, snapshotType])
+  @@index([organizationId])
+}
+
+model AudienceFavoriteDisposition {
+  id             String                           @id @default(cuid())
+  organizationId String
+  eventId        String
+  roundId        String
+  applicationId  String
+  status         AudienceFavoriteDispositionStatus @default(ELIGIBLE)
+  note           String
+  actedById      String
+  actedAt        DateTime                         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  round        Round        @relation(fields: [roundId], references: [id])
+  application  Application  @relation(fields: [applicationId], references: [id])
+  actedBy      User         @relation("AudienceFavoriteDispositionActor", fields: [actedById], references: [id])
+
+  @@unique([roundId, applicationId])
+  @@index([organizationId])
+  @@index([roundId, status])
 }
 
 // ---------------------------------------------------------------------------
