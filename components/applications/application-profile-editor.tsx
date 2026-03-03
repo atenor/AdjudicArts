@@ -68,8 +68,6 @@ const SECTION_FIELDS: Record<SectionKey, (keyof EditorState)[]> = {
   adminNote: ["adminNote"],
 };
 
-// Sections that start collapsed
-const COLLAPSIBLE_SECTIONS: SectionKey[] = ["contact", "education", "documents", "adminNote"];
 
 // ─── Sub-components ─────────────────────────────────────────────────────────────
 

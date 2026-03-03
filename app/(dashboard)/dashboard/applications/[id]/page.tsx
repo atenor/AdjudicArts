@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ApplicationStatus } from "@prisma/client";
+
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
 import {
@@ -43,10 +43,6 @@ type CitizenshipVerification = {
   updatedByRole?: string | null;
 };
 
-function valueOrDash(value: string | null | undefined) {
-  if (!value || value.trim().length === 0) return "--";
-  return value;
-}
 
 function formatDateInput(value: Date | null) {
   if (!value) return "";
