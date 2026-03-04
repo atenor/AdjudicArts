@@ -8,6 +8,9 @@ type ApplicationMetadata = {
   resourceUrls?: string[];
   intakeHeadshotUrl?: string | null;
   mediaReleaseAccepted?: boolean;
+  dateOfBirthCertified?: boolean;
+  hasPriorFirstPrize?: boolean;
+  priorFirstPrizeDivision?: string | null;
   privacyPolicyAccepted?: boolean;
   submissionTermsAccepted?: boolean;
 };
@@ -22,6 +25,9 @@ type ParsedApplicationMetadata = {
   resourceUrls: string[];
   intakeHeadshotUrl: string | null;
   mediaReleaseAccepted: boolean;
+  dateOfBirthCertified: boolean;
+  hasPriorFirstPrize: boolean | null;
+  priorFirstPrizeDivision: string | null;
   privacyPolicyAccepted: boolean;
   submissionTermsAccepted: boolean;
 };
@@ -83,6 +89,9 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
       resourceUrls: [] as string[],
       intakeHeadshotUrl: null,
       mediaReleaseAccepted: false,
+      dateOfBirthCertified: false,
+      hasPriorFirstPrize: null,
+      priorFirstPrizeDivision: null,
       privacyPolicyAccepted: false,
       submissionTermsAccepted: false,
     } satisfies ParsedApplicationMetadata;
@@ -119,6 +128,14 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
         normalizeStoredAssetRef(parsed.intakeHeadshotUrl) ??
         findImportedUrl(rawCsv, ["headshot", "performance photograph", "photo"]);
       const mediaReleaseAccepted = parsed.mediaReleaseAccepted === true;
+      const dateOfBirthCertified = parsed.dateOfBirthCertified === true;
+      const hasPriorFirstPrize =
+        typeof parsed.hasPriorFirstPrize === "boolean" ? parsed.hasPriorFirstPrize : null;
+      const priorFirstPrizeDivision =
+        typeof parsed.priorFirstPrizeDivision === "string" &&
+        parsed.priorFirstPrizeDivision.trim().length > 0
+          ? parsed.priorFirstPrizeDivision.trim()
+          : null;
       const privacyPolicyAccepted = parsed.privacyPolicyAccepted === true;
       const submissionTermsAccepted = parsed.submissionTermsAccepted === true;
       return {
@@ -129,6 +146,9 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
         resourceUrls,
         intakeHeadshotUrl,
         mediaReleaseAccepted,
+        dateOfBirthCertified,
+        hasPriorFirstPrize,
+        priorFirstPrizeDivision,
         privacyPolicyAccepted,
         submissionTermsAccepted,
       } satisfies ParsedApplicationMetadata;
@@ -145,6 +165,9 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
     resourceUrls: [] as string[],
     intakeHeadshotUrl: null,
     mediaReleaseAccepted: false,
+    dateOfBirthCertified: false,
+    hasPriorFirstPrize: null,
+    priorFirstPrizeDivision: null,
     privacyPolicyAccepted: false,
     submissionTermsAccepted: false,
   } satisfies ParsedApplicationMetadata;
@@ -162,6 +185,10 @@ export function buildApplicationMetadata(metadata: ApplicationMetadata) {
       .slice(0, 8),
     intakeHeadshotUrl: normalizeStoredAssetRef(metadata.intakeHeadshotUrl) ?? null,
     mediaReleaseAccepted: metadata.mediaReleaseAccepted === true,
+    dateOfBirthCertified: metadata.dateOfBirthCertified === true,
+    hasPriorFirstPrize:
+      typeof metadata.hasPriorFirstPrize === "boolean" ? metadata.hasPriorFirstPrize : null,
+    priorFirstPrizeDivision: metadata.priorFirstPrizeDivision ?? null,
     privacyPolicyAccepted: metadata.privacyPolicyAccepted === true,
     submissionTermsAccepted: metadata.submissionTermsAccepted === true,
   });

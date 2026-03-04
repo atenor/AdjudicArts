@@ -550,6 +550,9 @@ export async function createPublicApplication(data: {
   citizenshipDocumentUrl?: string | null;
   resourceUrls?: string[];
   mediaRelease: boolean;
+  certifyDateOfBirth: boolean;
+  hasPriorFirstPrize: boolean;
+  priorFirstPrizeDivision?: string | null;
   acceptPrivacyPolicy: boolean;
   acceptTerms: boolean;
 }) {
@@ -622,6 +625,9 @@ export async function createPublicApplication(data: {
         resourceUrls: data.resourceUrls ?? [],
         intakeHeadshotUrl: data.headshotUrl ?? null,
         mediaReleaseAccepted: data.mediaRelease,
+        dateOfBirthCertified: data.certifyDateOfBirth,
+        hasPriorFirstPrize: data.hasPriorFirstPrize,
+        priorFirstPrizeDivision: data.priorFirstPrizeDivision ?? null,
         privacyPolicyAccepted: data.acceptPrivacyPolicy,
         submissionTermsAccepted: data.acceptTerms,
       }),

@@ -18,6 +18,7 @@ import {
   applicantIntakeSchema,
   type ApplicantIntakeValues,
   CITIZENSHIP_STATUS_OPTIONS,
+  PRIOR_WIN_DIVISION_OPTIONS,
   VOICE_PART_OPTIONS,
 } from "@/lib/validation/apply";
 
@@ -151,6 +152,7 @@ export default function ApplyForm({
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ApplicantIntakeValues>({
     resolver: zodResolver(applicantIntakeSchema),
@@ -164,8 +166,11 @@ export default function ApplyForm({
       major: "",
       parentName: "",
       parentEmail: "",
+      hasPriorFirstPrize: false,
+      priorFirstPrizeDivision: "",
     },
   });
+  const hasPriorFirstPrize = watch("hasPriorFirstPrize");
 
   async function onSubmit(data: ApplicantIntakeValues) {
     setServerError(null);
@@ -346,6 +351,45 @@ export default function ApplyForm({
                   </p>
                 ) : null}
                 <FieldError message={errors.chapter?.message} />
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="hasPriorFirstPrize" className="text-[#5f4d87]">
+                  Have you previously won 1st place in this competition? *
+                </Label>
+                <select
+                  id="hasPriorFirstPrize"
+                  className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8]"
+                  {...register("hasPriorFirstPrize", {
+                    setValueAs: (value) => value === "true",
+                  })}
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+                <FieldError message={errors.hasPriorFirstPrize?.message} />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="priorFirstPrizeDivision" className="text-[#5f4d87]">
+                  If yes, which division?
+                </Label>
+                <select
+                  id="priorFirstPrizeDivision"
+                  {...register("priorFirstPrizeDivision")}
+                  disabled={!hasPriorFirstPrize}
+                  className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8] disabled:cursor-not-allowed disabled:bg-[#f5f2fb]"
+                >
+                  <option value="">Select division...</option>
+                  {PRIOR_WIN_DIVISION_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <FieldError message={errors.priorFirstPrizeDivision?.message} />
               </div>
             </div>
             <input type="hidden" {...register("headshotUrl")} />
@@ -571,6 +615,15 @@ export default function ApplyForm({
               </span>
             </label>
             <FieldError message={errors.mediaRelease?.message} />
+
+            <label className="flex items-start gap-3 text-sm text-[#4a3d6b]">
+              <input type="checkbox" className="mt-1 h-4 w-4 rounded border-[#bca9df]" {...register("certifyDateOfBirth")} />
+              <span>
+                I certify that my date of birth is accurate and understand eligibility is determined
+                from age on March 1.
+              </span>
+            </label>
+            <FieldError message={errors.certifyDateOfBirth?.message} />
 
             <label className="flex items-start gap-3 text-sm text-[#4a3d6b]">
               <input type="checkbox" className="mt-1 h-4 w-4 rounded border-[#bca9df]" {...register("certifyAccuracy")} />

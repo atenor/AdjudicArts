@@ -23,6 +23,7 @@ import ForwardToNationalsButton from "@/components/applications/forward-to-natio
 import HeadshotPreview from "@/components/shared/headshot-preview";
 import { formatVoicePart, parseApplicationMetadata } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
+import { resolveApplicationDivision } from "@/lib/application-division";
 import {
   getPrivateBlobCitizenshipDocumentUrl,
   isPrivateBlobRef,
@@ -360,26 +361,53 @@ export default async function ApplicationDetailPage({
   })();
 
   // Eligibility signals
+  const resolvedDivision = resolveApplicationDivision({
+    dateOfBirth: application.dateOfBirth,
+    notes: application.notes,
+  });
+  const ageEligible = age !== null && age >= 16 && age <= 22;
+  const dobCertified = metadata.dateOfBirthCertified === true;
+  const priorFirstPrizeKnown = metadata.hasPriorFirstPrize !== null;
+  const priorDivisionAllowed =
+    metadata.hasPriorFirstPrize === true
+      ? !metadata.priorFirstPrizeDivision || metadata.priorFirstPrizeDivision !== resolvedDivision
+      : true;
   const hasHeadshot = !!headshotUrl;
   const videoCount = videoUrls.filter(Boolean).length;
+  const hasThreeVideos = videoCount >= 3;
+  const eligibilityVerified =
+    isCitizenshipVerified &&
+    hasHeadshot &&
+    hasThreeVideos &&
+    ageEligible &&
+    dobCertified &&
+    priorFirstPrizeKnown &&
+    priorDivisionAllowed;
   const remainingReviewItems = [
     !isCitizenshipVerified ? "citizenship" : null,
     !hasHeadshot ? "headshot" : null,
-    videoCount < 3 ? `${3 - videoCount} video${3 - videoCount === 1 ? "" : "s"}` : null,
+    !hasThreeVideos ? `${3 - videoCount} video${3 - videoCount === 1 ? "" : "s"}` : null,
+    !ageEligible ? "age eligibility" : null,
+    !dobCertified ? "DOB certification" : null,
+    !priorFirstPrizeKnown ? "prior first-place declaration" : null,
+    !priorDivisionAllowed ? "prior winner division conflict" : null,
   ].filter((item): item is string => Boolean(item));
-  const reviewStatusLabel = remainingReviewItems.length === 0 ? "Ready for review" : "Needs attention";
+  const reviewStatusLabel = eligibilityVerified ? "Eligibility Verified" : "Needs attention";
   const reviewStatusTone =
-    remainingReviewItems.length === 0
+    eligibilityVerified
       ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
       : "border-[#f1df97] bg-[#fff3cd] text-[#856404]";
+  const totalEligibilityChecks = 6;
+  const completedEligibilityChecks = totalEligibilityChecks - remainingReviewItems.length;
   const reviewStatusDetail =
-    remainingReviewItems.length === 0
-      ? "All three core items are in place."
-      : `Still needed: ${remainingReviewItems.join(", ")}.`;
+    eligibilityVerified
+      ? "All eligibility checks are complete."
+      : `${completedEligibilityChecks}/${totalEligibilityChecks} checks complete. Remaining: ${remainingReviewItems.join(", ")}.`;
   const reviewSummaryCards = [
     {
       label: "Citizenship",
       value: isCitizenshipVerified ? "Verified" : "Unverified",
+      href: "#profile-editor",
       tone: isCitizenshipVerified
         ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
         : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
@@ -387,6 +415,7 @@ export default async function ApplicationDetailPage({
     {
       label: "Headshot",
       value: hasHeadshot ? "On file" : "Missing",
+      href: "#profile-editor",
       tone: hasHeadshot
         ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
         : "border-[#c2b8d2] bg-[#f0ecfa] text-[#8b7ab5]",
@@ -394,12 +423,47 @@ export default async function ApplicationDetailPage({
     {
       label: "Videos",
       value: `${videoCount}/3`,
+      href: "#profile-editor",
       tone:
-        videoCount === 3
+        hasThreeVideos
           ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
           : videoCount > 0
             ? "border-[#f1df97] bg-[#fff3cd] text-[#856404]"
             : "border-[#c2b8d2] bg-[#f0ecfa] text-[#8b7ab5]",
+    },
+    {
+      label: "Age",
+      value: ageEligible ? "Eligible" : "Ineligible",
+      href: "#personal-information",
+      tone: ageEligible
+        ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+        : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
+    },
+    {
+      label: "DOB",
+      value: dobCertified ? "Certified" : "Not certified",
+      href: "#eligibility-verification",
+      tone: dobCertified
+        ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+        : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
+    },
+    {
+      label: "Prior 1st Prize",
+      value:
+        metadata.hasPriorFirstPrize === null
+          ? "Not declared"
+          : priorDivisionAllowed
+            ? metadata.hasPriorFirstPrize
+              ? "Different division"
+              : "None"
+            : "Same division",
+      href: "#eligibility-verification",
+      tone:
+        metadata.hasPriorFirstPrize === null
+          ? "border-[#f1df97] bg-[#fff3cd] text-[#856404]"
+          : priorDivisionAllowed
+            ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+            : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
     },
   ];
   const personalInfoRows = [
@@ -480,7 +544,10 @@ export default async function ApplicationDetailPage({
       </div>
 
       {/* ── HERO ────────────────────────────────────────────────────────────── */}
-      <section className="overflow-hidden rounded-[2rem] border border-[#c2b8d2] bg-white p-3 shadow-sm sm:p-6">
+      <section
+        id="eligibility-verification"
+        className="overflow-hidden rounded-[2rem] border border-[#c2b8d2] bg-white p-3 shadow-sm sm:p-6"
+      >
         <div className="mx-auto grid max-w-md gap-4 lg:max-w-none lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
           <div className="overflow-hidden rounded-[1.75rem] border border-[#c7bed8] bg-[#f6f0ff] shadow-sm">
             <div className="bg-[#1e1538] px-4 pb-6 pt-5">
@@ -531,13 +598,14 @@ export default async function ApplicationDetailPage({
                 </p>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   {reviewSummaryCards.map((item) => (
-                    <div
+                    <a
                       key={item.label}
+                      href={item.href}
                       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
                     >
                       <span className="text-[#8b7ab5]">{item.label}</span>
                       <span>{item.value}</span>
-                    </div>
+                    </a>
                   ))}
                 </div>
                 {canEditProfile && !isCitizenshipVerified ? (
@@ -581,13 +649,14 @@ export default async function ApplicationDetailPage({
 
               <div className="mt-2.5 flex flex-wrap gap-2">
                 {reviewSummaryCards.map((item) => (
-                  <div
+                  <a
                     key={item.label}
+                    href={item.href}
                     className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
                   >
                     <span className="text-[#8b7ab5]">{item.label}</span>
                     <span>{item.value}</span>
-                  </div>
+                  </a>
                 ))}
               </div>
 
@@ -601,7 +670,10 @@ export default async function ApplicationDetailPage({
               ) : null}
             </div>
 
-            <div className="rounded-[1.75rem] border border-[#c7bed8] bg-white px-4 py-4 shadow-sm sm:px-5">
+            <div
+              id="personal-information"
+              className="rounded-[1.75rem] border border-[#c7bed8] bg-white px-4 py-4 shadow-sm sm:px-5"
+            >
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b7ab5]">
                 Personal Information
               </p>
@@ -637,7 +709,10 @@ export default async function ApplicationDetailPage({
       </section>
 
       {/* ── SINGER PROFILE ──────────────────────────────────────────────────── */}
-      <section className="rounded-[1.5rem] border border-[#c7bed8] bg-white p-3 shadow-sm sm:p-4">
+      <section
+        id="profile-editor"
+        className="rounded-[1.5rem] border border-[#c7bed8] bg-white p-3 shadow-sm sm:p-4"
+      >
         <ApplicationProfileEditor
           applicationId={application.id}
           canEdit={canEditProfile}

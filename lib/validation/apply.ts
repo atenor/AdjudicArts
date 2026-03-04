@@ -25,6 +25,10 @@ export const CITIZENSHIP_STATUS_OPTIONS = [
   { value: "Permanent Resident", label: "Permanent Resident" },
   { value: "Other / Not Applicable", label: "Other / Not Applicable" },
 ] as const;
+export const PRIOR_WIN_DIVISION_OPTIONS = [
+  { value: "16-18", label: "Division 16-18" },
+  { value: "19-22", label: "Division 19-22" },
+] as const;
 
 const CITIZENSHIP_STATUS_VALUES = CITIZENSHIP_STATUS_OPTIONS.map(
   (option) => option.value
@@ -50,6 +54,14 @@ function getAgeOnDate(dateOfBirth: string, referenceDate: Date) {
   return age >= 0 ? age : null;
 }
 
+function getDivisionOnMarchFirst(dateOfBirth: string) {
+  const ageOnMarchFirst = getAgeOnDate(dateOfBirth, getMarchFirstReferenceDate());
+  if (ageOnMarchFirst === null) return null;
+  if (ageOnMarchFirst >= 16 && ageOnMarchFirst <= 18) return "16-18" as const;
+  if (ageOnMarchFirst >= 19 && ageOnMarchFirst <= 22) return "19-22" as const;
+  return null;
+}
+
 function isMinor(dateOfBirth: string) {
   const age = getAgeOnDate(dateOfBirth, new Date());
   return age !== null && age < 18;
@@ -60,6 +72,9 @@ const requiredTrimmedString = (message: string) =>
 
 const optionalUrl = z.string().trim().url("Enter a valid URL");
 const optionalStoredAssetRef = z.string().trim();
+const PRIOR_WIN_DIVISION_VALUES = PRIOR_WIN_DIVISION_OPTIONS.map(
+  (option) => option.value
+) as [string, ...string[]];
 
 export const applicantIntakeSchema = z
   .object({
@@ -105,6 +120,11 @@ export const applicantIntakeSchema = z
     mediaRelease: z
       .boolean()
       .refine((value) => value, "You must grant the media release permission"),
+    certifyDateOfBirth: z
+      .boolean()
+      .refine((value) => value, "You must certify your date of birth"),
+    hasPriorFirstPrize: z.boolean(),
+    priorFirstPrizeDivision: z.enum(PRIOR_WIN_DIVISION_VALUES).optional().or(z.literal("")),
     certifyAccuracy: z
       .boolean()
       .refine((value) => value, "You must certify that the information is accurate"),
@@ -120,6 +140,16 @@ export const applicantIntakeSchema = z
       value.dateOfBirth,
       getMarchFirstReferenceDate()
     );
+    const currentDivision = getDivisionOnMarchFirst(value.dateOfBirth);
+
+    if (ageOnMarchFirst !== null && ageOnMarchFirst < 16) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["dateOfBirth"],
+        message:
+          "Applicants must be at least age 16 as of March 1 of the current year",
+      });
+    }
 
     if (ageOnMarchFirst !== null && ageOnMarchFirst > 22) {
       ctx.addIssue({
@@ -127,6 +157,28 @@ export const applicantIntakeSchema = z
         path: ["dateOfBirth"],
         message:
           "Applicants must be age 22 or younger as of March 1 of the current year",
+      });
+    }
+
+    if (value.hasPriorFirstPrize && !value.priorFirstPrizeDivision) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["priorFirstPrizeDivision"],
+        message: "Select the division where you previously won first place",
+      });
+    }
+
+    if (
+      value.hasPriorFirstPrize &&
+      value.priorFirstPrizeDivision &&
+      currentDivision &&
+      value.priorFirstPrizeDivision === currentDivision
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["priorFirstPrizeDivision"],
+        message:
+          "Applicants may not re-enter a division where they have already won first place",
       });
     }
 

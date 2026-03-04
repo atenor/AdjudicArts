@@ -9,6 +9,7 @@ import {
 import { EventStatus } from "@prisma/client";
 import { sendApplicationConfirmation } from "@/lib/email";
 import { applicantIntakeSchema } from "@/lib/validation/apply";
+import { resolveApplicationDivision } from "@/lib/application-division";
 
 export async function POST(
   request: Request,
@@ -72,10 +73,32 @@ export async function POST(
     citizenshipStatus,
     citizenshipDocumentUrl,
     mediaRelease,
+    certifyDateOfBirth,
+    hasPriorFirstPrize,
+    priorFirstPrizeDivision,
     acceptPrivacyPolicy,
     acceptTerms,
   } =
     parsed.data;
+
+  const currentDivision = resolveApplicationDivision({
+    dateOfBirth: new Date(dateOfBirth),
+  });
+
+  if (
+    hasPriorFirstPrize &&
+    priorFirstPrizeDivision &&
+    currentDivision &&
+    priorFirstPrizeDivision === currentDivision
+  ) {
+    return Response.json(
+      {
+        error:
+          "Applicants may not re-enter a division where they have already won first place.",
+      },
+      { status: 409 }
+    );
+  }
 
   const alreadyApplied = await hasExistingApplication(event.id, email);
   if (alreadyApplied) {
@@ -136,6 +159,9 @@ export async function POST(
     citizenshipStatus,
     citizenshipDocumentUrl: citizenshipDocumentUrl || null,
     mediaRelease,
+    certifyDateOfBirth,
+    hasPriorFirstPrize,
+    priorFirstPrizeDivision: priorFirstPrizeDivision || null,
     acceptPrivacyPolicy,
     acceptTerms,
   });
