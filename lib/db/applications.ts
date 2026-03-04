@@ -4,7 +4,11 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { buildApplicationMetadata } from "@/lib/application-metadata";
 import { getRankedResultsForRound } from "@/lib/db/results";
-import { resolveApplicationDivision } from "@/lib/application-division";
+import {
+  getCompetitionCutoffDate,
+  resolveApplicationDivision,
+  type ApplicationDivision,
+} from "@/lib/application-division";
 
 export const PENDING_APPROVAL_STATUSES: ApplicationStatus[] = [
   "PENDING_APPROVAL",
@@ -355,6 +359,8 @@ export async function getPublicEventForApply(eventId: string) {
       description: true,
       status: true,
       organizationId: true,
+      openAt: true,
+      closeAt: true,
     },
   });
 }
@@ -402,8 +408,14 @@ export async function listPublicApplicationChapters(organizationId: string) {
   ).sort((left, right) => left.localeCompare(right));
 }
 
-function getDivisionForSubmission(dateOfBirth: Date) {
-  return resolveApplicationDivision({ dateOfBirth });
+function getDivisionForSubmission(
+  dateOfBirth: Date,
+  options?: { competitionDate?: Date | null }
+) {
+  return resolveApplicationDivision({
+    dateOfBirth,
+    competitionDate: options?.competitionDate ?? null,
+  });
 }
 
 export async function findPriorDivisionFirstPlace(input: {
@@ -411,8 +423,9 @@ export async function findPriorDivisionFirstPlace(input: {
   currentEventId: string;
   email: string;
   dateOfBirth: Date;
+  currentDivision?: ApplicationDivision | null;
 }) {
-  const division = getDivisionForSubmission(input.dateOfBirth);
+  const division = input.currentDivision ?? getDivisionForSubmission(input.dateOfBirth);
   if (!division) return null;
 
   const historicalApplications = await prisma.application.findMany({
@@ -439,6 +452,8 @@ export async function findPriorDivisionFirstPlace(input: {
         select: {
           id: true,
           name: true,
+          openAt: true,
+          closeAt: true,
           rounds: {
             select: {
               id: true,
@@ -499,6 +514,10 @@ export async function findPriorDivisionFirstPlace(input: {
       const previousDivision = resolveApplicationDivision({
         dateOfBirth: application.dateOfBirth,
         notes: application.notes,
+        competitionDate: getCompetitionCutoffDate({
+          openAt: application.event.openAt,
+          closeAt: application.event.closeAt,
+        }),
       });
 
       if (previousDivision === division) {
@@ -757,6 +776,8 @@ export async function getApplicationById(
           id: true,
           name: true,
           status: true,
+          openAt: true,
+          closeAt: true,
         },
       },
       scores: {

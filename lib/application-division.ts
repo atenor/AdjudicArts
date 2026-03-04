@@ -37,6 +37,19 @@ function getAge(dateOfBirth: Date | null | undefined, now = new Date()): number 
   return age >= 0 ? age : null;
 }
 
+function toMarchFirstOfYear(year: number) {
+  return new Date(year, 2, 1);
+}
+
+export function getCompetitionCutoffDate(input?: {
+  openAt?: Date | null;
+  closeAt?: Date | null;
+  fallbackDate?: Date | null;
+}) {
+  const sourceDate = input?.openAt ?? input?.closeAt ?? input?.fallbackDate ?? new Date();
+  return toMarchFirstOfYear(sourceDate.getFullYear());
+}
+
 function getRawCsvDivision(notes: string | null | undefined): ApplicationDivision | null {
   if (!notes) return null;
 
@@ -68,12 +81,13 @@ function getRawCsvDivision(notes: string | null | undefined): ApplicationDivisio
 export function resolveApplicationDivision(input: {
   notes?: string | null;
   dateOfBirth?: Date | null;
+  competitionDate?: Date | null;
 }): ApplicationDivision | null {
-  const fromCsv = getRawCsvDivision(input.notes ?? null);
-  if (fromCsv) return fromCsv;
-
-  const age = getAge(input.dateOfBirth ?? null);
-  if (age === null) return null;
+  const referenceDate = input.competitionDate ?? getCompetitionCutoffDate();
+  const age = getAge(input.dateOfBirth ?? null, referenceDate);
+  if (age === null) {
+    return getRawCsvDivision(input.notes ?? null);
+  }
   if (age >= 16 && age <= 18) return DIVISION_16_18;
   if (age >= 19 && age <= 22) return DIVISION_19_22;
   return null;
@@ -83,4 +97,3 @@ export function formatDivisionLabel(division: ApplicationDivision | null) {
   if (!division) return "Division Unassigned";
   return `Division ${division}`;
 }
-

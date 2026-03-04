@@ -23,7 +23,7 @@ import ForwardToNationalsButton from "@/components/applications/forward-to-natio
 import HeadshotPreview from "@/components/shared/headshot-preview";
 import { formatVoicePart, parseApplicationMetadata } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
-import { resolveApplicationDivision } from "@/lib/application-division";
+import { getCompetitionCutoffDate, resolveApplicationDivision } from "@/lib/application-division";
 import {
   getPrivateBlobCitizenshipDocumentUrl,
   isPrivateBlobRef,
@@ -82,13 +82,13 @@ function formatChapterDisplay(value: string | null | undefined) {
   return trimmed;
 }
 
-function getAge(dateOfBirth: Date | null) {
+function getAge(dateOfBirth: Date | null, referenceDate = new Date()) {
   if (!dateOfBirth) return null;
-  const now = new Date();
-  let age = now.getFullYear() - dateOfBirth.getFullYear();
+  let age = referenceDate.getFullYear() - dateOfBirth.getFullYear();
   const beforeBirthday =
-    now.getMonth() < dateOfBirth.getMonth() ||
-    (now.getMonth() === dateOfBirth.getMonth() && now.getDate() < dateOfBirth.getDate());
+    referenceDate.getMonth() < dateOfBirth.getMonth() ||
+    (referenceDate.getMonth() === dateOfBirth.getMonth() &&
+      referenceDate.getDate() < dateOfBirth.getDate());
   if (beforeBirthday) age -= 1;
   return age >= 0 ? age : null;
 }
@@ -286,7 +286,12 @@ export default async function ApplicationDetailPage({
   const bypassAuditEvent = getBypassAuditEvent(application.notes);
   const citizenshipVerification = getCitizenshipVerification(application.notes);
   const isCitizenshipVerified = citizenshipVerification?.verified === true;
-  const age = getAge(application.dateOfBirth);
+  const competitionCutoffDate = getCompetitionCutoffDate({
+    openAt: application.event.openAt,
+    closeAt: application.event.closeAt,
+    fallbackDate: application.submittedAt,
+  });
+  const age = getAge(application.dateOfBirth, competitionCutoffDate);
 
   const division =
     metadata.voicePart ??
@@ -364,10 +369,10 @@ export default async function ApplicationDetailPage({
   const resolvedDivision = resolveApplicationDivision({
     dateOfBirth: application.dateOfBirth,
     notes: application.notes,
+    competitionDate: competitionCutoffDate,
   });
   const ageEligible = age !== null && age >= 16 && age <= 22;
-  const dobCertified = metadata.dateOfBirthCertified === true;
-  const ageDobVerified = ageEligible && dobCertified;
+  const ageDobVerified = ageEligible;
   const priorFirstPrizeKnown = metadata.hasPriorFirstPrize !== null;
   const priorDivisionAllowed =
     metadata.hasPriorFirstPrize === true
@@ -387,7 +392,7 @@ export default async function ApplicationDetailPage({
     !isCitizenshipVerified ? "citizenship" : null,
     !hasHeadshot ? "headshot" : null,
     !hasThreeVideos ? `${3 - videoCount} video${3 - videoCount === 1 ? "" : "s"}` : null,
-    !ageDobVerified ? "age + DOB certification" : null,
+    !ageDobVerified ? "age" : null,
     !priorFirstPrizeKnown ? "prior first-place declaration" : null,
     !priorDivisionAllowed ? "prior winner division conflict" : null,
   ].filter((item): item is string => Boolean(item));
@@ -432,7 +437,7 @@ export default async function ApplicationDetailPage({
             : "border-[#c2b8d2] bg-[#f0ecfa] text-[#8b7ab5]",
     },
     {
-      label: "Age + DOB",
+      label: "Age",
       value: ageDobVerified ? "Verified" : "Needs review",
       href: "#personal-information",
       tone: ageDobVerified

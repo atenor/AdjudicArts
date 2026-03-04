@@ -9,7 +9,7 @@ import {
 import { EventStatus } from "@prisma/client";
 import { sendApplicationConfirmation } from "@/lib/email";
 import { applicantIntakeSchema } from "@/lib/validation/apply";
-import { resolveApplicationDivision } from "@/lib/application-division";
+import { getCompetitionCutoffDate, resolveApplicationDivision } from "@/lib/application-division";
 
 export async function POST(
   request: Request,
@@ -83,6 +83,10 @@ export async function POST(
 
   const currentDivision = resolveApplicationDivision({
     dateOfBirth: new Date(dateOfBirth),
+    competitionDate: getCompetitionCutoffDate({
+      openAt: event.openAt,
+      closeAt: event.closeAt,
+    }),
   });
 
   if (
@@ -113,6 +117,7 @@ export async function POST(
     currentEventId: event.id,
     email,
     dateOfBirth: new Date(dateOfBirth),
+    currentDivision,
   });
 
   if (priorDivisionWin) {
