@@ -367,6 +367,7 @@ export default async function ApplicationDetailPage({
   });
   const ageEligible = age !== null && age >= 16 && age <= 22;
   const dobCertified = metadata.dateOfBirthCertified === true;
+  const ageDobVerified = ageEligible && dobCertified;
   const priorFirstPrizeKnown = metadata.hasPriorFirstPrize !== null;
   const priorDivisionAllowed =
     metadata.hasPriorFirstPrize === true
@@ -379,16 +380,14 @@ export default async function ApplicationDetailPage({
     isCitizenshipVerified &&
     hasHeadshot &&
     hasThreeVideos &&
-    ageEligible &&
-    dobCertified &&
+    ageDobVerified &&
     priorFirstPrizeKnown &&
     priorDivisionAllowed;
   const remainingReviewItems = [
     !isCitizenshipVerified ? "citizenship" : null,
     !hasHeadshot ? "headshot" : null,
     !hasThreeVideos ? `${3 - videoCount} video${3 - videoCount === 1 ? "" : "s"}` : null,
-    !ageEligible ? "age eligibility" : null,
-    !dobCertified ? "DOB certification" : null,
+    !ageDobVerified ? "age + DOB certification" : null,
     !priorFirstPrizeKnown ? "prior first-place declaration" : null,
     !priorDivisionAllowed ? "prior winner division conflict" : null,
   ].filter((item): item is string => Boolean(item));
@@ -397,7 +396,7 @@ export default async function ApplicationDetailPage({
     eligibilityVerified
       ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
       : "border-[#f1df97] bg-[#fff3cd] text-[#856404]";
-  const totalEligibilityChecks = 6;
+  const totalEligibilityChecks = 5;
   const completedEligibilityChecks = totalEligibilityChecks - remainingReviewItems.length;
   const reviewStatusDetail =
     eligibilityVerified
@@ -407,7 +406,8 @@ export default async function ApplicationDetailPage({
     {
       label: "Citizenship",
       value: isCitizenshipVerified ? "Verified" : "Unverified",
-      href: "#profile-editor",
+      href: citizenshipDocumentHref ?? "#profile-editor",
+      external: Boolean(citizenshipDocumentHref),
       tone: isCitizenshipVerified
         ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
         : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
@@ -432,18 +432,10 @@ export default async function ApplicationDetailPage({
             : "border-[#c2b8d2] bg-[#f0ecfa] text-[#8b7ab5]",
     },
     {
-      label: "Age",
-      value: ageEligible ? "Eligible" : "Ineligible",
+      label: "Age + DOB",
+      value: ageDobVerified ? "Verified" : "Needs review",
       href: "#personal-information",
-      tone: ageEligible
-        ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
-        : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
-    },
-    {
-      label: "DOB",
-      value: dobCertified ? "Certified" : "Not certified",
-      href: "#eligibility-verification",
-      tone: dobCertified
+      tone: ageDobVerified
         ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
         : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
     },
@@ -596,20 +588,32 @@ export default async function ApplicationDetailPage({
                 <p className="mt-2 text-xs leading-relaxed text-[#6f6294]">
                   {reviewStatusDetail}
                 </p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
                   {reviewSummaryCards.map((item) => (
                     <a
                       key={item.label}
                       href={item.href}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noreferrer" : undefined}
+                      className={`inline-flex min-h-[2.25rem] w-full items-center justify-between gap-2 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
                     >
-                      <span className="text-[#8b7ab5]">{item.label}</span>
+                      <span className="truncate text-[#8b7ab5]">{item.label}</span>
                       <span>{item.value}</span>
                     </a>
                   ))}
                 </div>
                 {canEditProfile && !isCitizenshipVerified ? (
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {citizenshipDocumentHref ? (
+                      <a
+                        href={citizenshipDocumentHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center rounded-full border border-[#c2b8d2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f4effb]"
+                      >
+                        View Citizenship Proof
+                      </a>
+                    ) : null}
                     <CitizenshipVerificationButton
                       applicationId={application.id}
                       verified={false}
@@ -637,31 +641,35 @@ export default async function ApplicationDetailPage({
                     </p>
                   </div>
                 </div>
-                {canEditProfile && !isCitizenshipVerified ? (
-                  <div className="hidden sm:block">
-                    <CitizenshipVerificationButton
-                      applicationId={application.id}
-                      verified={false}
-                    />
-                  </div>
-                ) : null}
               </div>
 
-              <div className="mt-2.5 flex flex-wrap gap-2">
+              <div className="mt-2.5 grid grid-cols-2 gap-2 lg:grid-cols-3">
                 {reviewSummaryCards.map((item) => (
                   <a
                     key={item.label}
                     href={item.href}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
+                    target={item.external ? "_blank" : undefined}
+                    rel={item.external ? "noreferrer" : undefined}
+                    className={`inline-flex min-h-[2.25rem] w-full items-center justify-between gap-2 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
                   >
-                    <span className="text-[#8b7ab5]">{item.label}</span>
+                    <span className="truncate text-[#8b7ab5]">{item.label}</span>
                     <span>{item.value}</span>
                   </a>
                 ))}
               </div>
 
               {canEditProfile && !isCitizenshipVerified ? (
-                <div className="mt-3 sm:hidden">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {citizenshipDocumentHref ? (
+                    <a
+                      href={citizenshipDocumentHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-full border border-[#c2b8d2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f4effb]"
+                    >
+                      View Citizenship Proof
+                    </a>
+                  ) : null}
                   <CitizenshipVerificationButton
                     applicationId={application.id}
                     verified={false}
