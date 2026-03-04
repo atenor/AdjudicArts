@@ -327,16 +327,13 @@ export default async function DashboardPage() {
 
     const remaining =
       stats.totalToJudgeCurrentRound - stats.completedByJudgeCurrentRound;
-    const ctaLabel = stats.hasSavedWork
-      ? "Continue Being Judgy"
-      : "Start Being Judgy";
+    const ctaLabel = stats.hasSavedWork ? "Continue Adjudication" : "Start Adjudication";
     const judgeRoleLabel =
       user.role === "CHAPTER_JUDGE" ? "Chapter Judge" : "National Judge";
-    const judgeLocationLabel =
+    const judgeDashboardTitle =
       user.role === "CHAPTER_JUDGE"
-        ? user.chapter?.trim() || "Unassigned"
-        : "National";
-    const judgeDashboardTitle = `${judgeLocationLabel} ${judgeRoleLabel} Dashboard`;
+        ? `${user.chapter?.trim() || "Unassigned"} ${judgeRoleLabel} Dashboard`
+        : "National Judge Dashboard";
     const activeDivisionRows = stats.divisionSummary.filter(
       (row: { key: string; toJudge: number }) =>
         row.key !== "UNASSIGNED" && row.toJudge > 0
@@ -359,6 +356,51 @@ export default async function DashboardPage() {
           </div>
           <span className={styles.rolePill}>{ROLE_LABELS[user.role]}</span>
         </header>
+
+        {user.role === "NATIONAL_JUDGE" ? (
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionTopBar} />
+            <div className={styles.sectionBody}>
+              <h2 className={styles.sectionTitle}>National Finalists</h2>
+              {stats.nationalFinalists.length === 0 ? (
+                <p className={styles.muted}>
+                  No national finalists are currently loaded into the national judging pool.
+                </p>
+              ) : (
+                stats.nationalFinalists.map(
+                  (finalist: {
+                    id: string;
+                    applicantName: string;
+                    chapter: string;
+                    division: string;
+                    status: string;
+                  }) => (
+                    <article className={styles.row} key={finalist.id}>
+                      <div className={styles.rowMain}>
+                        <Link
+                          href={`/dashboard/scoring/${finalist.id}`}
+                          className={styles.rowTitle}
+                        >
+                          {finalist.applicantName}
+                        </Link>
+                        <p className={styles.rowMeta}>
+                          {finalist.chapter} · {formatStatus(finalist.division)} ·{" "}
+                          {formatStatus(finalist.status)}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/dashboard/scoring/${finalist.id}`}
+                        className={styles.rowLink}
+                      >
+                        Score
+                      </Link>
+                    </article>
+                  )
+                )
+              )}
+            </div>
+          </section>
+        ) : null}
 
         <section className={styles.grid3}>
           <StatCard
@@ -407,6 +449,22 @@ export default async function DashboardPage() {
             </div>
           </div>
         </section>
+
+        {stats.totalToJudgeCurrentRound === 0 ? (
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionTopBar} />
+            <div className={styles.sectionBody}>
+              <h2 className={styles.sectionTitle}>
+                {user.role === "NATIONAL_JUDGE" ? "National Queue Status" : "Queue Status"}
+              </h2>
+              <p className={styles.muted}>
+                {user.role === "NATIONAL_JUDGE"
+                  ? "No applications are ready for national judging yet. National judges only see finalists after they have been moved into the national judging pool."
+                  : "No applications are ready for chapter judging yet."}
+              </p>
+            </div>
+          </section>
+        ) : null}
 
         <section className={styles.judgeCtaCard}>
           <p className={styles.judgeCtaLabel}>Primary Action</p>

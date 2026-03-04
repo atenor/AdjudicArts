@@ -69,13 +69,6 @@ export async function POST(
     );
   }
 
-  if (scoringContext.submission?.status === "FINALIZED") {
-    return Response.json(
-      { error: "This submission has been finalized and cannot be edited." },
-      { status: 409 }
-    );
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -134,7 +127,7 @@ export async function POST(
         error:
           draftResult.reason === "ROUND_CERTIFIED"
             ? "This round is certified and no further score edits are allowed."
-            : "This submission has been finalized and cannot be edited.",
+            : "Unable to save this scorecard right now.",
       },
       { status: 409 }
     );
@@ -159,7 +152,7 @@ export async function POST(
         error:
           suggestionResult.reason === "ROUND_CERTIFIED"
             ? "This round is certified and no further prize suggestion edits are allowed."
-            : "This submission has been finalized and cannot be edited.",
+            : "Unable to save prize suggestions right now.",
       },
       { status: 409 }
     );

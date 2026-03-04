@@ -1,9 +1,27 @@
 import { get } from "@vercel/blob";
 import { getApplicationDocumentRefsById } from "@/lib/db/applications";
 import { getPrivateBlobPathname, isPrivateBlobRef } from "@/lib/blob-refs";
+import { parseApplicationMetadata } from "@/lib/application-metadata";
 import { convertHeicBufferToJpeg, isHeicLike, toJpegFilename } from "@/lib/heic";
 
 export const dynamic = "force-dynamic";
+
+function extractDriveId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const byQuery = parsed.searchParams.get("id");
+    if (byQuery) return byQuery;
+    return parsed.pathname.match(/\/d\/([^/]+)/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function toGoogleusercontentHeadshotUrl(url: string) {
+  const id = extractDriveId(url);
+  if (!id) return null;
+  return `https://lh3.googleusercontent.com/d/${id}=w1600`;
+}
 
 async function buildInlineResponse(
   body: ReadableStream<Uint8Array> | Buffer | Uint8Array | ArrayBuffer,
@@ -51,19 +69,30 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const application = await getApplicationDocumentRefsById(params.id);
-  if (!application?.headshot) {
+  const metadata = parseApplicationMetadata(application?.notes ?? null);
+  const headshotRef = application?.headshot ?? metadata.intakeHeadshotUrl;
+
+  if (!headshotRef) {
     return new Response("Not found", { status: 404 });
   }
 
-  if (!isPrivateBlobRef(application.headshot)) {
-    const response = await fetch(application.headshot);
-    if (!response.ok || !response.body) {
-      return new Response("Not found", { status: 404 });
+  if (!isPrivateBlobRef(headshotRef)) {
+    const externalUrls = [headshotRef];
+    const googleusercontent = toGoogleusercontentHeadshotUrl(headshotRef);
+    if (googleusercontent && googleusercontent !== headshotRef) {
+      externalUrls.unshift(googleusercontent);
     }
-    return buildInlineResponse(response.body, response.headers, application.headshot);
+
+    for (const externalUrl of externalUrls) {
+      const response = await fetch(externalUrl);
+      if (!response.ok || !response.body) continue;
+      return buildInlineResponse(response.body, response.headers, externalUrl);
+    }
+
+    return new Response("Not found", { status: 404 });
   }
 
-  const pathname = getPrivateBlobPathname(application.headshot);
+  const pathname = getPrivateBlobPathname(headshotRef);
   if (!pathname) {
     return new Response("Not found", { status: 404 });
   }

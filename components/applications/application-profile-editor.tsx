@@ -162,6 +162,35 @@ function formatPhoneOrEmail(value: string | null | undefined) {
   return parts.map((p) => formatTraditionalPhone(p)).join(" / ");
 }
 
+function parseVideoLabel(value: string | null | undefined) {
+  if (!value) {
+    return { title: "", composer: "", poet: "" };
+  }
+
+  let trimmed = value.trim();
+  if (!trimmed) {
+    return { title: "", composer: "", poet: "" };
+  }
+
+  let poet = "";
+  const poetMatch = trimmed.match(/\((?:poem|words|text|lyrics|libretto)\s+by\s+(.+?)\)\s*$/i);
+  if (poetMatch) {
+    poet = poetMatch[1]?.trim() ?? "";
+    trimmed = trimmed.slice(0, poetMatch.index).trim();
+  }
+
+  const separatorIndex = Math.max(trimmed.lastIndexOf(" - "), trimmed.lastIndexOf(" – "));
+  if (separatorIndex === -1) {
+    return { title: trimmed, composer: "", poet };
+  }
+
+  return {
+    title: trimmed.slice(0, separatorIndex).trim(),
+    composer: trimmed.slice(separatorIndex + 3).trim(),
+    poet,
+  };
+}
+
 function cx(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -298,7 +327,10 @@ export default function ApplicationProfileEditor({
     { title: form.video1Title, url: form.video1Url, num: 1 },
     { title: form.video2Title, url: form.video2Url, num: 2 },
     { title: form.video3Title, url: form.video3Url, num: 3 },
-  ];
+  ].map((video) => ({
+    ...video,
+    parsedTitle: parseVideoLabel(video.title),
+  }));
 
   // ── Collapsible section wrapper ────────────────────────────────────────────
   function Accordion({
@@ -358,7 +390,7 @@ export default function ApplicationProfileEditor({
 
         {editingSection === "videos" ? (
           <>
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {[
                 { num: 1, titleKey: "video1Title" as const, urlKey: "video1Url" as const },
                 { num: 2, titleKey: "video2Title" as const, urlKey: "video2Url" as const },
@@ -399,36 +431,52 @@ export default function ApplicationProfileEditor({
             />
           </>
         ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
             {videos.map((video) => (
               <div
                 key={video.num}
                 className={cx(
-                  "rounded-xl border p-3 space-y-1.5",
+                  "rounded-xl border p-2.5 shadow-sm space-y-1.5 sm:rounded-2xl sm:p-3 sm:space-y-2",
                   video.title || video.url
                     ? "border-[#d7cde9] bg-[#f8f4ff]"
                     : "border-dashed border-[#e2d8f0] bg-[#faf7ff]"
                 )}
               >
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#9284b0]">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9284b0]">
                   Video {video.num}
                 </p>
                 {video.title ? (
-                  <p className="text-sm font-medium leading-snug text-[#1e1538]">{video.title}</p>
+                  <div className="min-h-[3.8rem] space-y-0.5">
+                    <p className="text-[11px] font-semibold leading-tight text-[#1e1538] sm:text-xs">
+                      {video.parsedTitle.title || video.title}
+                    </p>
+                    {video.parsedTitle.composer ? (
+                      <p className="text-[10px] leading-tight text-[#5f2ec8] sm:text-[11px]">
+                        {video.parsedTitle.composer}
+                      </p>
+                    ) : null}
+                    {video.parsedTitle.poet ? (
+                      <p className="text-[10px] leading-tight text-[#8b7ab5] sm:text-[11px]">
+                        Poet: {video.parsedTitle.poet}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : (
-                  <p className="text-sm text-[#b0a0cc]">No title</p>
+                  <p className="min-h-[3.8rem] text-[11px] text-[#b0a0cc] sm:text-sm">
+                    Title not provided
+                  </p>
                 )}
                 {video.url ? (
                   <a
                     href={video.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="block truncate text-xs text-[#5f2ec8] underline hover:text-[#4f26a8]"
+                    className="inline-flex w-full items-center justify-center rounded-lg border border-[#d8cce9] bg-white px-2 py-1.5 text-[11px] font-semibold text-[#5f2ec8] transition hover:border-[#c7b6e5] hover:bg-[#f4effb] hover:text-[#4f26a8] sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs"
                   >
-                    {video.url}
+                    Watch
                   </a>
                 ) : (
-                  <p className="text-xs text-[#b42318]">No URL</p>
+                  <p className="text-[11px] font-medium text-[#b42318] sm:text-xs">Link missing</p>
                 )}
               </div>
             ))}

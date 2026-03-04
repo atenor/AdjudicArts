@@ -498,7 +498,7 @@ export default function RoundGovernancePanel({
         <div>
           <h2 className="text-lg font-semibold text-[#1e1538]">Round Governance</h2>
           <p className="mt-1 text-sm text-[#6d5b91]">
-            Winston 2026 governance requires explicit finalization, chair certification, clear
+            Winston 2026 governance requires complete judge scorecards, chair certification, clear
             prize authority, and auditable Audience Favorite handling.
           </p>
         </div>
@@ -508,7 +508,7 @@ export default function RoundGovernancePanel({
           </div>
         ) : (
           <div className="rounded-lg border border-[#e2d8f0] bg-[#faf7ff] px-3 py-2 text-sm text-[#5a4d7f]">
-            {readiness.finalizedCount}/{readiness.requiredFinalizations} finalizations complete
+            {readiness.finalizedCount}/{readiness.requiredFinalizations} scorecards complete
           </div>
         )}
       </div>
@@ -616,8 +616,9 @@ export default function RoundGovernancePanel({
           <div>
             <h3 className="text-base font-semibold text-[#1e1538]">Round Certification</h3>
             <p className="mt-1 text-sm text-[#6d5b91]">
-              Certification is blocked until every assigned judge has finalized. Certification then
-              locks scores, feedback, prize allocations, and Audience Favorite controls.
+              Certification is blocked until every assigned judge has completed every applicant
+              scorecard. Certification then locks scores, feedback, prize allocations, and
+              Audience Favorite controls.
             </p>
           </div>
           {!certification && canCertify ? (
@@ -634,7 +635,7 @@ export default function RoundGovernancePanel({
 
         {readiness.missingCount > 0 && !certification && canCertify ? (
           <p className="mt-3 text-sm font-medium text-[#9d2c2c]">
-            Certification blocked: {readiness.missingCount} required judge finalization
+            Certification blocked: {readiness.missingCount} required judge scorecard
             {readiness.missingCount === 1 ? "" : "s"} still missing.
           </p>
         ) : null}

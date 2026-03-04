@@ -77,6 +77,15 @@ function displayToCents(raw: string) {
   return Math.round(numeric * 100);
 }
 
+function parseScoreValue(raw: string) {
+  const normalized = raw.trim();
+  if (!normalized) return null;
+
+  const numeric = Number(normalized);
+  if (Number.isNaN(numeric)) return null;
+  return numeric;
+}
+
 export default function ScoringForm({
   applicationId,
   applicantName,
@@ -103,9 +112,6 @@ export default function ScoringForm({
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFinalizing, setIsFinalizing] = useState(false);
-  const [finalizeStepOpen, setFinalizeStepOpen] = useState(false);
-  const [finalizeConfirmation, setFinalizeConfirmation] = useState("");
   const [finalComment, setFinalComment] = useState(existingFinalComment ?? "");
   const [compiledFeedback, setCompiledFeedback] = useState("");
 
@@ -143,12 +149,12 @@ export default function ScoringForm({
         : [{ label: "", amount: "", comment: "" }]
   );
 
-  const isLocked = Boolean(certification) || submission?.status === "FINALIZED";
+  const isLocked = Boolean(certification);
 
   const scoreSummary = useMemo(() => {
     const numericScores = criteria
-      .map((criterion) => Number(values[criterion.id]))
-      .filter((value) => !Number.isNaN(value));
+      .map((criterion) => parseScoreValue(values[criterion.id]))
+      .filter((value): value is number => value !== null);
     const total = numericScores.reduce((sum, value) => sum + value, 0);
     const filled = numericScores.length;
     const max = criteria.length * 10;
@@ -269,7 +275,7 @@ export default function ScoringForm({
     const trimmedFinalComment = finalComment.trim();
 
     const scores = criteria.map((criterion) => {
-      const numericValue = Number(values[criterion.id]);
+      const numericValue = parseScoreValue(values[criterion.id]);
       return {
         criteriaId: criterion.id,
         value: numericValue,
@@ -277,10 +283,14 @@ export default function ScoringForm({
       };
     });
 
+    if (scores.some((score) => score.value === null)) {
+      return { error: "Complete every rubric score before saving this submission." };
+    }
+
     if (
       scores.some(
         (score) =>
-          Number.isNaN(score.value) || score.value < 0 || score.value > 10
+          score.value === null || Number.isNaN(score.value) || score.value < 0 || score.value > 10
       )
     ) {
       return { error: "Each criterion must be scored from 0 to 10." };
@@ -322,7 +332,11 @@ export default function ScoringForm({
     }
 
     return {
-      scores,
+      scores: scores.map((score) => ({
+        criteriaId: score.criteriaId,
+        value: score.value as number,
+        comment: score.comment,
+      })),
       finalComment: trimmedFinalComment,
       prizeSuggestions: normalizedSuggestions,
     };
@@ -354,55 +368,10 @@ export default function ScoringForm({
         return;
       }
 
-      setSuccessMessage("Draft saved. This judge submission is still editable until finalized.");
+      setSuccessMessage("Scores saved. You can keep editing until the round is certified.");
       router.refresh();
     } finally {
       setIsSubmitting(false);
-    }
-  }
-
-  async function onFinalize() {
-    setServerError(null);
-    setSuccessMessage(null);
-
-    const payload = buildPayload(true);
-    if ("error" in payload) {
-      setServerError(payload.error ?? "Unable to finalize this judge submission.");
-      return;
-    }
-
-    if (finalizeConfirmation.trim() !== "FINALIZE") {
-      setServerError('Type FINALIZE exactly to finalize this judge submission.');
-      return;
-    }
-
-    setIsFinalizing(true);
-    try {
-      const response = await fetch(`/api/scoring/${applicationId}/finalize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          confirmationText: finalizeConfirmation.trim(),
-          ...payload,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
-        setServerError(data?.error ?? "Unable to finalize this judge submission.");
-        return;
-      }
-
-      setFinalizeStepOpen(false);
-      setFinalizeConfirmation("");
-      setSuccessMessage(
-        "Judge submission finalized. Scores, feedback, and prize suggestions are now locked."
-      );
-      router.refresh();
-    } finally {
-      setIsFinalizing(false);
     }
   }
 
@@ -419,22 +388,12 @@ export default function ScoringForm({
             {certification.certifiedBy.name ?? certification.certifiedBy.email}
           </p>
         </section>
-      ) : submission?.status === "FINALIZED" ? (
-        <section className={`${styles.banner} ${styles.bannerInfo}`}>
-          <p className={styles.bannerTitle}>Finalized Judge Submission</p>
-          <p className={styles.bannerText}>
-            You finalized this scorecard. It is now read-only unless a chair or admin reopens it.
-          </p>
-          <p className={styles.bannerMeta}>
-            Finalized {formatTimestamp(submission.finalizedAt)}
-          </p>
-        </section>
       ) : (
         <section className={`${styles.banner} ${styles.bannerNeutral}`}>
-          <p className={styles.bannerTitle}>Draft Judge Submission</p>
+          <p className={styles.bannerTitle}>Working Scorecard</p>
           <p className={styles.bannerText}>
-            Save draft to preserve your work. Finalize only when you are ready to lock your scores,
-            feedback, and prize suggestions for this applicant.
+            Save your work as you go. Individual applicants remain editable until the full round is
+            certified.
           </p>
         </section>
       )}
@@ -445,7 +404,7 @@ export default function ScoringForm({
           <ol className={styles.eventList}>
             {submission.events.map((event) => (
               <li key={event.id}>
-                {event.eventType === "FINALIZED" ? "Finalized" : "Reopened"} by{" "}
+                {event.eventType === "FINALIZED" ? "Marked complete" : "Reopened"} by{" "}
                 {event.actor.name ?? event.actor.email} ({event.actorRole}) on{" "}
                 {formatTimestamp(event.createdAt)}
                 {event.reason ? ` - ${event.reason}` : ""}
@@ -462,7 +421,11 @@ export default function ScoringForm({
             Filled {scoreSummary.filled}/{criteria.length} · Avg {scoreSummary.average.toFixed(2)}
           </p>
         </div>
-        <p className={styles.summaryTotal}>{scoreSummary.normalizedTotal}/100</p>
+        <p className={styles.summaryTotal}>
+          {scoreSummary.filled === criteria.length
+            ? `${scoreSummary.normalizedTotal}/100`
+            : "Incomplete"}
+        </p>
       </div>
 
       {criteria.map((criterion) => {
@@ -629,61 +592,12 @@ export default function ScoringForm({
             <button
               className={`${styles.button} ${styles.buttonSecondary}`}
               type="button"
-              disabled={isSubmitting || isFinalizing}
+              disabled={isSubmitting}
               onClick={onSaveDraft}
             >
-              {isSubmitting ? "Saving Draft..." : "Save Draft"}
-            </button>
-            <button
-              className={`${styles.button} ${styles.buttonPrimary}`}
-              type="button"
-              disabled={isSubmitting || isFinalizing}
-              onClick={() => setFinalizeStepOpen((current) => !current)}
-            >
-              Finalize Scores
+              {isSubmitting ? "Saving..." : "Save Scores"}
             </button>
           </div>
-
-          {finalizeStepOpen ? (
-            <section className={styles.confirmWrap}>
-              <p className={styles.bannerTitle}>Finalize This Judge Submission</p>
-              <p className={styles.bannerText}>
-                Finalizing locks your scores, final comments, and prize suggestions. You cannot edit
-                again unless a chair or admin reopens this submission.
-              </p>
-              <input
-                className={styles.smallInput}
-                placeholder='Type "FINALIZE" to confirm'
-                value={finalizeConfirmation}
-                onChange={(event) => setFinalizeConfirmation(event.target.value)}
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-              />
-              <div className={styles.actionRow}>
-                <button
-                  type="button"
-                  className={`${styles.button} ${styles.buttonSecondary}`}
-                  disabled={isFinalizing}
-                  onClick={() => {
-                    setFinalizeStepOpen(false);
-                    setFinalizeConfirmation("");
-                    setServerError(null);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.button} ${styles.buttonDanger}`}
-                  disabled={isFinalizing}
-                  onClick={onFinalize}
-                >
-                  {isFinalizing ? "Finalizing..." : "Confirm Finalize"}
-                </button>
-              </div>
-            </section>
-          ) : null}
         </>
       ) : null}
     </div>

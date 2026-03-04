@@ -17,6 +17,7 @@ import ApplicationStatusBadge from "@/components/applications/application-status
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
 import JudgeBookmarkButton from "@/components/judging/favourite-button";
+import HeadshotPreview from "@/components/shared/headshot-preview";
 import styles from "./scoring.module.css";
 
 export default async function ScoreApplicationPage({
@@ -119,12 +120,10 @@ export default async function ScoreApplicationPage({
       <div className={styles.grid}>
         <div className={styles.left}>
           <section className={styles.applicantHeader}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <HeadshotPreview
               src={getDisplayHeadshot(application.headshot, application.id)}
               alt={`${application.applicant.name} headshot`}
-              className={styles.avatar}
-              loading="lazy"
+              triggerClassName={styles.avatar}
             />
             <div>
               <div className={styles.nameRow}>

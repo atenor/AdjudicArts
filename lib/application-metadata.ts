@@ -12,6 +12,8 @@ type ApplicationMetadata = {
   submissionTermsAccepted?: boolean;
 };
 
+type RawCsvRecord = Record<string, string>;
+
 type ParsedApplicationMetadata = {
   voicePart: string | null;
   videoUrls: string[];
@@ -36,6 +38,41 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function normalizeExternalUrl(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(trimmed)) return `https://${trimmed}`;
+  return null;
+}
+
+function extractFirstUrl(value: unknown) {
+  if (typeof value !== "string") return null;
+  const match = value.match(/https?:\/\/[^\s)]+/i);
+  return match?.[0] ?? null;
+}
+
+function findImportedUrl(
+  rawCsv: RawCsvRecord | null | undefined,
+  keySignals: string[]
+) {
+  if (!rawCsv) return null;
+
+  for (const [key, value] of Object.entries(rawCsv)) {
+    const normalizedKey = key.toLowerCase();
+    if (!keySignals.some((signal) => normalizedKey.includes(signal))) continue;
+
+    const directUrl = normalizeExternalUrl(value);
+    if (directUrl) return directUrl;
+
+    const embeddedUrl = extractFirstUrl(value);
+    if (embeddedUrl) return embeddedUrl;
+  }
+
+  return null;
+}
+
 export function parseApplicationMetadata(notes: string | null | undefined) {
   if (!notes) {
     return {
@@ -54,6 +91,10 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
   try {
     const parsed = JSON.parse(notes) as unknown;
     if (isObject(parsed)) {
+      const importProfile = isObject(parsed.importProfile) ? parsed.importProfile : null;
+      const rawCsv = isObject(importProfile?.rawCsv)
+        ? (importProfile.rawCsv as RawCsvRecord)
+        : null;
       const voicePart =
         typeof parsed.voicePart === "string" && parsed.voicePart.length > 0
           ? parsed.voicePart
@@ -63,9 +104,20 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
         typeof parsed.citizenshipStatus === "string" && parsed.citizenshipStatus.length > 0
           ? parsed.citizenshipStatus
           : null;
-      const citizenshipDocumentUrl = normalizeStoredAssetRef(parsed.citizenshipDocumentUrl);
+      const citizenshipDocumentUrl =
+        normalizeStoredAssetRef(parsed.citizenshipDocumentUrl) ??
+        findImportedUrl(rawCsv, [
+          "proof of u.s. citizenship",
+          "proof of citizenship",
+          "citizenship document",
+          "passport",
+          "resident",
+          "green card",
+        ]);
       const resourceUrls = normalizeUrlList(parsed.resourceUrls, 8);
-      const intakeHeadshotUrl = normalizeStoredAssetRef(parsed.intakeHeadshotUrl);
+      const intakeHeadshotUrl =
+        normalizeStoredAssetRef(parsed.intakeHeadshotUrl) ??
+        findImportedUrl(rawCsv, ["headshot", "performance photograph", "photo"]);
       const mediaReleaseAccepted = parsed.mediaReleaseAccepted === true;
       const privacyPolicyAccepted = parsed.privacyPolicyAccepted === true;
       const submissionTermsAccepted = parsed.submissionTermsAccepted === true;

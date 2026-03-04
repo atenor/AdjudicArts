@@ -23,6 +23,8 @@ export const CHAPTER_ADJUDICATION_STATUSES: ApplicationStatus[] = [
 ];
 
 export const NATIONAL_FINALS_STATUSES: ApplicationStatus[] = [
+  "PENDING_NATIONAL_ACCEPTANCE",
+  "CHAPTER_APPROVED",
   "APPROVED_FOR_NATIONAL_ADJUDICATION",
   "NATIONAL_FINALS",
   "NATIONAL_REVIEW",
@@ -1528,6 +1530,7 @@ type ApplicationProfileUpdateInput = {
   video3Url?: string | null;
   actor?: string | null;
   actorRole?: Role | null;
+  chapterChangeNote?: string | null;
 };
 
 function parseNotesObject(notes: string | null): Record<string, unknown> {
@@ -1572,6 +1575,7 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
     ? input.applicantEmail?.trim() || undefined
     : undefined;
   const actor = input.actor?.trim() || "admin";
+  const chapterChangeNote = input.chapterChangeNote?.trim() || "";
   const nextVoicePart =
     typeof input.voicePart !== "undefined" ? input.voicePart?.trim() ?? null : undefined;
   const nextCitizenshipStatus =
@@ -1604,7 +1608,10 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
       by: actor,
       from: existing.chapter ?? "No chapter",
       to: nextChapter,
-      note: typeof nextAdminNote === "string" ? nextAdminNote : "",
+      note:
+        typeof nextAdminNote === "string" && nextAdminNote.trim().length > 0
+          ? nextAdminNote
+          : chapterChangeNote,
     });
     notesObject.chapterAssignmentHistory = chapterHistory;
   }

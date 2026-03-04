@@ -104,7 +104,13 @@ function applicationStatusesForRoundType(roundType: RoundType): ApplicationStatu
   if (roundType === "CHAPTER") {
     return ["APPROVED_FOR_CHAPTER_ADJUDICATION", "CHAPTER_ADJUDICATION"];
   }
-  return ["APPROVED_FOR_NATIONAL_ADJUDICATION", "NATIONAL_FINALS"];
+  return [
+    "PENDING_NATIONAL_ACCEPTANCE",
+    "CHAPTER_APPROVED",
+    "APPROVED_FOR_NATIONAL_ADJUDICATION",
+    "NATIONAL_FINALS",
+    "NATIONAL_REVIEW",
+  ];
 }
 
 function scoreRoundForRoundType(roundType: RoundType): ScoreRound {
@@ -289,7 +295,7 @@ export async function getJudgeScoringQueue(
         .map((application) => {
           const criterionScores = scoreCountByApplication.get(application.id) ?? 0;
           const submission = submissionByApplication.get(application.id);
-          const isScored = submission?.status === "FINALIZED";
+          const isScored = criteriaCount > 0 && criterionScores >= criteriaCount;
           const division = resolveApplicationDivision({
             notes: application.notes,
             dateOfBirth: application.dateOfBirth,

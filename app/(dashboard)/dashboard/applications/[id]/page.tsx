@@ -52,6 +52,35 @@ function formatDateInput(value: Date | null) {
   return `${year}-${month}-${day}`;
 }
 
+function formatDisplayDate(value: Date | null) {
+  if (!value) return null;
+  return value.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatPhoneNumber(value: string | null | undefined) {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return value.trim() || null;
+}
+
+function formatChapterDisplay(value: string | null | undefined) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(" – ").map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 2 && parts[1].toLowerCase().startsWith(parts[0].toLowerCase())) {
+    return parts[1];
+  }
+  return trimmed;
+}
+
 function getAge(dateOfBirth: Date | null) {
   if (!dateOfBirth) return null;
   const now = new Date();
@@ -292,6 +321,29 @@ export default async function ApplicationDetailPage({
     application.parentEmail;
 
   const headshotUrl = getDisplayHeadshot(application.headshot, application.id);
+  const schoolDisplay =
+    application.collegeName ||
+    application.highSchoolName ||
+    application.schoolName ||
+    null;
+  const videoUrls = [
+    application.video1Url ?? metadata.videoUrls[0] ?? "",
+    application.video2Url ?? metadata.videoUrls[1] ?? "",
+    application.video3Url ?? metadata.videoUrls[2] ?? "",
+  ];
+  const videoTitles = [
+    application.video1Title ?? findRaw(rawCsv, ["video #1", "video 1"]) ?? "",
+    application.video2Title ?? findRaw(rawCsv, ["video #2", "video 2"]) ?? "",
+    application.video3Title ?? findRaw(rawCsv, ["video #3", "video 3"]) ?? "",
+  ];
+  const formattedPhone = formatPhoneNumber(application.phone);
+  const formattedDateOfBirth = formatDisplayDate(application.dateOfBirth);
+  const addressPrimary = application.address || hometown || "--";
+  const addressSecondary = [application.city, application.state, application.zip]
+    .filter(Boolean)
+    .join(", ");
+  const schoolLocation = [application.schoolCity, application.schoolState].filter(Boolean).join(", ");
+  const chapterDisplay = formatChapterDisplay(application.chapter);
 
   const citizenshipVerificationNote: string | null = (() => {
     if (!citizenshipVerification?.verified) return null;
@@ -309,18 +361,66 @@ export default async function ApplicationDetailPage({
 
   // Eligibility signals
   const hasHeadshot = !!headshotUrl;
-  const videoCount = [
-    application.video1Url || application.video1Title,
-    application.video2Url || application.video2Title,
-    application.video3Url || application.video3Title,
-  ].filter(Boolean).length;
-
-  // School display: prefer college, fall back to high school, then generic school name
-  const schoolDisplay =
-    application.collegeName ||
-    application.highSchoolName ||
-    application.schoolName ||
-    null;
+  const videoCount = videoUrls.filter(Boolean).length;
+  const remainingReviewItems = [
+    !isCitizenshipVerified ? "citizenship" : null,
+    !hasHeadshot ? "headshot" : null,
+    videoCount < 3 ? `${3 - videoCount} video${3 - videoCount === 1 ? "" : "s"}` : null,
+  ].filter((item): item is string => Boolean(item));
+  const reviewStatusLabel = remainingReviewItems.length === 0 ? "Ready for review" : "Needs attention";
+  const reviewStatusTone =
+    remainingReviewItems.length === 0
+      ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+      : "border-[#f1df97] bg-[#fff3cd] text-[#856404]";
+  const reviewStatusDetail =
+    remainingReviewItems.length === 0
+      ? "All three core items are in place."
+      : `Still needed: ${remainingReviewItems.join(", ")}.`;
+  const reviewSummaryCards = [
+    {
+      label: "Citizenship",
+      value: isCitizenshipVerified ? "Verified" : "Unverified",
+      tone: isCitizenshipVerified
+        ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+        : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
+    },
+    {
+      label: "Headshot",
+      value: hasHeadshot ? "On file" : "Missing",
+      tone: hasHeadshot
+        ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+        : "border-[#c2b8d2] bg-[#f0ecfa] text-[#8b7ab5]",
+    },
+    {
+      label: "Videos",
+      value: `${videoCount}/3`,
+      tone:
+        videoCount === 3
+          ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+          : videoCount > 0
+            ? "border-[#f1df97] bg-[#fff3cd] text-[#856404]"
+            : "border-[#c2b8d2] bg-[#f0ecfa] text-[#8b7ab5]",
+    },
+  ];
+  const personalInfoRows = [
+    { label: "Email", primary: application.applicant.email || "--" },
+    { label: "Phone", primary: formattedPhone || "--" },
+    { label: "DOB", primary: formattedDateOfBirth || "--" },
+    { label: "Gender", primary: application.gender || "--" },
+    {
+      label: "Address",
+      primary: addressPrimary,
+      secondary: addressSecondary,
+      fullWidth: true,
+    },
+    {
+      label: "School",
+      primary: schoolDisplay || "--",
+      secondary: schoolLocation || "",
+      fullWidth: true,
+      emphasize: true,
+    },
+  ];
 
   const profileData: ProfileData = {
     applicantName: application.applicant.name,
@@ -350,12 +450,12 @@ export default async function ApplicationDetailPage({
     citizenshipDocumentUrl: citizenshipDocumentUrl ?? "",
     repertoire: application.repertoire ?? "",
     adminNote: adminProfileNote,
-    video1Title: application.video1Title ?? "",
-    video1Url: application.video1Url ?? "",
-    video2Title: application.video2Title ?? "",
-    video2Url: application.video2Url ?? "",
-    video3Title: application.video3Title ?? "",
-    video3Url: application.video3Url ?? "",
+    video1Title: videoTitles[0],
+    video1Url: videoUrls[0],
+    video2Title: videoTitles[1],
+    video2Url: videoUrls[1],
+    video3Title: videoTitles[2],
+    video3Url: videoUrls[2],
   };
 
   const profileViewUrls: ProfileViewUrls = {
@@ -364,13 +464,13 @@ export default async function ApplicationDetailPage({
   };
 
   return (
-    <div className="space-y-3 pb-8">
+    <div className="mx-auto max-w-5xl space-y-4 pb-10">
 
       {/* ── NAV ─────────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href="/dashboard/applications"
-          className="inline-flex items-center rounded-lg border border-[#d8cce9] bg-white px-3 py-2 text-sm font-medium text-[#5f2ec8] hover:bg-[#f4effb]"
+          className="inline-flex w-fit items-center rounded-full border border-[#c2b8d2] bg-white px-4 py-2 text-sm font-medium text-[#5f2ec8] shadow-sm hover:bg-[#f4effb]"
         >
           ← Back to applications
         </Link>
@@ -380,128 +480,189 @@ export default async function ApplicationDetailPage({
       </div>
 
       {/* ── HERO ────────────────────────────────────────────────────────────── */}
-      <section className="rounded-xl border border-[#d8cce9] bg-white p-4 shadow-sm">
-        <div className="flex gap-4">
+      <section className="overflow-hidden rounded-[2rem] border border-[#c2b8d2] bg-white p-3 shadow-sm sm:p-6">
+        <div className="mx-auto grid max-w-md gap-4 lg:max-w-none lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+          <div className="overflow-hidden rounded-[1.75rem] border border-[#c7bed8] bg-[#f6f0ff] shadow-sm">
+            <div className="bg-[#1e1538] px-4 pb-6 pt-5">
+              <div className="mb-4 flex justify-center">
+                <span className="inline-flex rounded-full border border-[#4a3977] bg-[#2b2051] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d9cff1]">
+                  Applicant Profile
+                </span>
+              </div>
+              <div className="flex justify-center">
+                <HeadshotPreview
+                  src={headshotUrl}
+                  alt={`${application.applicant.name} headshot`}
+                  triggerClassName="aspect-[4/5] w-full max-w-[13.5rem] rounded-[1.5rem] border border-[#3c2d68] bg-[#1e1538] object-cover shadow-[0_18px_35px_-18px_rgba(0,0,0,0.55)] transition hover:scale-[1.01]"
+                />
+              </div>
+              <div className="mt-4 text-center">
+                <h1 className="text-[2rem] font-bold leading-none tracking-tight text-white">
+                  {application.applicant.name}
+                </h1>
+              </div>
+            </div>
+            <div className="space-y-3 p-4">
+              <div className="space-y-2 text-center lg:text-left">
+                <ApplicationStatusBadge status={application.status} />
+                <p className="text-sm font-medium leading-relaxed text-[#1e1538]">
+                  {[division, age !== null ? `Age ${age}` : null, hometown]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+                {chapterDisplay ? (
+                  <p className="text-sm font-semibold text-[#8b7ab5]">
+                    {chapterDisplay}
+                  </p>
+                ) : null}
+              </div>
 
-          {/* Headshot */}
-          <div className="shrink-0">
-            <HeadshotPreview
-              src={headshotUrl}
-              alt={`${application.applicant.name} headshot`}
-              triggerClassName="h-32 w-24 rounded-xl border border-[#cbb7e8] object-cover shadow-sm transition hover:scale-[1.02]"
-            />
+              <div className="rounded-[1.4rem] border border-[#c7bed8] bg-white px-4 py-3 shadow-sm lg:hidden">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b7ab5]">
+                    Eligibility Verification
+                  </p>
+                  <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${reviewStatusTone}`}>
+                    {reviewStatusLabel}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-[#6f6294]">
+                  {reviewStatusDetail}
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {reviewSummaryCards.map((item) => (
+                    <div
+                      key={item.label}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
+                    >
+                      <span className="text-[#8b7ab5]">{item.label}</span>
+                      <span>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+                {canEditProfile && !isCitizenshipVerified ? (
+                  <div className="mt-3">
+                    <CitizenshipVerificationButton
+                      applicationId={application.id}
+                      verified={false}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+            </div>
           </div>
 
-          {/* Identity */}
-          <div className="min-w-0 space-y-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-[#1a1735]">
-                {application.applicant.name}
-              </h1>
-              <ApplicationStatusBadge status={application.status} />
+          <div className="space-y-4">
+            <div className="hidden rounded-[1.75rem] border border-[#c7bed8] bg-white px-4 py-3.5 shadow-sm sm:px-5 lg:block">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b7ab5]">
+                    Eligibility Verification
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${reviewStatusTone}`}>
+                      {reviewStatusLabel}
+                    </span>
+                    <p className="text-xs text-[#6f6294]">
+                      {reviewStatusDetail}
+                    </p>
+                  </div>
+                </div>
+                {canEditProfile && !isCitizenshipVerified ? (
+                  <div className="hidden sm:block">
+                    <CitizenshipVerificationButton
+                      applicationId={application.id}
+                      verified={false}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {reviewSummaryCards.map((item) => (
+                  <div
+                    key={item.label}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm ${item.tone}`}
+                  >
+                    <span className="text-[#8b7ab5]">{item.label}</span>
+                    <span>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {canEditProfile && !isCitizenshipVerified ? (
+                <div className="mt-3 sm:hidden">
+                  <CitizenshipVerificationButton
+                    applicationId={application.id}
+                    verified={false}
+                  />
+                </div>
+              ) : null}
             </div>
 
-            {/* Voice · Age · Location on one line */}
-            <p className="text-sm text-[#1e1538]">
-              {[division, age !== null ? `Age ${age}` : null, hometown]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-
-            {/* Chapter — just the value, no appended word */}
-            {application.chapter ? (
-              <p className="text-sm text-[#8b7ab5]">{application.chapter}</p>
-            ) : null}
-
-            {/* School */}
-            {schoolDisplay ? (
-              <p className="text-sm text-[#8b7ab5]">{schoolDisplay}</p>
-            ) : null}
-
-            {/* Email */}
-            <p className="pt-0.5 text-sm text-[#8b7ab5]">{application.applicant.email}</p>
+            <div className="rounded-[1.75rem] border border-[#c7bed8] bg-white px-4 py-4 shadow-sm sm:px-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8b7ab5]">
+                Personal Information
+              </p>
+              <dl className="mt-4 grid grid-cols-2 gap-3">
+                {personalInfoRows.map((item) => (
+                  <div
+                    key={item.label}
+                    className={`rounded-xl border border-[#d6d1df] bg-[#fcfbff] px-3 py-3 ${
+                      item.fullWidth ? "col-span-2" : ""
+                    }`}
+                  >
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8b7ab5]">
+                      {item.label}
+                    </dt>
+                    <dd
+                      className={`mt-1 leading-relaxed text-[#1a1735] ${
+                        item.emphasize ? "text-sm font-bold sm:text-base" : "text-sm font-semibold"
+                      }`}
+                    >
+                      {item.primary}
+                    </dd>
+                    {item.secondary ? (
+                      <dd className="mt-0.5 text-xs leading-relaxed text-[#8b7ab5]">
+                        {item.secondary}
+                      </dd>
+                    ) : null}
+                  </div>
+                ))}
+              </dl>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* ── ELIGIBILITY ──────────────────────────────────────────────────────── */}
-      <section className="rounded-xl border border-[#d8cce9] bg-white p-3.5 shadow-sm">
-
-        {/* Horizontal pills */}
-        <div className="flex flex-wrap items-center gap-2">
-
-          {/* Citizenship */}
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-              isCitizenshipVerified
-                ? "bg-[#d6f6e8] text-[#0d7b5f]"
-                : "bg-[#fff3cd] text-[#856404]"
-            }`}
-          >
-            {isCitizenshipVerified ? "✓" : "⚠"} Citizenship ·{" "}
-            {isCitizenshipVerified ? "Verified" : "Unverified"}
-          </span>
-
-          {/* Headshot */}
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-              hasHeadshot ? "bg-[#d6f6e8] text-[#0d7b5f]" : "bg-[#f0ecfa] text-[#8b7ab5]"
-            }`}
-          >
-            {hasHeadshot ? "✓" : "○"} Headshot
-          </span>
-
-          {/* Videos */}
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-              videoCount === 3
-                ? "bg-[#d6f6e8] text-[#0d7b5f]"
-                : videoCount > 0
-                  ? "bg-[#fff3cd] text-[#856404]"
-                  : "bg-[#f0ecfa] text-[#8b7ab5]"
-            }`}
-          >
-            {videoCount === 3 ? "✓" : videoCount > 0 ? "⚠" : "○"} {videoCount}/3 Videos
-          </span>
-
-        </div>
-
-        {/* Verify citizenship — the one accessible action when unverified */}
-        {canEditProfile && !isCitizenshipVerified ? (
-          <div className="mt-2.5">
-            <CitizenshipVerificationButton
-              applicationId={application.id}
-              verified={false}
-            />
-          </div>
-        ) : null}
       </section>
 
       {/* ── SINGER PROFILE ──────────────────────────────────────────────────── */}
-      <ApplicationProfileEditor
-        applicationId={application.id}
-        canEdit={canEditProfile}
-        data={profileData}
-        viewUrls={profileViewUrls}
-        citizenshipVerificationNote={citizenshipVerificationNote}
-        schoolStatus={
-          findRaw(rawCsv, ["status", "enrollment", "student status", "in college"]) || ""
-        }
-        altContact={altContact ?? ""}
-        altPhoneOrEmail={altPhoneOrEmail ?? ""}
-        mediaRelease={mediaRelease ?? ""}
-        hasMediaConsent={hasMediaConsent}
-        intakeResourceUrls={intakeResourceUrls}
-        youtubePlaylist={application.youtubePlaylist ?? ""}
-      />
+      <section className="rounded-[1.5rem] border border-[#c7bed8] bg-white p-3 shadow-sm sm:p-4">
+        <ApplicationProfileEditor
+          applicationId={application.id}
+          canEdit={canEditProfile}
+          data={profileData}
+          viewUrls={profileViewUrls}
+          citizenshipVerificationNote={citizenshipVerificationNote}
+          schoolStatus={
+            findRaw(rawCsv, ["status", "enrollment", "student status", "in college"]) || ""
+          }
+          altContact={altContact ?? ""}
+          altPhoneOrEmail={altPhoneOrEmail ?? ""}
+          mediaRelease={mediaRelease ?? ""}
+          hasMediaConsent={hasMediaConsent}
+          intakeResourceUrls={intakeResourceUrls}
+          youtubePlaylist={application.youtubePlaylist ?? ""}
+        />
+      </section>
 
       {/* ── ADMIN FUNCTIONS (collapsed) ──────────────────────────────────────── */}
       {((canEditProfile && isCitizenshipVerified) || canSeeStatusActions || canForwardToNationalsBypass || canDeleteApplication) ? (
-        <details className="rounded-xl border border-[#ddd3f0] bg-white shadow-sm">
+        <details className="rounded-xl border border-[#c7bed8] bg-white shadow-sm">
           <summary className="cursor-pointer list-none rounded-xl px-4 py-3.5 text-xs font-bold uppercase tracking-widest text-[#8b7ab5] hover:bg-[#f8f4ff]">
             ▶ Admin Functions
           </summary>
-          <div className="divide-y divide-[#eee8f8] border-t border-[#eee8f8]">
+          <div className="divide-y divide-[#d6d1df] border-t border-[#d6d1df]">
 
             {/* Citizenship — unverify (rare) */}
             {canEditProfile && isCitizenshipVerified ? (
@@ -549,7 +710,7 @@ export default async function ApplicationDetailPage({
                   adjudication process. Only use with a clear reason and proper authorization.
                 </p>
                 {bypassAuditEvent ? (
-                  <p className="mb-3 rounded-md border border-[#d8cce9] bg-[#f0ecfa] px-3 py-2 text-xs text-[#5f2ec8]">
+                  <p className="mb-3 rounded-md border border-[#c2b8d2] bg-[#f0ecfa] px-3 py-2 text-xs text-[#5f2ec8]">
                     <span className="font-semibold">Already sent via bypass</span>
                     {" · "}
                     {new Date(bypassAuditEvent.at).toLocaleDateString("en-US")}

@@ -14,9 +14,12 @@ import {
   listApplicationChaptersByOrg,
   listApplicationsByOrg,
 } from "@/lib/db/applications";
+import { getNationalJudgingResetSummary } from "@/lib/db/national-judging-reset";
 import { formatVoicePart } from "@/lib/application-metadata";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import BatchApplicationsTable from "@/components/applications/batch-applications-table";
+import NationalPrepReconciliationDialog from "@/components/applications/national-prep-reconciliation";
+import ResetNationalJudgingDataDialog from "@/components/applications/reset-national-judging-data-dialog";
 
 const STATUS_LABELS: Record<ApplicationStatus, string> = {
   PENDING_APPROVAL: "Pending Approval",
@@ -249,12 +252,28 @@ export default async function ApplicationsPage({
   });
 
   const canBatchDelete = session.user.role === "ADMIN";
+  const canResetNationalJudgingData =
+    session.user.role === "ADMIN" || session.user.role === "NATIONAL_CHAIR";
+  const canUseNationalPrepReconciliation = canResetNationalJudgingData;
+  const nationalJudgingResetSummary = canResetNationalJudgingData
+    ? await getNationalJudgingResetSummary(session.user.organizationId)
+    : null;
   const tabBaseClass =
     "text-sm px-2.5 py-1.5 rounded-md border font-medium transition";
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Applications</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold">Applications</h1>
+          {canUseNationalPrepReconciliation ? (
+            <NationalPrepReconciliationDialog />
+          ) : null}
+          {nationalJudgingResetSummary ? (
+            <ResetNationalJudgingDataDialog
+              initialSummary={nationalJudgingResetSummary}
+            />
+          ) : null}
+        </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Status:</span>

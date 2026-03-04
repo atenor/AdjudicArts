@@ -256,7 +256,13 @@ export async function getJudgeDashboardStats(
   const appStatus =
     role === "CHAPTER_JUDGE"
       ? (["APPROVED_FOR_CHAPTER_ADJUDICATION", "CHAPTER_ADJUDICATION"] as const)
-      : (["APPROVED_FOR_NATIONAL_ADJUDICATION", "NATIONAL_FINALS"] as const);
+      : ([
+          "PENDING_NATIONAL_ACCEPTANCE",
+          "CHAPTER_APPROVED",
+          "APPROVED_FOR_NATIONAL_ADJUDICATION",
+          "NATIONAL_FINALS",
+          "NATIONAL_REVIEW",
+        ] as const);
 
   const assignments =
     role === "CHAPTER_JUDGE"
@@ -305,6 +311,7 @@ export async function getJudgeDashboardStats(
         { key: "UNASSIGNED", label: "Division Unassigned", toJudge: 0, completed: 0 },
       ],
       roundCount: assignments.length,
+      nationalFinalists: [],
     };
   }
 
@@ -319,6 +326,12 @@ export async function getJudgeDashboardStats(
       dateOfBirth: true,
       notes: true,
       chapter: true,
+      status: true,
+      applicant: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
@@ -344,6 +357,7 @@ export async function getJudgeDashboardStats(
         { key: "UNASSIGNED", label: "Division Unassigned", toJudge: 0, completed: 0 },
       ],
       roundCount: assignments.length,
+      nationalFinalists: [],
     };
   }
 
@@ -438,6 +452,22 @@ export async function getJudgeDashboardStats(
       },
     ],
     roundCount: assignments.length,
+    nationalFinalists:
+      role === "NATIONAL_JUDGE"
+        ? scopedApplications
+            .map((application) => ({
+              id: application.id,
+              applicantName: application.applicant.name,
+              chapter: application.chapter ?? "Chapter pending",
+              division:
+                resolveApplicationDivision({
+                  notes: application.notes,
+                  dateOfBirth: application.dateOfBirth,
+                }) ?? "UNASSIGNED",
+              status: application.status,
+            }))
+            .sort((left, right) => left.applicantName.localeCompare(right.applicantName))
+        : [],
   };
 }
 

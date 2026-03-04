@@ -12,7 +12,48 @@ import { prisma } from "@/lib/prisma";
 function applicationStatusesForRoundType(roundType: RoundType): ApplicationStatus[] {
   return roundType === "CHAPTER"
     ? ["APPROVED_FOR_CHAPTER_ADJUDICATION", "CHAPTER_ADJUDICATION"]
-    : ["APPROVED_FOR_NATIONAL_ADJUDICATION", "NATIONAL_FINALS"];
+    : [
+        "PENDING_NATIONAL_ACCEPTANCE",
+        "CHAPTER_APPROVED",
+        "APPROVED_FOR_NATIONAL_ADJUDICATION",
+        "NATIONAL_FINALS",
+        "NATIONAL_REVIEW",
+      ];
+}
+
+async function getCompleteScorecardPairs(input: {
+  organizationId: string;
+  applicationIds: string[];
+  judgeIds: string[];
+  scoreRound: "CHAPTER" | "NATIONAL";
+  criteriaCount: number;
+}) {
+  if (
+    input.applicationIds.length === 0 ||
+    input.judgeIds.length === 0 ||
+    input.criteriaCount === 0
+  ) {
+    return new Set<string>();
+  }
+
+  const scoreCounts = await prisma.score.groupBy({
+    by: ["applicationId", "judgeId"],
+    where: {
+      organizationId: input.organizationId,
+      applicationId: { in: input.applicationIds },
+      judgeId: { in: input.judgeIds },
+      round: input.scoreRound,
+    },
+    _count: {
+      applicationId: true,
+    },
+  });
+
+  return new Set(
+    scoreCounts
+      .filter((entry) => entry._count.applicationId >= input.criteriaCount)
+      .map((entry) => `${entry.applicationId}:${entry.judgeId}`)
+  );
 }
 
 export async function getAssignedRoundForJudge(input: {
@@ -97,20 +138,6 @@ export async function touchJudgeSubmissionDraft(input: {
     return { reason: "ROUND_CERTIFIED" as const };
   }
 
-  const existing = await prisma.judgeSubmission.findUnique({
-    where: {
-      applicationId_judgeId_roundId: {
-        applicationId: input.applicationId,
-        judgeId: input.judgeId,
-        roundId: input.roundId,
-      },
-    },
-  });
-
-  if (existing?.status === JudgeSubmissionStatus.FINALIZED) {
-    return { reason: "SUBMISSION_FINALIZED" as const };
-  }
-
   const submission = await prisma.judgeSubmission.upsert({
     where: {
       applicationId_judgeId_roundId: {
@@ -121,6 +148,7 @@ export async function touchJudgeSubmissionDraft(input: {
     },
     update: {
       status: JudgeSubmissionStatus.DRAFT,
+      finalizedAt: null,
     },
     create: {
       organizationId: input.organizationId,
@@ -301,6 +329,15 @@ export async function getRoundCertificationReadiness(input: {
       },
       event: {
         include: {
+          rubric: {
+            include: {
+              criteria: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
           applications: {
             select: {
               id: true,
@@ -326,24 +363,13 @@ export async function getRoundCertificationReadiness(input: {
     requiredStatuses.includes(application.status)
   );
 
-  const submissions = await prisma.judgeSubmission.findMany({
-    where: {
-      roundId: round.id,
-      organizationId: input.organizationId,
-      applicationId: { in: applications.map((application) => application.id) },
-    },
-    select: {
-      applicationId: true,
-      judgeId: true,
-      status: true,
-    },
+  const completePairs = await getCompleteScorecardPairs({
+    organizationId: input.organizationId,
+    applicationIds: applications.map((application) => application.id),
+    judgeIds: round.judgeAssignments.map((assignment) => assignment.judge.id),
+    scoreRound: round.type === "CHAPTER" ? "CHAPTER" : "NATIONAL",
+    criteriaCount: round.event.rubric?.criteria.length ?? 0,
   });
-
-  const finalizedPairs = new Set(
-    submissions
-      .filter((submission) => submission.status === JudgeSubmissionStatus.FINALIZED)
-      .map((submission) => `${submission.applicationId}:${submission.judgeId}`)
-  );
 
   const missing: Array<{
     applicationId: string;
@@ -355,7 +381,7 @@ export async function getRoundCertificationReadiness(input: {
   for (const application of applications) {
     for (const assignment of round.judgeAssignments) {
       const key = `${application.id}:${assignment.judge.id}`;
-      if (!finalizedPairs.has(key)) {
+      if (!completePairs.has(key)) {
         missing.push({
           applicationId: application.id,
           applicantName: application.applicant.name,
@@ -378,7 +404,7 @@ export async function getRoundCertificationReadiness(input: {
     assignedJudgeCount: round.judgeAssignments.length,
     applicationCount: applications.length,
     requiredFinalizations: round.judgeAssignments.length * applications.length,
-    finalizedCount: finalizedPairs.size,
+    finalizedCount: completePairs.size,
     missing,
     certification,
   };
@@ -436,16 +462,6 @@ export async function replaceJudgePrizeSuggestions(input: {
 }) {
   const certification = await getRoundCertification(input.roundId);
   if (certification) return { reason: "ROUND_CERTIFIED" as const };
-
-  const submission = await getJudgeSubmission({
-    applicationId: input.applicationId,
-    judgeId: input.judgeId,
-    roundId: input.roundId,
-  });
-
-  if (submission?.status === JudgeSubmissionStatus.FINALIZED) {
-    return { reason: "SUBMISSION_FINALIZED" as const };
-  }
 
   await prisma.$transaction(async (tx) => {
     await tx.judgePrizeSuggestion.deleteMany({

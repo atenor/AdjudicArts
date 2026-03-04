@@ -115,25 +115,6 @@ export async function getRankedResultsForRound(
   const applicationIds = round.event.applications.map((a) => a.id);
   if (applicationIds.length === 0) return [];
 
-  const finalizedSubmissions = await prisma.judgeSubmission.findMany({
-    where: {
-      roundId,
-      applicationId: { in: applicationIds },
-      ...(round.type === "NATIONAL" ? { judgeId: { in: assignedJudgeIds } } : {}),
-      status: "FINALIZED",
-    },
-    select: {
-      applicationId: true,
-      judgeId: true,
-    },
-  });
-
-  const finalizedPairs = new Set(
-    finalizedSubmissions.map((submission) => `${submission.applicationId}:${submission.judgeId}`)
-  );
-
-  if (finalizedPairs.size === 0) return [];
-
   // Fetch all scores from judges assigned to this round
   const allScores = await prisma.score.findMany({
     where: {
@@ -149,6 +130,20 @@ export async function getRankedResultsForRound(
       value: true,
     },
   });
+
+  const scoreCounts = new Map();
+  for (const score of allScores) {
+    const key = `${score.applicationId}:${score.judgeId}`;
+    scoreCounts.set(key, (scoreCounts.get(key) ?? 0) + 1);
+  }
+
+  const finalizedPairs = new Set(
+    Array.from(scoreCounts.entries())
+      .filter(([, count]) => count >= criteria.length)
+      .map(([key]) => key)
+  );
+
+  if (finalizedPairs.size === 0) return [];
 
   const finalizedScores = allScores.filter((score) =>
     finalizedPairs.has(`${score.applicationId}:${score.judgeId}`)

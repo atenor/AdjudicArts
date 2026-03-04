@@ -10,7 +10,6 @@ import {
   upsertScore,
 } from "@/lib/db/scores";
 import {
-  finalizeJudgeSubmission,
   replaceJudgePrizeSuggestions,
   touchJudgeSubmissionDraft,
 } from "@/lib/db/governance";
@@ -22,7 +21,6 @@ const scoreSchema = z.object({
 });
 
 const requestSchema = z.object({
-  confirmationText: z.string().trim(),
   scores: z.array(scoreSchema).min(1),
   finalComment: z.string().trim().min(1),
   prizeSuggestions: z.array(
@@ -68,13 +66,6 @@ export async function POST(
     );
   }
 
-  if (scoringContext.submission?.status === "FINALIZED") {
-    return Response.json(
-      { error: "This submission has already been finalized." },
-      { status: 409 }
-    );
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -85,13 +76,6 @@ export async function POST(
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
-  }
-
-  if (parsed.data.confirmationText !== "FINALIZE") {
-    return Response.json(
-      { error: 'Type FINALIZE exactly to finalize this judge submission.' },
-      { status: 422 }
-    );
   }
 
   const criteriaIds = scoringContext.criteria.map((criterion) => criterion.id);
@@ -147,7 +131,7 @@ export async function POST(
         error:
           draftResult.reason === "ROUND_CERTIFIED"
             ? "This round is certified and no further score edits are allowed."
-            : "This submission has been finalized and cannot be edited.",
+            : "Unable to save this scorecard right now.",
       },
       { status: 409 }
     );
@@ -172,33 +156,17 @@ export async function POST(
         error:
           suggestionResult.reason === "ROUND_CERTIFIED"
             ? "This round is certified and no further prize suggestion edits are allowed."
-            : "This submission has been finalized and cannot be edited.",
+            : "Unable to save prize suggestions right now.",
       },
       { status: 409 }
     );
   }
 
-  const finalizeResult = await finalizeJudgeSubmission({
-    organizationId: session.user.organizationId,
-    eventId: scoringContext.application.event.id,
-    roundId: scoringContext.round.id,
-    applicationId: params.applicationId,
-    judgeId: session.user.id,
-    actorUserId: session.user.id,
-    actorRole: session.user.role,
+  return Response.json({
+    success: true,
+    submission: {
+      status: "DRAFT",
+    },
+    message: "Scores saved. Individual applicants remain editable until the round is certified.",
   });
-
-  if (finalizeResult.reason !== "OK") {
-    return Response.json(
-      {
-        error:
-          finalizeResult.reason === "ROUND_CERTIFIED"
-            ? "This round is certified and no further changes are allowed."
-            : "Unable to finalize submission.",
-      },
-      { status: 409 }
-    );
-  }
-
-  return Response.json({ success: true, submission: finalizeResult.submission });
 }

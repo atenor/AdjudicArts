@@ -52,7 +52,7 @@ export async function POST(
   if (result.reason === "INCOMPLETE_FINALIZATIONS") {
     return Response.json(
       {
-        error: "Every assigned judge must finalize before certification.",
+        error: "Every assigned judge must complete every applicant scorecard before certification.",
         readiness: result.readiness,
       },
       { status: 409 }

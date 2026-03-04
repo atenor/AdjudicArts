@@ -117,7 +117,10 @@ export default function ApplicationStatusBadge({
 }) {
   const style = STATUS_STYLES[status];
   return (
-    <Badge variant={style.variant} className={style.className}>
+    <Badge
+      variant={style.variant}
+      className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.01em] ${style.className}`}
+    >
       {STATUS_LABELS[status]}
     </Badge>
   );

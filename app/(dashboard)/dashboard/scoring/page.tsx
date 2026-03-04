@@ -35,6 +35,7 @@ export default async function ScoringQueuePage({
   if (!hasRole(session, "CHAPTER_JUDGE", "NATIONAL_JUDGE")) {
     redirect("/dashboard");
   }
+  const isNationalJudge = session.user.role === "NATIONAL_JUDGE";
 
   const requestedDivision: ApplicationDivision | undefined =
     searchParams.division === "16-18" || searchParams.division === "19-22"
@@ -123,6 +124,13 @@ export default async function ScoringQueuePage({
 
   const totalApplications = filteredQueue.reduce((sum, round) => sum + round.totalCount, 0);
   const totalScored = filteredQueue.reduce((sum, round) => sum + round.scoredCount, 0);
+  const hasActiveFilters =
+    Boolean(requestedDivision) ||
+    Boolean(selectedVoicePart) ||
+    sort !== "submitted" ||
+    bookmarksOnly ||
+    layout !== "grouped" ||
+    view !== "detailed";
 
   function buildQueueHref(overrides: Record<string, string | undefined>) {
     const params = new URLSearchParams();
@@ -173,10 +181,19 @@ export default async function ScoringQueuePage({
   return (
     <div className="min-w-0 space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">Judging List</h1>
+        <h1 className="text-2xl font-semibold">
+          {isNationalJudge ? "National Judging Queue" : "Judging List"}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          {totalScored} of {totalApplications} judge submissions finalized
+          {totalScored} of {totalApplications}{" "}
+          {isNationalJudge ? "national" : "judge"} scorecards complete
         </p>
+        {isNationalJudge ? (
+          <p className="text-sm text-[#6f6491]">
+            National judges see finalists after they have been moved into the national judging
+            pool.
+          </p>
+        ) : null}
         <div className="flex items-center gap-2 pt-1">
           <span className="text-sm text-muted-foreground">Division:</span>
           <Link
@@ -323,9 +340,18 @@ export default async function ScoringQueuePage({
       </div>
 
       {filteredQueue.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No assigned applications match the current judging filters.
-        </p>
+        <div className="rounded-xl border border-[#d8cce9] bg-white px-4 py-4 shadow-sm">
+          <p className="text-sm font-semibold text-[#1e1538]">
+            {isNationalJudge && !hasActiveFilters
+              ? "No applications are ready for national judging."
+              : "No assigned applications match the current judging filters."}
+          </p>
+          <p className="mt-1 text-sm text-[#6f6491]">
+            {isNationalJudge && !hasActiveFilters
+              ? "Finalists will appear here after they are moved into the national judging pool."
+              : "Try clearing one or more filters to see more assigned applicants."}
+          </p>
+        </div>
       ) : (
         <div className="space-y-6">
           {filteredQueue.map((roundQueue) => (
@@ -396,12 +422,10 @@ export default async function ScoringQueuePage({
                                 {view === "detailed" ? (
                                   <ApplicationStatusBadge status={application.status} />
                                 ) : null}
-                                {application.submissionStatus === "FINALIZED" ? (
-                                  <Badge variant="default">Finalized</Badge>
-                                ) : application.hasAllCriteria ? (
-                                  <Badge variant="outline">Draft Saved</Badge>
+                                {application.hasAllCriteria ? (
+                                  <Badge variant="default">Complete</Badge>
                                 ) : (
-                                  <Badge variant="secondary">Draft Incomplete</Badge>
+                                  <Badge variant="secondary">In Progress</Badge>
                                 )}
                                 <Link
                                   href={buildDetailHref(application.id)}
@@ -479,12 +503,10 @@ export default async function ScoringQueuePage({
                                   {view === "detailed" ? (
                                     <ApplicationStatusBadge status={application.status} />
                                   ) : null}
-                                  {application.submissionStatus === "FINALIZED" ? (
-                                    <Badge variant="default">Finalized</Badge>
-                                  ) : application.hasAllCriteria ? (
-                                    <Badge variant="outline">Draft Saved</Badge>
+                                  {application.hasAllCriteria ? (
+                                    <Badge variant="default">Complete</Badge>
                                   ) : (
-                                    <Badge variant="secondary">Draft Incomplete</Badge>
+                                    <Badge variant="secondary">In Progress</Badge>
                                   )}
                                   <Link
                                     href={buildDetailHref(application.id)}
