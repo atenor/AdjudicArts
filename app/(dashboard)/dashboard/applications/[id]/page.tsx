@@ -19,6 +19,7 @@ import ApplicationProfileEditor, {
   type ProfileViewUrls,
 } from "@/components/applications/application-profile-editor";
 import CitizenshipVerificationButton from "@/components/applications/citizenship-verification-button";
+import PriorFirstPrizeVerificationButton from "@/components/applications/prior-first-prize-verification-button";
 import ForwardToNationalsButton from "@/components/applications/forward-to-nationals-button";
 import HeadshotPreview from "@/components/shared/headshot-preview";
 import { formatVoicePart, parseApplicationMetadata } from "@/lib/application-metadata";
@@ -38,6 +39,13 @@ type BypassAuditEvent = {
 };
 
 type CitizenshipVerification = {
+  verified: boolean;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
+  updatedByRole?: string | null;
+};
+
+type PriorFirstPrizeVerification = {
   verified: boolean;
   updatedAt?: string | null;
   updatedBy?: string | null;
@@ -224,6 +232,31 @@ function getCitizenshipVerification(notes: string | null | undefined): Citizensh
   }
 }
 
+function getPriorFirstPrizeVerification(
+  notes: string | null | undefined
+): PriorFirstPrizeVerification | null {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes) as {
+      priorFirstPrizeVerification?: {
+        verified?: boolean;
+        updatedAt?: string | null;
+        updatedBy?: string | null;
+        updatedByRole?: string | null;
+      };
+    };
+    if (typeof parsed.priorFirstPrizeVerification?.verified !== "boolean") return null;
+    return {
+      verified: parsed.priorFirstPrizeVerification.verified,
+      updatedAt: parsed.priorFirstPrizeVerification.updatedAt ?? null,
+      updatedBy: parsed.priorFirstPrizeVerification.updatedBy ?? null,
+      updatedByRole: parsed.priorFirstPrizeVerification.updatedByRole ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function chaptersMatch(left: string | null | undefined, right: string | null | undefined) {
   return (
     (left ?? "").trim().toLowerCase() !== "" &&
@@ -286,6 +319,8 @@ export default async function ApplicationDetailPage({
   const bypassAuditEvent = getBypassAuditEvent(application.notes);
   const citizenshipVerification = getCitizenshipVerification(application.notes);
   const isCitizenshipVerified = citizenshipVerification?.verified === true;
+  const priorFirstPrizeVerification = getPriorFirstPrizeVerification(application.notes);
+  const isPriorFirstPrizeVerified = priorFirstPrizeVerification?.verified === true;
   const competitionCutoffDate = getCompetitionCutoffDate({
     openAt: application.event.openAt,
     closeAt: application.event.closeAt,
@@ -387,7 +422,8 @@ export default async function ApplicationDetailPage({
     hasThreeVideos &&
     ageDobVerified &&
     priorFirstPrizeKnown &&
-    priorDivisionAllowed;
+    priorDivisionAllowed &&
+    isPriorFirstPrizeVerified;
   const remainingReviewItems = [
     !isCitizenshipVerified ? "citizenship" : null,
     !hasHeadshot ? "headshot" : null,
@@ -395,13 +431,14 @@ export default async function ApplicationDetailPage({
     !ageDobVerified ? "age" : null,
     !priorFirstPrizeKnown ? "prior first-place declaration" : null,
     !priorDivisionAllowed ? "prior winner division conflict" : null,
+    !isPriorFirstPrizeVerified ? "prior 1st prize verification" : null,
   ].filter((item): item is string => Boolean(item));
   const reviewStatusLabel = eligibilityVerified ? "Eligibility Verified" : "Needs attention";
   const reviewStatusTone =
     eligibilityVerified
       ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
       : "border-[#f1df97] bg-[#fff3cd] text-[#856404]";
-  const totalEligibilityChecks = 5;
+  const totalEligibilityChecks = 6;
   const completedEligibilityChecks = totalEligibilityChecks - remainingReviewItems.length;
   const reviewStatusDetail =
     eligibilityVerified
@@ -461,6 +498,14 @@ export default async function ApplicationDetailPage({
           : priorDivisionAllowed
             ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
             : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
+    },
+    {
+      label: "Chair Verification",
+      value: isPriorFirstPrizeVerified ? "Verified" : "Unverified",
+      href: "#eligibility-verification",
+      tone: isPriorFirstPrizeVerified
+        ? "border-[#b8e9d1] bg-[#d6f6e8] text-[#0d7b5f]"
+        : "border-[#f1df97] bg-[#fff3cd] text-[#856404]",
     },
   ];
   const personalInfoRows = [
@@ -607,22 +652,32 @@ export default async function ApplicationDetailPage({
                     </a>
                   ))}
                 </div>
-                {canEditProfile && !isCitizenshipVerified ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {citizenshipDocumentHref ? (
-                      <a
-                        href={citizenshipDocumentHref}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center rounded-full border border-[#c2b8d2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f4effb]"
-                      >
-                        View Citizenship Proof
-                      </a>
+                {canEditProfile && (!isCitizenshipVerified || !isPriorFirstPrizeVerified) ? (
+                  <div className="mt-3 space-y-2">
+                    {!isCitizenshipVerified ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {citizenshipDocumentHref ? (
+                          <a
+                            href={citizenshipDocumentHref}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center rounded-full border border-[#c2b8d2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f4effb]"
+                          >
+                            View Citizenship Proof
+                          </a>
+                        ) : null}
+                        <CitizenshipVerificationButton
+                          applicationId={application.id}
+                          verified={false}
+                        />
+                      </div>
                     ) : null}
-                    <CitizenshipVerificationButton
-                      applicationId={application.id}
-                      verified={false}
-                    />
+                    {!isPriorFirstPrizeVerified ? (
+                      <PriorFirstPrizeVerificationButton
+                        applicationId={application.id}
+                        verified={false}
+                      />
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -663,22 +718,32 @@ export default async function ApplicationDetailPage({
                 ))}
               </div>
 
-              {canEditProfile && !isCitizenshipVerified ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {citizenshipDocumentHref ? (
-                    <a
-                      href={citizenshipDocumentHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center rounded-full border border-[#c2b8d2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f4effb]"
-                    >
-                      View Citizenship Proof
-                    </a>
+              {canEditProfile && (!isCitizenshipVerified || !isPriorFirstPrizeVerified) ? (
+                <div className="mt-3 space-y-2">
+                  {!isCitizenshipVerified ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {citizenshipDocumentHref ? (
+                        <a
+                          href={citizenshipDocumentHref}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-full border border-[#c2b8d2] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f4effb]"
+                        >
+                          View Citizenship Proof
+                        </a>
+                      ) : null}
+                      <CitizenshipVerificationButton
+                        applicationId={application.id}
+                        verified={false}
+                      />
+                    </div>
                   ) : null}
-                  <CitizenshipVerificationButton
-                    applicationId={application.id}
-                    verified={false}
-                  />
+                  {!isPriorFirstPrizeVerified ? (
+                    <PriorFirstPrizeVerificationButton
+                      applicationId={application.id}
+                      verified={false}
+                    />
+                  ) : null}
                 </div>
               ) : null}
             </div>

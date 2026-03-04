@@ -1547,6 +1547,7 @@ type ApplicationProfileUpdateInput = {
   citizenshipStatus?: string | null;
   citizenshipDocumentUrl?: string | null;
   citizenshipVerified?: boolean | null;
+  priorFirstPrizeVerified?: boolean | null;
   repertoire?: string | null;
   adminNote?: string | null;
   video1Title?: string | null;
@@ -1647,6 +1648,16 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
     notesObject.citizenshipVerification = {
       verified: input.citizenshipVerified,
       status: input.citizenshipVerified ? "VERIFIED" : "UNVERIFIED",
+      updatedAt: new Date().toISOString(),
+      updatedBy: actor,
+      updatedByRole: input.actorRole ?? null,
+    };
+  }
+
+  if (typeof input.priorFirstPrizeVerified === "boolean") {
+    notesObject.priorFirstPrizeVerification = {
+      verified: input.priorFirstPrizeVerified,
+      status: input.priorFirstPrizeVerified ? "VERIFIED" : "UNVERIFIED",
       updatedAt: new Date().toISOString(),
       updatedBy: actor,
       updatedByRole: input.actorRole ?? null,
