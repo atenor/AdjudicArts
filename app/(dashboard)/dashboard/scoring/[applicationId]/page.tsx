@@ -9,16 +9,29 @@ import {
   getJudgeScoringQueue,
   getScoringApplicationForJudge,
 } from "@/lib/db/scores";
-import { ApplicationDivision } from "@/lib/application-division";
-import { formatVoicePart } from "@/lib/application-metadata";
+import {
+  ApplicationDivision,
+  formatDivisionLabel,
+  getCompetitionCutoffDate,
+  resolveApplicationDivision,
+} from "@/lib/application-division";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import { parseRepertoireEntries } from "@/lib/repertoire";
-import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import ScoringForm from "@/components/judging/scoring-form";
 import StickyVideoPlayer from "@/components/judging/sticky-video-player";
 import JudgeBookmarkButton from "@/components/judging/favourite-button";
 import HeadshotPreview from "@/components/shared/headshot-preview";
 import styles from "./scoring.module.css";
+
+function getAgeAtDate(dateOfBirth: Date | null | undefined, atDate: Date): number | null {
+  if (!dateOfBirth) return null;
+  let age = atDate.getFullYear() - dateOfBirth.getFullYear();
+  const monthDelta = atDate.getMonth() - dateOfBirth.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && atDate.getDate() < dateOfBirth.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+}
 
 export default async function ScoreApplicationPage({
   params,
@@ -85,12 +98,43 @@ export default async function ScoreApplicationPage({
   } = scoringContext;
 
   const repertoirePieces = parseRepertoireEntries(application.repertoire);
+  const competitionDate = getCompetitionCutoffDate({
+    openAt: application.event.openAt,
+    closeAt: application.event.closeAt,
+  });
+  const ageAtCompetition = getAgeAtDate(application.dateOfBirth, competitionDate);
+  const applicantDivision = resolveApplicationDivision({
+    notes: application.notes,
+    dateOfBirth: application.dateOfBirth,
+    competitionDate,
+  });
+  const divisionLabel = formatDivisionLabel(applicantDivision);
+  const schoolName = application.schoolName?.trim() || "";
+  const schoolLocation = [application.schoolCity, application.schoolState]
+    .map((value) => value?.trim() || "")
+    .filter(Boolean)
+    .join(", ");
+  const schoolLabel = schoolName
+    ? schoolLocation
+      ? `${schoolName} (${schoolLocation})`
+      : schoolName
+    : "School not provided";
   const visibleVideoTitles = videoTitles
     .map((title, index) => ({
       label: `Video ${index + 1}`,
       title: title?.trim() || `Audition Video ${index + 1}`,
     }))
     .slice(0, videoUrls.length);
+  const chapterPrizeSuggestionsEnabled =
+    process.env.ENABLE_CHAPTER_PRIZE_SUGGESTIONS === "true";
+  const canSuggestPrizes =
+    session.user.role === "NATIONAL_JUDGE" || chapterPrizeSuggestionsEnabled;
+  const initialFilledCount = existingScores.length;
+  const initialScoreTotal = existingScores.reduce((sum, score) => sum + score.value, 0);
+  const initialMaxScore = Math.max(criteria.length * 10, 1);
+  const initialNormalizedTotal = Math.round((initialScoreTotal / initialMaxScore) * 100);
+  const initialAverageScore =
+    initialFilledCount > 0 ? Math.round(initialScoreTotal / initialFilledCount) : 0;
 
   const queueApplications = judgingList.flatMap((roundQueue) =>
     roundQueue.applications.map((queueApp) => ({
@@ -117,74 +161,52 @@ export default async function ScoreApplicationPage({
 
   return (
     <div className={styles.page}>
+      <section className={styles.applicantHeader}>
+        <HeadshotPreview
+          src={getDisplayHeadshot(application.headshot, application.id)}
+          alt={`${application.applicant.name} headshot`}
+          triggerClassName={styles.avatar}
+        />
+        <div className={styles.identityBlock}>
+          <div className={styles.primaryRow}>
+            <h1 className={styles.name}>{application.applicant.name}</h1>
+            <p className={styles.nameMetaInline}>
+              {ageAtCompetition === null ? "Age N/A" : `Age ${ageAtCompetition}`} · {divisionLabel}
+            </p>
+          </div>
+          <p className={styles.meta}>{schoolLabel}</p>
+        </div>
+        <div className={styles.bookmarkBlock}>
+          <JudgeBookmarkButton
+            applicationId={application.id}
+            initialActive={isBookmarked}
+          />
+        </div>
+      </section>
+
       <div className={styles.grid}>
         <div className={styles.left}>
-          <section className={styles.applicantHeader}>
-            <HeadshotPreview
-              src={getDisplayHeadshot(application.headshot, application.id)}
-              alt={`${application.applicant.name} headshot`}
-              triggerClassName={styles.avatar}
-            />
-            <div>
-              <div className={styles.nameRow}>
-                <h1 className={styles.name}>{application.applicant.name}</h1>
-                <JudgeBookmarkButton
-                  applicationId={application.id}
-                  initialActive={isBookmarked}
-                />
-              </div>
-              <p className={styles.meta}>{formatVoicePart(application.notes)}</p>
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <div className={styles.sectionHeader}>Application</div>
-            <div className={styles.cardBody}>
-              <p className={styles.bodyRow}>
-                <span className={styles.bodyLabel}>Event:</span> {application.event.name}
-              </p>
-              <p className={styles.bodyRow}>
-                <span className={styles.bodyLabel}>Voice Part:</span> {formatVoicePart(application.notes)}
-              </p>
-              <p className={styles.bodyRow}>
-                <span className={styles.bodyLabel}>Status:</span>{" "}
-                <ApplicationStatusBadge status={application.status} />
-              </p>
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <div className={styles.sectionHeader}>Repertoire</div>
-            <div className={styles.cardBody}>
-              {repertoirePieces.length === 0 ? (
-                <p className={styles.bodyRow}>No repertoire provided.</p>
-              ) : (
-                <ol className={styles.repertoire}>
-                  {repertoirePieces.map((piece, index) => (
-                    <li key={`${piece.raw}-${index}`} className={styles.repertoireItem}>
-                      <span className={styles.repertoireTitle}>{piece.title}</span>
-                      {piece.composer || piece.poet || piece.detail ? (
-                        <span className={styles.repertoireMeta}>
-                          {piece.composer ? `Composer: ${piece.composer}` : ""}
-                          {piece.poet ? `${piece.composer ? " · " : ""}Poet: ${piece.poet}` : ""}
-                          {piece.detail
-                            ? `${piece.composer || piece.poet ? " · " : ""}${piece.detail}`
-                            : ""}
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </div>
-          </section>
-
           <section>
             <div className={styles.sectionHeader}>Rubric Scores</div>
             <ScoringForm
               applicationId={application.id}
               applicantName={application.applicant.name}
               judgeName={session.user.name ?? "Adjudication Judge"}
+              canSuggestPrizes={canSuggestPrizes}
+              previousApplicantHref={
+                previousApplication
+                  ? requestedDivision
+                    ? `/dashboard/scoring/${previousApplication.id}?division=${requestedDivision}`
+                    : `/dashboard/scoring/${previousApplication.id}`
+                  : null
+              }
+              nextApplicantHref={
+                nextApplication
+                  ? requestedDivision
+                    ? `/dashboard/scoring/${nextApplication.id}?division=${requestedDivision}`
+                    : `/dashboard/scoring/${nextApplication.id}`
+                  : null
+              }
               criteria={criteria}
               submission={submission}
               certification={certification}
@@ -199,13 +221,25 @@ export default async function ScoreApplicationPage({
           </section>
 
           <Link href={queueHref} className={styles.backLink}>
-            ← Back to judging list
+            ← Back to adjudication list
           </Link>
         </div>
 
         <aside className={styles.right}>
           <div className={styles.stickyPanel}>
-            <StickyVideoPlayer videoUrls={videoUrls} />
+            <StickyVideoPlayer
+              videoUrls={videoUrls}
+              videoTitles={visibleVideoTitles.map((video) => video.title)}
+              repertoireEntries={repertoirePieces}
+              performerName={application.applicant.name}
+              performerMeta={`${ageAtCompetition === null ? "Age N/A" : `Age ${ageAtCompetition}`} · ${divisionLabel}`}
+              initialScoreSummary={{
+                filled: initialFilledCount,
+                totalCriteria: criteria.length,
+                average: initialAverageScore,
+                normalizedTotal: initialNormalizedTotal,
+              }}
+            />
 
             {visibleVideoTitles.length > 0 ? (
               <section className={`${styles.sidebarCard} ${styles.desktopOnly}`}>

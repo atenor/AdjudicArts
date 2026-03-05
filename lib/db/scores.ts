@@ -259,6 +259,9 @@ export async function getJudgeScoringQueue(
               _count: {
                 applicationId: true,
               },
+              _sum: {
+                value: true,
+              },
             });
 
       const submissions = applicationIds.length
@@ -290,6 +293,12 @@ export async function getJudgeScoringQueue(
           scoreCount._count.applicationId,
         ])
       );
+      const scoreTotalByApplication = new Map(
+        scoreCounts.map((scoreCount) => [
+          scoreCount.applicationId,
+          scoreCount._sum.value ?? null,
+        ])
+      );
 
       const queueItems = chapterScopedApplications
         .map((application) => {
@@ -315,7 +324,9 @@ export async function getJudgeScoringQueue(
             isBookmarked: bookmarkedApplicationIds.has(application.id),
             submissionStatus: submission?.status ?? "DRAFT",
             finalizedAt: submission?.finalizedAt ?? null,
+            hasStarted: criterionScores > 0,
             hasAllCriteria: criteriaCount > 0 && criterionScores >= criteriaCount,
+            judgeScoreTotal: scoreTotalByApplication.get(application.id) ?? null,
           };
         })
         .filter((item) => !options?.division || item.division === options.division);

@@ -52,11 +52,11 @@ export default function JudgeBookmarkButton({
         style={{
           border: "1px solid rgba(201,168,76,0.24)",
           cursor: isSaving ? "wait" : "pointer",
-          padding: "0.28rem 0.55rem",
+          padding: "0.2rem 0.42rem",
           lineHeight: 1,
           display: "inline-flex",
           alignItems: "center",
-          gap: "0.32rem",
+          gap: "0.25rem",
           borderRadius: "999px",
           boxShadow: active
             ? "0 0 0 1px rgba(201,168,76,0.4), 0 2px 10px rgba(201,168,76,0.22)"
@@ -67,8 +67,8 @@ export default function JudgeBookmarkButton({
         }}
       >
         <svg
-          width="18"
-          height="18"
+          width="16"
+          height="16"
           viewBox="0 0 24 24"
           fill={active ? "#E0C070" : "none"}
           stroke={active ? "#C9A84C" : "rgba(201,168,76,0.9)"}
@@ -81,7 +81,7 @@ export default function JudgeBookmarkButton({
         </svg>
         <span
           style={{
-            fontSize: "0.72rem",
+            fontSize: "0.63rem",
             fontWeight: 700,
             color: active ? "#6b560f" : "#7a6630",
             letterSpacing: "0.03em",

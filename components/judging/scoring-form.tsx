@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./scoring-form.module.css";
 
@@ -57,6 +58,36 @@ type SuggestionDraft = {
   comment: string;
 };
 
+type ConfettiPiece = {
+  burstX: number;
+  burstY: number;
+  driftX: number;
+  swayX: number;
+  fallY: number;
+  size: number;
+  spin: number;
+  delay: number;
+  duration: number;
+  color: string;
+};
+
+const CONFETTI_COLORS = ["#5f2ec8", "#dbc36d", "#0d7b5f", "#d6f6e8", "#b18ae5"] as const;
+
+function buildConfettiBurst(count = 84): ConfettiPiece[] {
+  return Array.from({ length: count }).map((_, index) => ({
+    burstX: -720 + Math.random() * 1440,
+    burstY: -520 + Math.random() * 640,
+    driftX: -420 + Math.random() * 840,
+    swayX: 20 + Math.random() * 34,
+    fallY: 88 + Math.random() * 18,
+    size: 8 + Math.random() * 10,
+    spin: -1800 + Math.random() * 3600,
+    delay: Math.random() * 520,
+    duration: 5200 + Math.random() * 1800,
+    color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+  }));
+}
+
 function formatTimestamp(value: string | Date | null | undefined) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
@@ -90,6 +121,9 @@ export default function ScoringForm({
   applicationId,
   applicantName,
   judgeName,
+  canSuggestPrizes,
+  previousApplicantHref,
+  nextApplicantHref,
   criteria,
   existingScores,
   existingFinalComment,
@@ -100,6 +134,9 @@ export default function ScoringForm({
   applicationId: string;
   applicantName: string;
   judgeName: string;
+  canSuggestPrizes: boolean;
+  previousApplicantHref: string | null;
+  nextApplicantHref: string | null;
   criteria: Criterion[];
   existingScores: ExistingScore[];
   existingFinalComment?: string | null;
@@ -112,6 +149,9 @@ export default function ScoringForm({
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiBurst, setConfettiBurst] = useState(false);
+  const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([]);
   const [finalComment, setFinalComment] = useState(existingFinalComment ?? "");
   const [compiledFeedback, setCompiledFeedback] = useState("");
 
@@ -163,6 +203,20 @@ export default function ScoringForm({
 
     return { total, filled, max, average, normalizedTotal };
   }, [criteria, values]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("adjudicarts:score-summary", {
+        detail: {
+          filled: scoreSummary.filled,
+          totalCriteria: criteria.length,
+          average: Math.round(scoreSummary.average),
+          normalizedTotal: scoreSummary.normalizedTotal,
+        },
+      })
+    );
+  }, [criteria.length, scoreSummary.average, scoreSummary.filled, scoreSummary.normalizedTotal]);
 
   const aggregatedNotes = useMemo(
     () =>
@@ -327,7 +381,7 @@ export default function ScoringForm({
       });
     }
 
-    if (requireSuggestions && normalizedSuggestions.length === 0) {
+    if (canSuggestPrizes && requireSuggestions && normalizedSuggestions.length === 0) {
       return { error: "At least one prize suggestion is required before finalizing." };
     }
 
@@ -338,11 +392,18 @@ export default function ScoringForm({
         comment: score.comment,
       })),
       finalComment: trimmedFinalComment,
-      prizeSuggestions: normalizedSuggestions,
+      prizeSuggestions: canSuggestPrizes ? normalizedSuggestions : [],
     };
   }
 
   async function onSaveDraft() {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Are you sure you want to submit scores?\n\nYou can come back and edit anytime until you finalize and submit your final scores in the Adjudication List."
+      );
+      if (!confirmed) return;
+    }
+
     setServerError(null);
     setSuccessMessage(null);
 
@@ -369,6 +430,13 @@ export default function ScoringForm({
       }
 
       setSuccessMessage("Scores saved. You can keep editing until the round is certified.");
+      setShowConfetti(true);
+      setConfettiPieces(buildConfettiBurst());
+      setConfettiBurst(false);
+      if (typeof window !== "undefined") {
+        window.setTimeout(() => setConfettiBurst(true), 10);
+        window.setTimeout(() => setShowConfetti(false), 6400);
+      }
       router.refresh();
     } finally {
       setIsSubmitting(false);
@@ -413,20 +481,6 @@ export default function ScoringForm({
           </ol>
         </section>
       ) : null}
-
-      <div className={styles.summaryBand}>
-        <div>
-          <p className={styles.summaryLabel}>Running Total</p>
-          <p className={styles.summaryValue}>
-            Filled {scoreSummary.filled}/{criteria.length} · Avg {scoreSummary.average.toFixed(2)}
-          </p>
-        </div>
-        <p className={styles.summaryTotal}>
-          {scoreSummary.filled === criteria.length
-            ? `${scoreSummary.normalizedTotal}/100`
-            : "Incomplete"}
-        </p>
-      </div>
 
       {criteria.map((criterion) => {
         const selectedValue = values[criterion.id] === "" ? null : Number(values[criterion.id]);
@@ -483,7 +537,7 @@ export default function ScoringForm({
                     [criterion.id]: e.target.value,
                   }))
                 }
-                placeholder="Quick note"
+                placeholder="Quick note (optional)"
                 aria-label={`Quick note for ${criterion.name}`}
                 autoComplete="off"
                 autoCorrect="off"
@@ -510,7 +564,8 @@ export default function ScoringForm({
         />
       </section>
 
-      <section className={styles.prizeWrap}>
+      {canSuggestPrizes ? (
+        <section className={styles.prizeWrap}>
         <p className={styles.label}>Prize Suggestions</p>
         <p className={styles.helperText}>
           Prize suggestions are recommendations only. Final prize decisions are made separately by
@@ -569,19 +624,31 @@ export default function ScoringForm({
             </button>
           </div>
         ) : null}
-      </section>
+        </section>
+      ) : null}
 
-      <section className={styles.aggregateWrap}>
-        <p className={styles.label}>Aggregated Applicant Feedback</p>
-        <textarea
-          id="aggregated-rubric-notes"
-          className={styles.noteBox}
-          rows={5}
-          readOnly
-          value={compiledFeedback || fallbackAggregatedPreview}
-          placeholder="On save, this will be compiled into a polished applicant-facing feedback message."
-        />
-      </section>
+      <details className={styles.aggregateDisclosure}>
+        <summary className={styles.aggregateSummary}>
+          Applicant Feedback Preview
+        </summary>
+        <section className={styles.aggregateWrap}>
+          <div className={styles.aggregateHeader}>
+            <p className={styles.label}>Aggregated Applicant Feedback</p>
+            <span className={styles.aggregateBadge}>No Judge Action Needed</span>
+          </div>
+          <p className={styles.aggregateHelper}>
+            Auto-generated from your rubric notes and final comments.
+          </p>
+          <textarea
+            id="aggregated-rubric-notes"
+            className={`${styles.noteBox} ${styles.aggregatePreview}`}
+            rows={5}
+            readOnly
+            value={compiledFeedback || fallbackAggregatedPreview}
+            placeholder="On save, this will be compiled into a polished applicant-facing feedback message."
+          />
+        </section>
+      </details>
 
       {serverError ? <p className={styles.error}>{serverError}</p> : null}
       {successMessage ? <p className={styles.success}>{successMessage}</p> : null}
@@ -589,16 +656,93 @@ export default function ScoringForm({
       {!isLocked ? (
         <>
           <div className={styles.actionRow}>
-            <button
-              className={`${styles.button} ${styles.buttonSecondary}`}
-              type="button"
-              disabled={isSubmitting}
-              onClick={onSaveDraft}
-            >
-              {isSubmitting ? "Saving..." : "Save Scores"}
-            </button>
+            <div className={styles.actionSlotLeft}>
+              {previousApplicantHref ? (
+                <Link
+                  href={previousApplicantHref}
+                  className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
+                >
+                  Previous Applicant
+                </Link>
+              ) : null}
+            </div>
+            <div className={styles.actionSlotCenter}>
+              <button
+                className={`${styles.button} ${styles.buttonPrimary} ${styles.saveAction}`}
+                type="button"
+                disabled={isSubmitting}
+                onClick={onSaveDraft}
+              >
+                {isSubmitting ? "Saving..." : "Save Scores"}
+              </button>
+            </div>
+            <div className={styles.actionSlotRight}>
+              {nextApplicantHref ? (
+                <Link
+                  href={nextApplicantHref}
+                  className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
+                >
+                  Next Applicant
+                </Link>
+              ) : null}
+            </div>
           </div>
         </>
+      ) : null}
+
+      {showConfetti ? (
+        <div className="pointer-events-none fixed inset-0 z-[120] overflow-hidden">
+          {confettiPieces.map((piece, index) => (
+            <span
+              key={`${piece.burstX}-${piece.burstY}-${index}`}
+              className="absolute left-1/2 top-[14vh] rounded-sm opacity-0"
+              style={{
+                width: `${piece.size}px`,
+                height: `${Math.max(3, piece.size * 0.55)}px`,
+                backgroundColor: piece.color,
+                opacity: 0.88,
+                animationName: confettiBurst ? "score-save-confetti-pop-fall" : undefined,
+                animationDuration: `${piece.duration}ms`,
+                animationTimingFunction: "linear",
+                animationFillMode: "forwards",
+                animationDelay: `${piece.delay}ms`,
+                ["--burst-x" as string]: `${piece.burstX}px`,
+                ["--burst-y" as string]: `${piece.burstY}px`,
+                ["--drift-x" as string]: `${piece.driftX}px`,
+                ["--sway-x" as string]: `${piece.swayX}px`,
+                ["--fall-y" as string]: `${piece.fallY}vh`,
+                ["--spin" as string]: `${piece.spin}deg`,
+              }}
+            />
+          ))}
+          <style>{`
+            @keyframes score-save-confetti-pop-fall {
+              0% {
+                opacity: 0;
+                transform: translate(-50%, 0) rotate(0deg);
+              }
+              6% {
+                opacity: 0.92;
+              }
+              12% {
+                transform: translate(
+                  calc(-50% + var(--burst-x)),
+                  var(--burst-y)
+                ) rotate(calc(var(--spin) * 0.35));
+              }
+              97% {
+                opacity: 0.9;
+              }
+              100% {
+                opacity: 0;
+                transform: translate(
+                  calc(-50% + var(--burst-x) + var(--drift-x) + var(--sway-x)),
+                  calc(var(--burst-y) + var(--fall-y))
+                ) rotate(var(--spin));
+              }
+            }
+          `}</style>
+        </div>
       ) : null}
     </div>
   );

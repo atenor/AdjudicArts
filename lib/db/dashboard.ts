@@ -302,6 +302,7 @@ export async function getJudgeDashboardStats(
     return {
       currentRoundLabel:
         role === "CHAPTER_JUDGE" ? "Chapter Adjudication" : "National Adjudication",
+      nextDeadlineAt: null as Date | null,
       totalToJudgeCurrentRound: 0,
       completedByJudgeCurrentRound: 0,
       hasSavedWork: false,
@@ -348,6 +349,7 @@ export async function getJudgeDashboardStats(
     return {
       currentRoundLabel:
         role === "CHAPTER_JUDGE" ? "Chapter Adjudication" : "National Adjudication",
+      nextDeadlineAt: null as Date | null,
       totalToJudgeCurrentRound: 0,
       completedByJudgeCurrentRound: 0,
       hasSavedWork: false,
@@ -425,9 +427,20 @@ export async function getJudgeDashboardStats(
     }
   }
 
+  const now = Date.now();
+  const roundEndTimes = assignments
+    .map((assignment) => assignment.round.endAt)
+    .filter((value): value is Date => Boolean(value))
+    .sort((left, right) => left.getTime() - right.getTime());
+  const upcomingDeadline = roundEndTimes.find((endAt) => endAt.getTime() >= now) ?? null;
+  const fallbackDeadline =
+    roundEndTimes.length > 0 ? roundEndTimes[roundEndTimes.length - 1] : null;
+  const nextDeadlineAt = upcomingDeadline ?? fallbackDeadline;
+
   return {
     currentRoundLabel:
       role === "CHAPTER_JUDGE" ? "Chapter Adjudication" : "National Adjudication",
+    nextDeadlineAt,
     totalToJudgeCurrentRound,
     completedByJudgeCurrentRound,
     hasSavedWork: scoreCounts.some((row) => row._count.applicationId > 0),

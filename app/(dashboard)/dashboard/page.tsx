@@ -18,6 +18,7 @@ import { getDisplayHeadshot } from "@/lib/headshots";
 import styles from "./dashboard.module.css";
 
 export const metadata: Metadata = { title: "Dashboard" };
+const JUDGING_DEADLINE = new Date("2026-04-01T23:59:00-04:00");
 
 function percentage(value: number, total: number) {
   if (total <= 0) return 0;
@@ -67,6 +68,56 @@ function formatStatus(status: string) {
     .split("_")
     .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
     .join(" ");
+}
+
+function formatDeadline(deadline: Date | null) {
+  if (!deadline) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(deadline);
+}
+
+function formatDurationFromMinutes(totalMinutes: number) {
+  const safeMinutes = Math.max(0, totalMinutes);
+  const days = Math.floor(safeMinutes / (24 * 60));
+  const hours = Math.floor((safeMinutes % (24 * 60)) / 60);
+  const minutes = safeMinutes % 60;
+  return `${days}d ${hours}h ${minutes}m`;
+}
+
+function getCountdownState(deadline: Date | null) {
+  if (!deadline) return null;
+  const now = Date.now();
+  const msRemaining = deadline.getTime() - now;
+  const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+
+  if (msRemaining <= 0) {
+    const overdueMinutes = Math.floor(Math.abs(msRemaining) / (1000 * 60));
+    return {
+      label: "Due / Overdue",
+      detail: `${formatDurationFromMinutes(overdueMinutes)} past due`,
+      tone: "Danger" as const,
+    };
+  }
+
+  const minutesRemaining = Math.ceil(msRemaining / (1000 * 60));
+  if (msRemaining <= threeDaysMs) {
+    return {
+      label: "Deadline Near",
+      detail: `${formatDurationFromMinutes(minutesRemaining)} left`,
+      tone: "Warning" as const,
+    };
+  }
+
+  return {
+    label: "On Track",
+    detail: `${formatDurationFromMinutes(minutesRemaining)} left`,
+    tone: "Success" as const,
+  };
 }
 
 export default async function DashboardPage() {
@@ -327,7 +378,7 @@ export default async function DashboardPage() {
 
     const remaining =
       stats.totalToJudgeCurrentRound - stats.completedByJudgeCurrentRound;
-    const ctaLabel = stats.hasSavedWork ? "Continue Adjudication" : "Start Adjudication";
+    const ctaLabel = "Open Judging List";
     const judgeRoleLabel =
       user.role === "CHAPTER_JUDGE" ? "Chapter Judge" : "National Judge";
     const judgeDashboardTitle =
@@ -346,16 +397,160 @@ export default async function DashboardPage() {
       (row: { key: string; toJudge: number }) =>
         row.key !== "UNASSIGNED" || row.toJudge > 0
     );
+    const completionPct = percentage(
+      stats.completedByJudgeCurrentRound,
+      Math.max(1, stats.totalToJudgeCurrentRound)
+    );
+    const countdown = getCountdownState(JUDGING_DEADLINE);
+    const deadlineLabel = formatDeadline(JUDGING_DEADLINE);
+
+    if (user.role === "CHAPTER_JUDGE") {
+      const chapterDivisionRows = visibleDivisionRows.filter(
+        (row: { key: string }) => row.key !== "UNASSIGNED"
+      );
+
+      return (
+        <div className={styles.page}>
+          <header className={`${styles.header} ${styles.judgeHeader}`}>
+            <div className={styles.judgeHeaderLeft}>
+              <div className={styles.titleRow}>
+                <span className={styles.rolePill}>{ROLE_LABELS[user.role]}</span>
+              </div>
+              <h1 className={styles.title}>{judgeDashboardTitle}</h1>
+            </div>
+            {countdown && deadlineLabel ? (
+              <div
+                className={`${styles.countdownPill} ${styles.countdownCorner} ${styles[`countdownPill${countdown.tone}`]}`}
+              >
+                <span className={styles.countdownLabel}>{countdown.label}</span>
+                <span className={styles.countdownDetail}>{countdown.detail}</span>
+                <span className={styles.countdownSub}>Due {deadlineLabel}</span>
+              </div>
+            ) : null}
+          </header>
+
+          <section className={`${styles.judgeCtaCard} ${styles.judgeGoCard}`}>
+            <p className={styles.judgeCtaLabel}>Ready To Judge</p>
+            <Link href={ctaHref} className={`${styles.judgeCtaButton} ${styles.judgeGoButton}`}>
+              {ctaLabel}
+            </Link>
+            <p className={styles.judgeCtaHint}>
+              Opens your judging list for {stats.currentRoundLabel.toLowerCase()}.
+            </p>
+          </section>
+
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionTopBar} />
+            <div className={styles.sectionBody}>
+              <h2 className={styles.sectionTitle}>Division Progress</h2>
+              <div className={styles.analyticsRows}>
+                {chapterDivisionRows.length === 0 ? (
+                  <p className={styles.muted}>No division assignments yet.</p>
+                ) : (
+                  chapterDivisionRows.map(
+                    (row: {
+                      key: string;
+                      label: string;
+                      toJudge: number;
+                      completed: number;
+                    }) => (
+                      <Link
+                        key={row.key}
+                        href={`/dashboard/scoring?division=${row.key}`}
+                        className={styles.analyticsRowLink}
+                      >
+                        <div className={styles.analyticsRow}>
+                          <div className={styles.analyticsRowLabel}>{row.label}</div>
+                          <div className={styles.analyticsBarWrap}>
+                            <div
+                              className={styles.analyticsBar}
+                              style={{
+                                width: `${percentage(
+                                  row.completed,
+                                  Math.max(1, row.toJudge)
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                          <div className={styles.analyticsValue}>
+                            {row.completed}/{row.toJudge}
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  )
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.grid4}>
+            <StatCard
+              title="Assigned To You"
+              value={stats.totalToJudgeCurrentRound}
+              sub={stats.currentRoundLabel}
+              href="/dashboard/scoring"
+            />
+            <StatCard
+              title="Completed"
+              value={stats.completedByJudgeCurrentRound}
+              sub={`${remaining} remaining`}
+              href="/dashboard/scoring"
+            />
+            <StatCard
+              title="Remaining"
+              value={remaining}
+              sub="not yet scored by you"
+              href="/dashboard/scoring"
+            />
+            <StatCard
+              title="Completion"
+              value={`${completionPct}%`}
+              sub={`${stats.completedByJudgeCurrentRound} of ${stats.totalToJudgeCurrentRound}`}
+              href="/dashboard/scoring"
+            />
+          </section>
+
+          <section>
+            <h2 className={styles.sectionTitle}>Quick Links</h2>
+            <div className={styles.quickLinks}>
+              <QuickLink href="/dashboard/scoring" label="My Judging List" />
+              <QuickLink href="/dashboard/notifications" label="Notifications" />
+              <QuickLink href="/dashboard/support" label="Support" />
+            </div>
+          </section>
+        </div>
+      );
+    }
 
     return (
       <div className={styles.page}>
-        <header className={styles.header}>
+        <header className={`${styles.header} ${styles.judgeHeader}`}>
           <div>
-            <h1 className={styles.title}>{judgeDashboardTitle}</h1>
+            <div className={styles.titleRow}>
+              <h1 className={styles.title}>{judgeDashboardTitle}</h1>
+              <span className={styles.rolePill}>{ROLE_LABELS[user.role]}</span>
+            </div>
             <p className={styles.muted}>Welcome {user.name}!</p>
           </div>
-          <span className={styles.rolePill}>{ROLE_LABELS[user.role]}</span>
+          {countdown && deadlineLabel ? (
+            <div className={`${styles.countdownPill} ${styles[`countdownPill${countdown.tone}`]}`}>
+              <span className={styles.countdownLabel}>{countdown.label}</span>
+              <span className={styles.countdownDetail}>{countdown.detail}</span>
+              <span className={styles.countdownSub}>Due {deadlineLabel}</span>
+            </div>
+          ) : null}
         </header>
+
+        <section className={`${styles.judgeCtaCard} ${styles.judgeGoCard}`}>
+          <p className={styles.judgeCtaLabel}>Ready To Judge</p>
+          <Link href={ctaHref} className={`${styles.judgeCtaButton} ${styles.judgeGoButton}`}>
+            {ctaLabel}
+          </Link>
+          <p className={styles.judgeCtaHint}>
+            Opens your judging list for {stats.currentRoundLabel.toLowerCase()}.
+          </p>
+        </section>
 
         {user.role === "NATIONAL_JUDGE" ? (
           <section className={styles.sectionCard}>
@@ -405,7 +600,7 @@ export default async function DashboardPage() {
         <section className={styles.grid3}>
           <StatCard
             title="Current Round"
-            value={user.role === "CHAPTER_JUDGE" ? "Chapter" : "National"}
+            value="National"
             sub={stats.currentRoundLabel}
           />
           <StatCard
@@ -465,16 +660,6 @@ export default async function DashboardPage() {
             </div>
           </section>
         ) : null}
-
-        <section className={styles.judgeCtaCard}>
-          <p className={styles.judgeCtaLabel}>Primary Action</p>
-          <Link href={ctaHref} className={styles.judgeCtaButton}>
-            {ctaLabel}
-          </Link>
-          <p className={styles.judgeCtaHint}>
-            Opens your judging list for {stats.currentRoundLabel.toLowerCase()}.
-          </p>
-        </section>
 
         <section>
           <h2 className={styles.sectionTitle}>Quick Links</h2>

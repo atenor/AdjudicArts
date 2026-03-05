@@ -9,7 +9,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { hasRole } from "@/lib/auth-guards";
 import { getJudgeScoringQueue } from "@/lib/db/scores";
-import ApplicationStatusBadge from "@/components/applications/application-status-badge";
 import { Badge } from "@/components/ui/badge";
 import {
   ApplicationDivision,
@@ -17,6 +16,27 @@ import {
 } from "@/lib/application-division";
 import { getDisplayHeadshot } from "@/lib/headshots";
 import HeadshotPreview from "@/components/shared/headshot-preview";
+import ScoringFilters from "@/components/judging/scoring-filters";
+
+function formatChapterLabel(chapter: string | null | undefined) {
+  const trimmed = (chapter ?? "").trim();
+  if (!trimmed) return "";
+  const normalized = trimmed.replace(/[–—]/g, "-");
+  const parts = normalized.split("-").map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const left = parts[0].toLowerCase().replace(/\s+chapter$/, "").trim();
+    const right = parts[1].toLowerCase().replace(/\s+chapter$/, "").trim();
+    if (left && right && left === right) {
+      return `${parts[1].replace(/\s+chapter$/i, "").trim()} Chapter`;
+    }
+  }
+  return trimmed;
+}
+
+function formatScoreDisplay(value: number | null | undefined) {
+  if (typeof value !== "number") return "Score —";
+  return `Score ${value.toFixed(1)}`;
+}
 
 export default async function ScoringQueuePage({
   searchParams,
@@ -65,7 +85,7 @@ export default async function ScoringQueuePage({
   const bookmarksOnly = searchParams.bookmarks === "only";
   const layout = searchParams.layout === "combined" ? "combined" : "grouped";
 
-  const availableVoiceParts = Array.from(
+  const discoveredVoiceParts = Array.from(
     new Set(
       queue.flatMap((roundQueue) =>
         roundQueue.applications
@@ -73,7 +93,27 @@ export default async function ScoringQueuePage({
           .filter((voicePart) => voicePart.length > 0)
       )
     )
-  ).sort((left, right) => left.localeCompare(right));
+  );
+  const standardVoiceParts = [
+    "Soprano",
+    "Mezzo-Soprano",
+    "Contralto",
+    "Countertenor",
+    "Tenor",
+    "Baritone",
+    "Bass",
+    "Other",
+  ];
+  const orderedStandardVoiceParts = [...standardVoiceParts];
+  const extraVoiceParts = discoveredVoiceParts
+    .filter(
+      (voicePart) =>
+        !standardVoiceParts.some(
+          (standardVoicePart) => standardVoicePart.toLowerCase() === voicePart.toLowerCase()
+        )
+    )
+    .sort((left, right) => left.localeCompare(right));
+  const availableVoiceParts = [...orderedStandardVoiceParts, ...extraVoiceParts];
 
   const filteredQueue = queue
     .map((roundQueue) => {
@@ -181,10 +221,10 @@ export default async function ScoringQueuePage({
   return (
     <div className="min-w-0 space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">
+        <h1 className="text-2xl font-semibold leading-tight">
           {isNationalJudge ? "National Judging Queue" : "Judging List"}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-1 text-base font-medium text-[#6f6491]">
           {totalScored} of {totalApplications}{" "}
           {isNationalJudge ? "national" : "judge"} scorecards complete
         </p>
@@ -194,149 +234,6 @@ export default async function ScoringQueuePage({
             pool.
           </p>
         ) : null}
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-sm text-muted-foreground">Division:</span>
-          <Link
-            href={buildQueueHref({ division: undefined })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              !requestedDivision
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            All
-          </Link>
-          {(["16-18", "19-22"] as const).map((division) => (
-            <Link
-              key={division}
-              href={buildQueueHref({ division })}
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                requestedDivision === division
-                  ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                  : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-              }`}
-            >
-              {formatDivisionLabel(division)}
-            </Link>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-sm text-muted-foreground">View:</span>
-          <Link
-            href={buildQueueHref({ view: "detailed" })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              view === "detailed"
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            Detailed
-          </Link>
-          <Link
-            href={buildQueueHref({ view: "compact" })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              view === "compact"
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            Compact
-          </Link>
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-sm text-muted-foreground">Layout:</span>
-          <Link
-            href={buildQueueHref({ layout: "grouped" })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              layout === "grouped"
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            Grouped by division
-          </Link>
-          <Link
-            href={buildQueueHref({ layout: "combined" })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              layout === "combined"
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            Combined list
-          </Link>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-sm text-muted-foreground">Sort:</span>
-          {[
-            ["submitted", "Submission order"],
-            ["bookmarked", "Bookmarked first"],
-            ["voice-part", "Voice part"],
-            ["chapter", "Chapter"],
-            ["name", "Applicant name"],
-          ].map(([value, label]) => (
-            <Link
-              key={value}
-              href={buildQueueHref({ sort: value })}
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                sort === value
-                  ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                  : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-sm text-muted-foreground">Voice part:</span>
-          <Link
-            href={buildQueueHref({ voicePart: undefined })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              !selectedVoicePart
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            All
-          </Link>
-          {availableVoiceParts.map((voicePart) => (
-            <Link
-              key={voicePart}
-              href={buildQueueHref({ voicePart })}
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                selectedVoicePart === voicePart
-                  ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                  : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-              }`}
-            >
-              {voicePart}
-            </Link>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-sm text-muted-foreground">Bookmarks:</span>
-          <Link
-            href={buildQueueHref({ bookmarks: undefined })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              !bookmarksOnly
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            All applicants
-          </Link>
-          <Link
-            href={buildQueueHref({ bookmarks: "only" })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              bookmarksOnly
-                ? "border-[#5f2ec8] bg-[#ede6f7] text-[#4a2e82]"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/40"
-            }`}
-          >
-            Bookmarked only
-          </Link>
-        </div>
       </div>
 
       {filteredQueue.length === 0 ? (
@@ -354,8 +251,8 @@ export default async function ScoringQueuePage({
         </div>
       ) : (
         <div className="space-y-6">
-          {filteredQueue.map((roundQueue) => (
-            <section key={roundQueue.round.id} className="space-y-3">
+          {filteredQueue.map((roundQueue, roundIndex) => (
+            <section key={roundQueue.round.id} className="space-y-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-medium">{roundQueue.round.name}</h2>
                 <Badge variant="outline">
@@ -377,9 +274,24 @@ export default async function ScoringQueuePage({
                 (() => {
                   if (layout === "combined") {
                     return (
-                      <article className="rounded-lg border">
-                        <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
-                          <p className="text-sm font-semibold">Combined applicant list</p>
+                      <>
+                        {roundIndex === 0 ? (
+                          <div className="flex justify-end">
+                            <ScoringFilters
+                              hasActiveFilters={hasActiveFilters}
+                              division={requestedDivision}
+                              view={view}
+                              layout={layout}
+                              sort={sort}
+                              voicePart={selectedVoicePart}
+                              bookmarksOnly={bookmarksOnly}
+                              availableVoiceParts={availableVoiceParts}
+                            />
+                          </div>
+                        ) : null}
+                        <article className="rounded-lg border">
+                        <div className="flex items-center justify-between gap-2 border-b border-[#b79ddf] bg-[#ddd0f1] px-3 py-2">
+                          <p className="text-sm font-semibold text-[#25174d]">Combined applicant list</p>
                           <span className="text-xs text-muted-foreground">
                             {roundQueue.applications.length} applicant
                             {roundQueue.applications.length === 1 ? "" : "s"}
@@ -409,7 +321,7 @@ export default async function ScoringQueuePage({
                                     {application.applicant.name}
                                   </Link>
                                   <p className="truncate text-xs text-muted-foreground">
-                                    {[application.division ?? "Unassigned division", application.voicePart ?? "No voice part", application.chapter || "No chapter"]
+                                    {[application.division ?? "Unassigned division", application.voicePart, formatChapterLabel(application.chapter)]
                                       .filter(Boolean)
                                       .join(" · ")}
                                   </p>
@@ -419,13 +331,17 @@ export default async function ScoringQueuePage({
                                 {application.isBookmarked ? (
                                   <Badge variant="outline">Bookmarked</Badge>
                                 ) : null}
-                                {view === "detailed" ? (
-                                  <ApplicationStatusBadge status={application.status} />
-                                ) : null}
+                                <span className="rounded-full border border-[#d8cce9] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f4d87]">
+                                  {formatScoreDisplay(application.judgeScoreTotal)}
+                                </span>
                                 {application.hasAllCriteria ? (
-                                  <Badge variant="default">Complete</Badge>
+                                  <span className="rounded-full border border-[#8fdcbf] bg-[#d6f6e8] px-3 py-1 text-xs font-semibold text-[#147a58]">
+                                    Complete
+                                  </span>
                                 ) : (
-                                  <Badge variant="secondary">In Progress</Badge>
+                                  <span className="rounded-full border border-[#f0cf74] bg-[#fff3cd] px-3 py-1 text-xs font-semibold text-[#856404]">
+                                    Queued
+                                  </span>
                                 )}
                                 <Link
                                   href={buildDetailHref(application.id)}
@@ -437,7 +353,8 @@ export default async function ScoringQueuePage({
                             </div>
                           ))}
                         </div>
-                      </article>
+                        </article>
+                      </>
                     );
                   }
 
@@ -449,77 +366,103 @@ export default async function ScoringQueuePage({
                     groups[key].push(application);
                     return groups;
                   }, {});
+                  const orderedDivisionKeys = ["16-18", "19-22", "UNASSIGNED"].filter(
+                    (key) => Boolean(byDivision[key])
+                  );
 
                   return (
                     <div className="space-y-3">
-                      {Object.entries(byDivision).map(([division, applications]) => (
-                        <article key={`${roundQueue.round.id}-${division}`} className="rounded-lg border">
-                          <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
-                            <p className="text-sm font-semibold">
-                              {division === "UNASSIGNED"
-                                ? "Division Unassigned"
-                                : formatDivisionLabel(division as ApplicationDivision)}
-                            </p>
-                            <span className="text-xs text-muted-foreground">
-                              {applications.length} applicant{applications.length === 1 ? "" : "s"}
-                            </span>
-                          </div>
-                          <div className="divide-y">
-                            {applications.map((application) => (
-                              <div
-                                key={application.id}
-                                className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30"
-                              >
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <HeadshotPreview
-                                    src={getDisplayHeadshot(application.headshot, application.id)}
-                                    alt={`${application.applicant.name} headshot`}
-                                    triggerClassName={
-                                      view === "compact"
-                                        ? "h-11 w-11 rounded-full object-cover border border-border/70 bg-muted"
-                                        : "h-12 w-12 rounded-full object-cover border border-border/70 bg-muted"
-                                    }
-                                  />
-                                  <div className="min-w-0">
+                      {orderedDivisionKeys.map((division) => {
+                        const applications = byDivision[division];
+                        return (
+                        <div key={`${roundQueue.round.id}-${division}`} className="space-y-2">
+                          {roundIndex === 0 && division === orderedDivisionKeys[0] ? (
+                            <div className="flex justify-end -mt-3 mb-0.5">
+                              <ScoringFilters
+                                hasActiveFilters={hasActiveFilters}
+                                division={requestedDivision}
+                                view={view}
+                                layout={layout}
+                                sort={sort}
+                                voicePart={selectedVoicePart}
+                                bookmarksOnly={bookmarksOnly}
+                                availableVoiceParts={availableVoiceParts}
+                              />
+                            </div>
+                          ) : null}
+                          <article className="rounded-lg border">
+                            <div className="flex items-center justify-between gap-2 border-b border-[#b79ddf] bg-[#ddd0f1] px-3 py-2">
+                              <p className="text-sm font-semibold text-[#25174d]">
+                                {division === "UNASSIGNED"
+                                  ? "Division Unassigned"
+                                  : formatDivisionLabel(division as ApplicationDivision)}
+                              </p>
+                              <span className="text-xs text-muted-foreground">
+                                {applications.length} applicant{applications.length === 1 ? "" : "s"}
+                              </span>
+                            </div>
+                            <div className="divide-y">
+                              {applications.map((application) => (
+                                <div
+                                  key={application.id}
+                                  className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30"
+                                >
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <HeadshotPreview
+                                      src={getDisplayHeadshot(application.headshot, application.id)}
+                                      alt={`${application.applicant.name} headshot`}
+                                      triggerClassName={
+                                        view === "compact"
+                                          ? "h-11 w-11 rounded-full object-cover border border-border/70 bg-muted"
+                                          : "h-12 w-12 rounded-full object-cover border border-border/70 bg-muted"
+                                      }
+                                    />
+                                    <div className="min-w-0">
+                                      <Link
+                                        href={buildDetailHref(application.id)}
+                                        className="truncate text-sm font-semibold hover:underline"
+                                      >
+                                        {application.applicant.name}
+                                      </Link>
+                                      {view === "detailed" && (application.voicePart || application.chapter) ? (
+                                        <p className="truncate text-xs text-muted-foreground">
+                                          {[application.voicePart, formatChapterLabel(application.chapter)]
+                                            .filter(Boolean)
+                                            .join(" · ")}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {application.isBookmarked ? (
+                                      <Badge variant="outline">Bookmarked</Badge>
+                                    ) : null}
+                                    <span className="rounded-full border border-[#d8cce9] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f4d87]">
+                                      {formatScoreDisplay(application.judgeScoreTotal)}
+                                    </span>
+                                    {application.hasAllCriteria ? (
+                                      <span className="rounded-full border border-[#8fdcbf] bg-[#d6f6e8] px-3 py-1 text-xs font-semibold text-[#147a58]">
+                                        Complete
+                                      </span>
+                                    ) : (
+                                      <span className="rounded-full border border-[#f0cf74] bg-[#fff3cd] px-3 py-1 text-xs font-semibold text-[#856404]">
+                                        Queued
+                                      </span>
+                                    )}
                                     <Link
                                       href={buildDetailHref(application.id)}
-                                      className="truncate text-sm font-semibold hover:underline"
+                                      className="rounded-md border border-[#cfc3e3] px-2 py-1 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
                                     >
-                                      {application.applicant.name}
+                                      Open
                                     </Link>
-                                    {view === "detailed" ? (
-                                      <p className="truncate text-xs text-muted-foreground">
-                                        {[application.voicePart ?? "No voice part", application.chapter || "No chapter"]
-                                          .filter(Boolean)
-                                          .join(" · ")}
-                                      </p>
-                                    ) : null}
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  {application.isBookmarked ? (
-                                    <Badge variant="outline">Bookmarked</Badge>
-                                  ) : null}
-                                  {view === "detailed" ? (
-                                    <ApplicationStatusBadge status={application.status} />
-                                  ) : null}
-                                  {application.hasAllCriteria ? (
-                                    <Badge variant="default">Complete</Badge>
-                                  ) : (
-                                    <Badge variant="secondary">In Progress</Badge>
-                                  )}
-                                  <Link
-                                    href={buildDetailHref(application.id)}
-                                    className="rounded-md border border-[#cfc3e3] px-2 py-1 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
-                                  >
-                                    Open
-                                  </Link>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </article>
-                      ))}
+                              ))}
+                            </div>
+                          </article>
+                        </div>
+                        );
+                      })}
                     </div>
                   );
                 })()
@@ -528,6 +471,7 @@ export default async function ScoringQueuePage({
           ))}
         </div>
       )}
+
     </div>
   );
 }

@@ -12,12 +12,30 @@
   flex-wrap: wrap;
 }
 
+.judgeHeader {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  position: relative;
+}
+
 .title {
   margin: 0;
   font-size: clamp(1.35rem, 3vw, 1.9rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #1e1538;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.judgeHeaderLeft {
+  padding-right: 9.25rem;
 }
 
 .welcome {
@@ -31,14 +49,81 @@
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  border: 1px solid rgba(70, 43, 124, 0.2);
-  background: rgba(70, 43, 124, 0.08);
-  color: #462b7c;
-  padding: 0.25rem 0.65rem;
+  border: 1px solid rgba(201, 168, 76, 0.7);
+  background: linear-gradient(180deg, #5f2ec8 0%, #4f26a8 100%);
+  color: #fff7da;
+  padding: 0.3rem 0.72rem;
   font-size: 0.65rem;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
+  box-shadow: 0 4px 10px rgba(79, 38, 168, 0.25);
+}
+
+.countdownPill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  border-radius: 10px;
+  border: 1px solid #8fdcbf;
+  background: #d6f6e8;
+  padding: 0.32rem 0.5rem;
+  box-shadow: 0 2px 8px rgba(70, 43, 124, 0.09);
+  min-width: 8.25rem;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.countdownCorner {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.countdownLabel {
+  color: #147a58;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.countdownDetail {
+  color: #1e1538;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.countdownSub {
+  color: #6a5e8f;
+  font-size: 0.62rem;
+}
+
+.countdownPillSuccess {
+  border-color: #8fdcbf;
+  background: #d6f6e8;
+}
+
+.countdownPillWarning {
+  border-color: #f0cf74;
+  background: #fff3cd;
+}
+
+.countdownPillDanger {
+  border-color: #f3b4b1;
+  background: #ffe4e4;
+}
+
+.countdownPillWarning .countdownLabel,
+.countdownPillWarning .countdownDetail,
+.countdownPillWarning .countdownSub {
+  color: #856404;
+}
+
+.countdownPillDanger .countdownLabel,
+.countdownPillDanger .countdownDetail,
+.countdownPillDanger .countdownSub {
+  color: #b42318;
 }
 
 .grid4 {
@@ -411,11 +496,16 @@
 
 .judgeCtaCard {
   border-radius: 12px;
-  border: 1px solid rgba(70, 43, 124, 0.14);
+  border: 1px solid rgba(13, 123, 95, 0.24);
   background: linear-gradient(180deg, rgba(243, 238, 248, 0.72), #ffffff);
   padding: 0.9rem;
   display: grid;
   gap: 0.6rem;
+}
+
+.judgeGoCard {
+  background: linear-gradient(180deg, #f1fff8 0%, #ffffff 100%);
+  border-color: rgba(13, 123, 95, 0.3);
 }
 
 .judgeCtaLabel {
@@ -448,6 +538,15 @@
   background: linear-gradient(90deg, #5327b2 0%, #3e256f 100%);
 }
 
+.judgeGoButton {
+  border-color: #0d7b5f;
+  background: linear-gradient(90deg, #147a58 0%, #0d7b5f 100%);
+}
+
+.judgeGoButton:hover {
+  background: linear-gradient(90deg, #12684b 0%, #0b664f 100%);
+}
+
 .judgeCtaHint {
   margin: 0;
   color: #6e5e93;
@@ -465,6 +564,14 @@
 }
 
 @media (max-width: 740px) {
+  .judgeHeader {
+    flex-wrap: wrap;
+  }
+
+  .judgeHeaderLeft {
+    padding-right: 8.75rem;
+  }
+
   .analyticsGrid {
     grid-template-columns: 1fr;
   }

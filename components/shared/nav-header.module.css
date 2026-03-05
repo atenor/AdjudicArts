@@ -5,25 +5,34 @@
 
 .inner {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.5rem 0.75rem;
-  min-height: 52px;
-  padding: 0.45rem 0.9rem;
+  gap: 0.4rem 0.65rem;
+  min-height: 44px;
+  padding: 0.3rem 0.75rem;
 }
 
 .left {
   display: flex;
+  flex: 1 1 auto;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.25rem 1rem;
+  gap: 0.2rem 0.7rem;
+}
+
+.desktopLinks {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem 0.7rem;
+  min-width: 0;
 }
 
 .wordmark {
-  font-size: 1.65rem;
+  font-size: 1.5rem;
   line-height: 1;
   letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
 .wordmarkStrong {
@@ -38,13 +47,18 @@
 }
 
 .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   color: rgba(255, 255, 255, 0.72);
   text-decoration: none;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   transition: color 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .link:hover {
@@ -55,13 +69,14 @@
   margin-left: auto;
   display: flex;
   min-width: 0;
+  flex-shrink: 0;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.42rem;
 }
 
 .settingsGear {
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 1.72rem;
+  height: 1.72rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -70,7 +85,7 @@
   background: rgba(201, 168, 76, 0.18);
   color: #fff7dc;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 700;
   line-height: 1;
   transition: background 0.2s ease, border-color 0.2s ease;
@@ -87,8 +102,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: rgba(255, 255, 255, 0.55);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .roleBadge {
@@ -96,11 +112,11 @@
   border: 1px solid rgba(201, 168, 76, 0.7);
   background: rgba(201, 168, 76, 0.16);
   color: #f2e7ba;
-  font-size: 0.56rem;
+  font-size: 0.54rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.26rem 0.66rem;
+  padding: 0.22rem 0.58rem;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
@@ -109,7 +125,7 @@
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: transparent;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
 }
 
 .signOut:hover {
@@ -124,41 +140,174 @@
 
 .quickNavInner {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
   padding: 0.55rem 0.9rem 0.65rem;
+}
+
+.quickNavLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.1rem;
 }
 
 .quickNavLink {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 2rem;
-  border-radius: 999px;
-  border: 1px solid rgba(201, 168, 76, 0.62);
-  background: rgba(201, 168, 76, 0.18);
-  color: #fff8de;
+  gap: 0.35rem;
+  color: rgba(255, 255, 255, 0.88);
   text-decoration: none;
-  font-size: 0.84rem;
+  font-size: 0.98rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 0.3rem 0.85rem;
-  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  padding: 0;
+  transition: color 0.2s ease;
 }
 
 .quickNavLink:hover {
-  background: rgba(201, 168, 76, 0.3);
-  border-color: rgba(201, 168, 76, 0.9);
-  color: #fffdf3;
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.quickNavGear {
+  width: 1.85rem;
+  height: 1.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.72);
+  background: rgba(201, 168, 76, 0.2);
+  color: #fff7dc;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.quickNavGear:hover {
+  background: rgba(201, 168, 76, 0.32);
+  border-color: rgba(201, 168, 76, 0.95);
+}
+
+.notifBadge {
+  display: inline-flex;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #b42318;
+  color: #ffffff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 0.2rem;
+}
+
+.quickNavNotifBadge {
+  display: inline-flex;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #b42318;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 0.24rem;
+}
+
+/* Mobile menu */
+.mobileMenu {
+  display: none;
+  position: relative;
+}
+
+.mobileMenuButton {
+  width: 1.72rem;
+  height: 1.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.72);
+  background: rgba(201, 168, 76, 0.2);
+  color: #fff7dc;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mobileMenuButton::-webkit-details-marker {
+  display: none;
+}
+
+.mobileMenuPanel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  min-width: 12rem;
+  z-index: 80;
+  display: grid;
+  gap: 0.15rem;
+  border: 1px solid rgba(216, 204, 233, 0.6);
+  border-radius: 10px;
+  background: #2f1a60;
+  box-shadow: 0 10px 26px rgba(21, 10, 45, 0.4);
+  padding: 0.4rem;
+}
+
+.mobileMenuLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 7px;
+  padding: 0.42rem 0.5rem;
+}
+
+.mobileMenuLink:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mobileMenuSignOut {
+  width: 100%;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mobileMenuSignOut:hover {
+  background: rgba(255, 255, 255, 0.11);
 }
 
 @media (min-width: 640px) {
   .inner {
-    padding: 0.45rem 1.5rem;
+    padding: 0.3rem 1rem;
   }
 
   .right {
-    gap: 0.7rem;
+    gap: 0.5rem;
   }
 
   .userName {
@@ -167,5 +316,23 @@
 
   .quickNavInner {
     padding: 0.55rem 1.5rem 0.7rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .userName {
+    display: none;
+  }
+
+  .desktopAction {
+    display: none;
+  }
+
+  .desktopLinks {
+    display: none;
+  }
+
+  .mobileMenu {
+    display: block;
   }
 }

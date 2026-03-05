@@ -184,11 +184,76 @@
 
 .aggregateWrap {
   border-radius: 9px;
-  border: 1px solid rgba(70, 43, 124, 0.1);
-  background: rgba(243, 238, 248, 0.4);
+  border: 1px dashed rgba(70, 43, 124, 0.28);
+  background: rgba(240, 236, 250, 0.8);
   padding: 0.7rem;
   display: grid;
   gap: 0.55rem;
+}
+
+.aggregateDisclosure {
+  border-radius: 9px;
+  border: 1px dashed rgba(70, 43, 124, 0.25);
+  background: rgba(240, 236, 250, 0.45);
+  padding: 0.5rem 0.65rem;
+}
+
+.aggregateSummary {
+  list-style: none;
+  cursor: pointer;
+  color: #5f2ec8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.aggregateSummary::-webkit-details-marker {
+  display: none;
+}
+
+.aggregateSummary::before {
+  content: "▸ ";
+  color: #6e628f;
+}
+
+.aggregateDisclosure[open] .aggregateSummary::before {
+  content: "▾ ";
+}
+
+.aggregateDisclosure[open] .aggregateSummary {
+  margin-bottom: 0.5rem;
+}
+
+.aggregateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.aggregateBadge {
+  border-radius: 999px;
+  border: 1px solid rgba(70, 43, 124, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  color: #6e628f;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.24rem 0.45rem;
+}
+
+.aggregateHelper {
+  margin: 0;
+  color: #6e628f;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.aggregatePreview {
+  background: #fbf9ff;
+  border-style: dashed;
+  color: #4a3d6b;
 }
 
 .banner {
@@ -312,9 +377,25 @@
 }
 
 .actionRow {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 0.55rem;
+  align-items: center;
+}
+
+.actionSlotLeft {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.actionSlotCenter {
+  display: flex;
+  justify-content: center;
+}
+
+.actionSlotRight {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .button {
@@ -333,15 +414,34 @@
 }
 
 .buttonPrimary {
-  background: #462b7c;
+  background: #147a58;
   color: #fff;
-  border-color: transparent;
-  box-shadow: 0 3px 16px rgba(70, 43, 124, 0.3);
+  border-color: #147a58;
+  box-shadow: 0 4px 16px rgba(13, 123, 95, 0.32);
+}
+
+.buttonPrimary:hover {
+  background: #0d7b5f;
+  border-color: #0d7b5f;
 }
 
 .buttonSecondary {
   background: #fff;
   color: #462b7c;
+}
+
+.saveAction {
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  padding-inline: 1rem;
+  white-space: nowrap;
+}
+
+.navAction {
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 0.74rem;
+  padding-inline: 0.7rem;
 }
 
 .buttonDanger {
