@@ -172,43 +172,6 @@ export default async function ScoringQueuePage({
     layout !== "grouped" ||
     view !== "detailed";
 
-  function buildQueueHref(overrides: Record<string, string | undefined>) {
-    const params = new URLSearchParams();
-    const nextView = overrides.view ?? view;
-    const nextDivision =
-      Object.prototype.hasOwnProperty.call(overrides, "division")
-        ? overrides.division
-        : requestedDivision;
-    const nextVoicePart =
-      Object.prototype.hasOwnProperty.call(overrides, "voicePart")
-        ? overrides.voicePart
-        : selectedVoicePart || undefined;
-    const nextSort =
-      Object.prototype.hasOwnProperty.call(overrides, "sort")
-        ? overrides.sort
-        : sort;
-    const nextBookmarks =
-      Object.prototype.hasOwnProperty.call(overrides, "bookmarks")
-        ? overrides.bookmarks
-        : bookmarksOnly
-          ? "only"
-          : undefined;
-    const nextLayout =
-      Object.prototype.hasOwnProperty.call(overrides, "layout")
-        ? overrides.layout
-        : layout;
-
-    if (nextView && nextView !== "detailed") params.set("view", nextView);
-    if (nextDivision) params.set("division", nextDivision);
-    if (nextVoicePart) params.set("voicePart", nextVoicePart);
-    if (nextSort && nextSort !== "submitted") params.set("sort", nextSort);
-    if (nextBookmarks === "only") params.set("bookmarks", "only");
-    if (nextLayout && nextLayout !== "grouped") params.set("layout", nextLayout);
-
-    const query = params.toString();
-    return query ? `/dashboard/scoring?${query}` : "/dashboard/scoring";
-  }
-
   function buildDetailHref(applicationId: string) {
     const params = new URLSearchParams();
     if (requestedDivision) params.set("division", requestedDivision);
