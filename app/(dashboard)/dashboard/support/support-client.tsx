@@ -72,7 +72,7 @@ export default function SupportClient({ initialTickets }: Props) {
       <div className={styles.header}>
         <div>
           <h1 className={styles.heading}>Support</h1>
-          <p className={styles.sub}>Contact the AdjudicArts team</p>
+          <p className={styles.sub}>Need help? Click <strong>New Ticket</strong> and tell us what you need.</p>
         </div>
         {!showForm && (
           <button className={styles.newBtn} onClick={() => setShowForm(true)}>
@@ -83,7 +83,7 @@ export default function SupportClient({ initialTickets }: Props) {
 
       {submitted && (
         <div className={styles.successBanner}>
-          Your ticket has been submitted. Our team will respond within 1 business day.
+          Your request has been sent. We will reply within 1 business day.
         </div>
       )}
 
@@ -117,7 +117,7 @@ export default function SupportClient({ initialTickets }: Props) {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Your tickets</h2>
         {tickets.length === 0 ? (
-          <p className={styles.empty}>No tickets yet. Use the button above to contact support.</p>
+          <p className={styles.empty}>No tickets yet. Click <strong>New Ticket</strong> above to get help.</p>
         ) : (
           <div className={styles.tableWrap}>
             <table className={styles.table}>

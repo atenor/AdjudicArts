@@ -81,6 +81,11 @@ export async function POST(
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
+  const chapterPrizeSuggestionsEnabled =
+    process.env.ENABLE_CHAPTER_PRIZE_SUGGESTIONS === "true";
+  const canSuggestPrizes =
+    session.user.role === "NATIONAL_JUDGE" || chapterPrizeSuggestionsEnabled;
+
   const criteriaIds = scoringContext.criteria.map((criterion) => criterion.id);
   const firstCriteriaId = criteriaIds[0];
   const receivedCriteriaIds = parsed.data.scores.map((score) => score.criteriaId);
@@ -139,7 +144,7 @@ export async function POST(
     roundId: scoringContext.round.id,
     applicationId: params.applicationId,
     judgeId: session.user.id,
-    suggestions: parsed.data.prizeSuggestions.map((suggestion) => ({
+    suggestions: (canSuggestPrizes ? parsed.data.prizeSuggestions : []).map((suggestion) => ({
       label: suggestion.label,
       amountCents: suggestion.amountCents ?? null,
       comment: suggestion.comment ?? null,

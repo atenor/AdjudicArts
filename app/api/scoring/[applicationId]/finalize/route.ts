@@ -23,13 +23,16 @@ const scoreSchema = z.object({
 const requestSchema = z.object({
   scores: z.array(scoreSchema).min(1),
   finalComment: z.string().trim().min(1),
-  prizeSuggestions: z.array(
-    z.object({
-      label: z.string().trim().min(1),
-      amountCents: z.number().int().nonnegative().nullable().optional(),
-      comment: z.string().trim().nullable().optional(),
-    })
-  ),
+  prizeSuggestions: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1),
+        amountCents: z.number().int().nonnegative().nullable().optional(),
+        comment: z.string().trim().nullable().optional(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export async function POST(
@@ -78,6 +81,11 @@ export async function POST(
     return Response.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
+  const chapterPrizeSuggestionsEnabled =
+    process.env.ENABLE_CHAPTER_PRIZE_SUGGESTIONS === "true";
+  const canSuggestPrizes =
+    session.user.role === "NATIONAL_JUDGE" || chapterPrizeSuggestionsEnabled;
+
   const criteriaIds = scoringContext.criteria.map((criterion) => criterion.id);
   const receivedCriteriaIds = parsed.data.scores.map((score) => score.criteriaId);
   const allIncluded =
@@ -91,7 +99,7 @@ export async function POST(
     );
   }
 
-  if (parsed.data.prizeSuggestions.length === 0) {
+  if (canSuggestPrizes && parsed.data.prizeSuggestions.length === 0) {
     return Response.json(
       { error: "At least one prize suggestion is required before finalizing." },
       { status: 422 }
@@ -143,7 +151,7 @@ export async function POST(
     roundId: scoringContext.round.id,
     applicationId: params.applicationId,
     judgeId: session.user.id,
-    suggestions: parsed.data.prizeSuggestions.map((suggestion) => ({
+    suggestions: (canSuggestPrizes ? parsed.data.prizeSuggestions : []).map((suggestion) => ({
       label: suggestion.label,
       amountCents: suggestion.amountCents ?? null,
       comment: suggestion.comment ?? null,
