@@ -19,6 +19,7 @@ import {
   type ApplicantIntakeValues,
   CITIZENSHIP_STATUS_OPTIONS,
   PRIOR_WIN_DIVISION_OPTIONS,
+  VIDEO_LANGUAGE_OPTIONS,
   VOICE_PART_OPTIONS,
 } from "@/lib/validation/apply";
 
@@ -168,6 +169,9 @@ export default function ApplyForm({
       parentEmail: "",
       hasPriorFirstPrize: false,
       priorFirstPrizeDivision: "",
+      video1Language: "english",
+      video2Language: "italian",
+      video3Language: "german",
     },
   });
   const hasPriorFirstPrize = watch("hasPriorFirstPrize");
@@ -474,9 +478,9 @@ export default function ApplyForm({
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <Label htmlFor="video1Title" className="text-[#5f4d87]">Video 1 Title, Composer, and Poet (if applicable) *</Label>
-                  <Input id="video1Title" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video1Title")} />
-                  <FieldError message={errors.video1Title?.message} />
+                  <Label htmlFor="video1PieceTitle" className="text-[#5f4d87]">Video 1 Title *</Label>
+                  <Input id="video1PieceTitle" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video1PieceTitle")} />
+                  <FieldError message={errors.video1PieceTitle?.message} />
                 </div>
 
                 <div className="space-y-1">
@@ -486,9 +490,36 @@ export default function ApplyForm({
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="video2Title" className="text-[#5f4d87]">Video 2 Title, Composer, and Poet (if applicable) *</Label>
-                  <Input id="video2Title" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video2Title")} />
-                  <FieldError message={errors.video2Title?.message} />
+                  <Label htmlFor="video1Composer" className="text-[#5f4d87]">Video 1 Composer *</Label>
+                  <Input id="video1Composer" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video1Composer")} />
+                  <FieldError message={errors.video1Composer?.message} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video1Poet" className="text-[#5f4d87]">Video 1 Poet (optional)</Label>
+                  <Input id="video1Poet" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video1Poet")} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video1Language" className="text-[#5f4d87]">Video 1 Language *</Label>
+                  <select
+                    id="video1Language"
+                    {...register("video1Language")}
+                    className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8]"
+                  >
+                    {VIDEO_LANGUAGE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError message={errors.video1Language?.message} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video2PieceTitle" className="text-[#5f4d87]">Video 2 Title *</Label>
+                  <Input id="video2PieceTitle" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video2PieceTitle")} />
+                  <FieldError message={errors.video2PieceTitle?.message} />
                 </div>
 
                 <div className="space-y-1">
@@ -498,15 +529,69 @@ export default function ApplyForm({
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="video3Title" className="text-[#5f4d87]">Video 3 Title, Composer, and Poet (if applicable) *</Label>
-                  <Input id="video3Title" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video3Title")} />
-                  <FieldError message={errors.video3Title?.message} />
+                  <Label htmlFor="video2Composer" className="text-[#5f4d87]">Video 2 Composer *</Label>
+                  <Input id="video2Composer" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video2Composer")} />
+                  <FieldError message={errors.video2Composer?.message} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video2Poet" className="text-[#5f4d87]">Video 2 Poet (optional)</Label>
+                  <Input id="video2Poet" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video2Poet")} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video2Language" className="text-[#5f4d87]">Video 2 Language *</Label>
+                  <select
+                    id="video2Language"
+                    {...register("video2Language")}
+                    className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8]"
+                  >
+                    {VIDEO_LANGUAGE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError message={errors.video2Language?.message} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video3PieceTitle" className="text-[#5f4d87]">Video 3 Title *</Label>
+                  <Input id="video3PieceTitle" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video3PieceTitle")} />
+                  <FieldError message={errors.video3PieceTitle?.message} />
                 </div>
 
                 <div className="space-y-1">
                   <Label htmlFor="videoUrl3" className="text-[#5f4d87]">Video 3 URL *</Label>
                   <Input id="videoUrl3" placeholder="https://www.youtube.com/watch?v=..." className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video3Url")} />
                   <FieldError message={errors.video3Url?.message} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video3Composer" className="text-[#5f4d87]">Video 3 Composer *</Label>
+                  <Input id="video3Composer" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video3Composer")} />
+                  <FieldError message={errors.video3Composer?.message} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video3Poet" className="text-[#5f4d87]">Video 3 Poet (optional)</Label>
+                  <Input id="video3Poet" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video3Poet")} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video3Language" className="text-[#5f4d87]">Video 3 Language *</Label>
+                  <select
+                    id="video3Language"
+                    {...register("video3Language")}
+                    className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8]"
+                  >
+                    {VIDEO_LANGUAGE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError message={errors.video3Language?.message} />
                 </div>
 
                 <div className="space-y-1 md:col-span-2">
@@ -624,6 +709,19 @@ export default function ApplyForm({
               </span>
             </label>
             <FieldError message={errors.certifyDateOfBirth?.message} />
+
+            <label className="flex items-start gap-3 text-sm text-[#4a3d6b]">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-[#bca9df]"
+                {...register("prizeWinnerCertification")}
+              />
+              <span>
+                Prize Winner Certification: I certify that I have not previously won 1st place in
+                the division I am competing in for this application.
+              </span>
+            </label>
+            <FieldError message={errors.prizeWinnerCertification?.message} />
 
             <label className="flex items-start gap-3 text-sm text-[#4a3d6b]">
               <input type="checkbox" className="mt-1 h-4 w-4 rounded border-[#bca9df]" {...register("certifyAccuracy")} />

@@ -29,6 +29,17 @@ export const PRIOR_WIN_DIVISION_OPTIONS = [
   { value: "16-18", label: "Division 16-18" },
   { value: "19-22", label: "Division 19-22" },
 ] as const;
+export const VIDEO_LANGUAGE_OPTIONS = [
+  { value: "english", label: "English" },
+  { value: "italian", label: "Italian" },
+  { value: "german", label: "German" },
+  { value: "french", label: "French" },
+  { value: "spanish", label: "Spanish" },
+  { value: "russian", label: "Russian" },
+  { value: "czech", label: "Czech" },
+  { value: "latin", label: "Latin" },
+  { value: "other", label: "Other" },
+] as const;
 
 const CITIZENSHIP_STATUS_VALUES = CITIZENSHIP_STATUS_OPTIONS.map(
   (option) => option.value
@@ -75,6 +86,9 @@ const optionalStoredAssetRef = z.string().trim();
 const PRIOR_WIN_DIVISION_VALUES = PRIOR_WIN_DIVISION_OPTIONS.map(
   (option) => option.value
 ) as [string, ...string[]];
+const VIDEO_LANGUAGE_VALUES = VIDEO_LANGUAGE_OPTIONS.map(
+  (option) => option.value
+) as [string, ...string[]];
 
 export const applicantIntakeSchema = z
   .object({
@@ -98,11 +112,20 @@ export const applicantIntakeSchema = z
     highSchoolName: z.string().trim().optional(),
     collegeName: z.string().trim().optional(),
     major: z.string().trim().optional(),
-    video1Title: requiredTrimmedString("Video 1 title is required"),
+    video1PieceTitle: requiredTrimmedString("Video 1 title is required"),
+    video1Composer: requiredTrimmedString("Video 1 composer is required"),
+    video1Poet: z.string().trim().optional(),
+    video1Language: z.enum(VIDEO_LANGUAGE_VALUES),
     video1Url: optionalUrl,
-    video2Title: requiredTrimmedString("Video 2 title is required"),
+    video2PieceTitle: requiredTrimmedString("Video 2 title is required"),
+    video2Composer: requiredTrimmedString("Video 2 composer is required"),
+    video2Poet: z.string().trim().optional(),
+    video2Language: z.enum(VIDEO_LANGUAGE_VALUES),
     video2Url: optionalUrl,
-    video3Title: requiredTrimmedString("Video 3 title is required"),
+    video3PieceTitle: requiredTrimmedString("Video 3 title is required"),
+    video3Composer: requiredTrimmedString("Video 3 composer is required"),
+    video3Poet: z.string().trim().optional(),
+    video3Language: z.enum(VIDEO_LANGUAGE_VALUES),
     video3Url: optionalUrl,
     headshotUrl: optionalStoredAssetRef,
     bio: requiredTrimmedString("Bio is required"),
@@ -125,6 +148,12 @@ export const applicantIntakeSchema = z
       .refine((value) => value, "You must certify your date of birth"),
     hasPriorFirstPrize: z.boolean(),
     priorFirstPrizeDivision: z.enum(PRIOR_WIN_DIVISION_VALUES).optional().or(z.literal("")),
+    prizeWinnerCertification: z
+      .boolean()
+      .refine(
+        (value) => value,
+        "You must certify prior prize-winner eligibility before submitting"
+      ),
     certifyAccuracy: z
       .boolean()
       .refine((value) => value, "You must certify that the information is accurate"),
@@ -179,6 +208,32 @@ export const applicantIntakeSchema = z
         path: ["priorFirstPrizeDivision"],
         message:
           "Applicants may not re-enter a division where they have already won first place",
+      });
+    }
+
+    const normalizedUrls = [value.video1Url, value.video2Url, value.video3Url]
+      .map((url) => url.trim().toLowerCase());
+    if (new Set(normalizedUrls).size !== 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["video3Url"],
+        message: "Provide three separate and unique video URLs",
+      });
+    }
+
+    const languages = [value.video1Language, value.video2Language, value.video3Language];
+    if (new Set(languages).size !== 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["video3Language"],
+        message: "Each video must be in a different language",
+      });
+    }
+    if (!languages.includes("english")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["video1Language"],
+        message: "One video must be in English",
       });
     }
 

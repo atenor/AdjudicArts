@@ -23,7 +23,7 @@ const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
       status: "CORRECTION_REQUIRED",
       variant: "secondary",
     },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   CORRECTION_REQUIRED: [
     {
@@ -35,7 +35,7 @@ const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
       status: "PENDING_APPROVAL",
       variant: "outline",
     },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   APPROVED_FOR_CHAPTER_ADJUDICATION: [
     {
@@ -44,7 +44,7 @@ const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
     },
     { label: "Mark Alternate", status: "ALTERNATE", variant: "secondary" },
     { label: "Mark Did Not Advance", status: "DID_NOT_ADVANCE", variant: "outline" },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   PENDING_NATIONAL_ACCEPTANCE: [
     {
@@ -56,7 +56,7 @@ const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
       status: "CORRECTION_REQUIRED",
       variant: "secondary",
     },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   APPROVED_FOR_NATIONAL_ADJUDICATION: [],
   EXCLUDED: [],
@@ -66,30 +66,32 @@ const STATUS_ACTIONS: Record<ApplicationStatus, Action[]> = {
       status: "PENDING_NATIONAL_ACCEPTANCE",
     },
     { label: "Mark Did Not Advance", status: "DID_NOT_ADVANCE", variant: "outline" },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   DID_NOT_ADVANCE: [],
   WITHDRAWN: [],
   SUBMITTED_PENDING_APPROVAL: [
     { label: "Approve for Chapter Adjudication", status: "APPROVED_FOR_CHAPTER_ADJUDICATION" },
     { label: "Mark Correction Required", status: "CORRECTION_REQUIRED", variant: "secondary" },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   CHAPTER_ADJUDICATION: [
     { label: "Mark Chapter Winner", status: "PENDING_NATIONAL_ACCEPTANCE" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   NATIONAL_FINALS: [],
   SUBMITTED: [
     { label: "Approve for Chapter Adjudication", status: "APPROVED_FOR_CHAPTER_ADJUDICATION" },
     { label: "Mark Correction Required", status: "CORRECTION_REQUIRED", variant: "secondary" },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   CHAPTER_REVIEW: [
     { label: "Mark Chapter Winner", status: "PENDING_NATIONAL_ACCEPTANCE" },
-    { label: "Exclude", status: "EXCLUDED", variant: "destructive" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   CHAPTER_APPROVED: [
     { label: "Accept for National Adjudication", status: "APPROVED_FOR_NATIONAL_ADJUDICATION" },
+    { label: "Reject application", status: "EXCLUDED", variant: "destructive" },
   ],
   CHAPTER_REJECTED: [],
   NATIONAL_REVIEW: [
@@ -125,16 +127,26 @@ const FORWARD_STATUSES = new Set<ApplicationStatus>([
   "DECIDED",
 ]);
 
+const REJECT_STATUSES = new Set<ApplicationStatus>([
+  "EXCLUDED",
+  "CHAPTER_REJECTED",
+  "NATIONAL_REJECTED",
+]);
+
 export default function AdvanceApplicationStatusButtons({
   applicationId,
   currentStatus,
   allowOverrideAll = false,
   citizenshipVerified = false,
+  eligibilityVerified = false,
+  eligibilityBlockingReasons = [],
 }: {
   applicationId: string;
   currentStatus: ApplicationStatus;
   allowOverrideAll?: boolean;
   citizenshipVerified?: boolean;
+  eligibilityVerified?: boolean;
+  eligibilityBlockingReasons?: string[];
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -142,6 +154,11 @@ export default function AdvanceApplicationStatusButtons({
   const [overrideStatus, setOverrideStatus] = useState<ApplicationStatus>(currentStatus);
   const [overrideReason, setOverrideReason] = useState("");
   const actions = STATUS_ACTIONS[currentStatus];
+  const needsApproveConfirmation =
+    currentStatus === "PENDING_APPROVAL" ||
+    currentStatus === "SUBMITTED_PENDING_APPROVAL" ||
+    currentStatus === "SUBMITTED" ||
+    currentStatus === "CORRECTION_REQUIRED";
 
   async function advance(status: ApplicationStatus, reason?: string) {
     setIsSubmitting(true);
@@ -191,7 +208,41 @@ export default function AdvanceApplicationStatusButtons({
       setServerError("Citizenship must be verified before advancing this application.");
       return;
     }
+    if (
+      !eligibilityVerified &&
+      (overrideStatus === "APPROVED_FOR_CHAPTER_ADJUDICATION" ||
+        overrideStatus === "CHAPTER_ADJUDICATION")
+    ) {
+      setServerError("Complete eligibility verification before approving for chapter adjudication.");
+      return;
+    }
+    if (REJECT_STATUSES.has(overrideStatus) && !confirmRejectAction()) return;
     await advance(overrideStatus, reason);
+  }
+
+  function confirmApproveForChapterAdjudication() {
+    if (typeof window === "undefined") return true;
+    return window.confirm(
+      "Approve application for chapter adjudication?\n\nThis will move the applicant out of Pending Approval."
+    );
+  }
+
+  function confirmRejectAction() {
+    if (typeof window === "undefined") return true;
+    const typed = window.prompt('Type "REJECT" to confirm this rejection.');
+    return typed?.trim().toUpperCase() === "REJECT";
+  }
+
+  function handleActionClick(action: Action) {
+    if (REJECT_STATUSES.has(action.status) && !confirmRejectAction()) return;
+    if (
+      action.status === "APPROVED_FOR_CHAPTER_ADJUDICATION" &&
+      needsApproveConfirmation &&
+      !confirmApproveForChapterAdjudication()
+    ) {
+      return;
+    }
+    void advance(action.status);
   }
 
   if (actions.length === 0) {
@@ -205,6 +256,10 @@ export default function AdvanceApplicationStatusButtons({
           (() => {
             const blockedByCitizenship =
               !citizenshipVerified && FORWARD_STATUSES.has(action.status);
+            const blockedByEligibility =
+              !eligibilityVerified &&
+              (action.status === "APPROVED_FOR_CHAPTER_ADJUDICATION" ||
+                action.status === "CHAPTER_ADJUDICATION");
             return (
           <Button
             key={action.status}
@@ -215,12 +270,14 @@ export default function AdvanceApplicationStatusButtons({
                 ? "bg-[#147a58] text-white shadow hover:bg-[#0f6047]"
                 : undefined
             }
-            onClick={() => void advance(action.status)}
-            disabled={isSubmitting || blockedByCitizenship}
+            onClick={() => handleActionClick(action)}
+            disabled={isSubmitting || blockedByCitizenship || blockedByEligibility}
             title={
               blockedByCitizenship
                 ? "Verify citizenship before advancing."
-                : undefined
+                : blockedByEligibility
+                  ? "Complete eligibility verification first."
+                  : undefined
             }
           >
             {action.label}
@@ -233,6 +290,22 @@ export default function AdvanceApplicationStatusButtons({
         <p className="text-xs font-semibold text-[#b42318]">
           Citizenship must be verified before any forward progression.
         </p>
+      ) : null}
+      {!eligibilityVerified &&
+      (currentStatus === "PENDING_APPROVAL" ||
+        currentStatus === "SUBMITTED_PENDING_APPROVAL" ||
+        currentStatus === "SUBMITTED" ||
+        currentStatus === "CORRECTION_REQUIRED") ? (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-[#b42318]">
+            Complete all eligibility checks before approving for chapter adjudication.
+          </p>
+          {eligibilityBlockingReasons.length > 0 ? (
+            <p className="text-xs text-[#8f3a3a]">
+              Blocking items: {eligibilityBlockingReasons.join(", ")}.
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {allowOverrideAll ? (
         <details className="rounded-md border border-[#e5d9bf] bg-[#fffaf0] p-2.5">

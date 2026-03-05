@@ -3,6 +3,7 @@ import { normalizeStoredAssetRef } from "@/lib/blob-refs";
 type ApplicationMetadata = {
   voicePart?: string;
   videoUrls?: string[];
+  videoLanguages?: string[];
   citizenshipStatus?: string | null;
   citizenshipDocumentUrl?: string | null;
   resourceUrls?: string[];
@@ -11,6 +12,7 @@ type ApplicationMetadata = {
   dateOfBirthCertified?: boolean;
   hasPriorFirstPrize?: boolean;
   priorFirstPrizeDivision?: string | null;
+  prizeWinnerCertification?: boolean;
   privacyPolicyAccepted?: boolean;
   submissionTermsAccepted?: boolean;
 };
@@ -20,6 +22,7 @@ type RawCsvRecord = Record<string, string>;
 type ParsedApplicationMetadata = {
   voicePart: string | null;
   videoUrls: string[];
+  videoLanguages: string[];
   citizenshipStatus: string | null;
   citizenshipDocumentUrl: string | null;
   resourceUrls: string[];
@@ -28,6 +31,7 @@ type ParsedApplicationMetadata = {
   dateOfBirthCertified: boolean;
   hasPriorFirstPrize: boolean | null;
   priorFirstPrizeDivision: string | null;
+  prizeWinnerCertification: boolean;
   privacyPolicyAccepted: boolean;
   submissionTermsAccepted: boolean;
 };
@@ -84,6 +88,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
     return {
       voicePart: null,
       videoUrls: [] as string[],
+      videoLanguages: [] as string[],
       citizenshipStatus: null,
       citizenshipDocumentUrl: null,
       resourceUrls: [] as string[],
@@ -92,6 +97,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
       dateOfBirthCertified: false,
       hasPriorFirstPrize: null,
       priorFirstPrizeDivision: null,
+      prizeWinnerCertification: false,
       privacyPolicyAccepted: false,
       submissionTermsAccepted: false,
     } satisfies ParsedApplicationMetadata;
@@ -109,6 +115,12 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
           ? parsed.voicePart
           : null;
       const videoUrls = normalizeUrlList(parsed.videoUrls, 3);
+      const videoLanguages = Array.isArray(parsed.videoLanguages)
+        ? parsed.videoLanguages
+            .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
+            .filter((value): value is string => value.length > 0)
+            .slice(0, 3)
+        : [];
       const citizenshipStatus =
         typeof parsed.citizenshipStatus === "string" && parsed.citizenshipStatus.length > 0
           ? parsed.citizenshipStatus
@@ -136,11 +148,13 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
         parsed.priorFirstPrizeDivision.trim().length > 0
           ? parsed.priorFirstPrizeDivision.trim()
           : null;
+      const prizeWinnerCertification = parsed.prizeWinnerCertification === true;
       const privacyPolicyAccepted = parsed.privacyPolicyAccepted === true;
       const submissionTermsAccepted = parsed.submissionTermsAccepted === true;
       return {
         voicePart,
         videoUrls,
+        videoLanguages,
         citizenshipStatus,
         citizenshipDocumentUrl,
         resourceUrls,
@@ -149,6 +163,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
         dateOfBirthCertified,
         hasPriorFirstPrize,
         priorFirstPrizeDivision,
+        prizeWinnerCertification,
         privacyPolicyAccepted,
         submissionTermsAccepted,
       } satisfies ParsedApplicationMetadata;
@@ -160,6 +175,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
   return {
     voicePart: notes,
     videoUrls: [] as string[],
+    videoLanguages: [] as string[],
     citizenshipStatus: null,
     citizenshipDocumentUrl: null,
     resourceUrls: [] as string[],
@@ -168,6 +184,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
     dateOfBirthCertified: false,
     hasPriorFirstPrize: null,
     priorFirstPrizeDivision: null,
+    prizeWinnerCertification: false,
     privacyPolicyAccepted: false,
     submissionTermsAccepted: false,
   } satisfies ParsedApplicationMetadata;
@@ -177,6 +194,10 @@ export function buildApplicationMetadata(metadata: ApplicationMetadata) {
   return JSON.stringify({
     voicePart: metadata.voicePart ?? null,
     videoUrls: (metadata.videoUrls ?? []).filter((url) => url.length > 0).slice(0, 3),
+    videoLanguages: (metadata.videoLanguages ?? [])
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => value.length > 0)
+      .slice(0, 3),
     citizenshipStatus: metadata.citizenshipStatus ?? null,
     citizenshipDocumentUrl: normalizeStoredAssetRef(metadata.citizenshipDocumentUrl) ?? null,
     resourceUrls: (metadata.resourceUrls ?? [])
@@ -189,6 +210,7 @@ export function buildApplicationMetadata(metadata: ApplicationMetadata) {
     hasPriorFirstPrize:
       typeof metadata.hasPriorFirstPrize === "boolean" ? metadata.hasPriorFirstPrize : null,
     priorFirstPrizeDivision: metadata.priorFirstPrizeDivision ?? null,
+    prizeWinnerCertification: metadata.prizeWinnerCertification === true,
     privacyPolicyAccepted: metadata.privacyPolicyAccepted === true,
     submissionTermsAccepted: metadata.submissionTermsAccepted === true,
   });

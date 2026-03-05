@@ -59,6 +59,12 @@ export async function POST(
       { status: 409 }
     );
   }
+  if (result.reason === "ELIGIBILITY_NOT_VERIFIED") {
+    return Response.json(
+      { error: "Complete eligibility verification before approving this application." },
+      { status: 409 }
+    );
+  }
   if (result.reason === "CHAPTERS_UNRESOLVED") {
     return Response.json(
       {

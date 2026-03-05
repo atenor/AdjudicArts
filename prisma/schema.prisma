@@ -561,6 +561,7 @@ model NotificationPreference {
   channelEmail Boolean               @default(true)
   channelSms   Boolean               @default(false)
   frequency    NotificationFrequency @default(DAILY)
+  digestWeekday Int                  @default(1)
   digestHour   Int                   @default(9)
   digestMinute Int                   @default(0)
   timezone     String                @default("America/Indiana/Indianapolis")

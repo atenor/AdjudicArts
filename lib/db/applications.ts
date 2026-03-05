@@ -2,13 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { ApplicationStatus, Prisma, Role, RoundType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
-import { buildApplicationMetadata } from "@/lib/application-metadata";
+import { buildApplicationMetadata, parseApplicationMetadata } from "@/lib/application-metadata";
 import { getRankedResultsForRound } from "@/lib/db/results";
 import {
   getCompetitionCutoffDate,
   resolveApplicationDivision,
   type ApplicationDivision,
 } from "@/lib/application-division";
+import { getDisplayHeadshot } from "@/lib/headshots";
 
 export const PENDING_APPROVAL_STATUSES: ApplicationStatus[] = [
   "PENDING_APPROVAL",
@@ -572,6 +573,8 @@ export async function createPublicApplication(data: {
   certifyDateOfBirth: boolean;
   hasPriorFirstPrize: boolean;
   priorFirstPrizeDivision?: string | null;
+  prizeWinnerCertification: boolean;
+  videoLanguages: string[];
   acceptPrivacyPolicy: boolean;
   acceptTerms: boolean;
 }) {
@@ -647,6 +650,8 @@ export async function createPublicApplication(data: {
         dateOfBirthCertified: data.certifyDateOfBirth,
         hasPriorFirstPrize: data.hasPriorFirstPrize,
         priorFirstPrizeDivision: data.priorFirstPrizeDivision ?? null,
+        prizeWinnerCertification: data.prizeWinnerCertification,
+        videoLanguages: data.videoLanguages,
         privacyPolicyAccepted: data.acceptPrivacyPolicy,
         submissionTermsAccepted: data.acceptTerms,
       }),
@@ -894,7 +899,25 @@ export async function advanceApplicationStatusWithPermissions(input: {
 }) {
   const existing = await prisma.application.findFirst({
     where: { id: input.id, organizationId: input.organizationId },
-    select: { id: true, status: true, chapter: true, notes: true, eventId: true },
+    select: {
+      id: true,
+      status: true,
+      chapter: true,
+      notes: true,
+      eventId: true,
+      dateOfBirth: true,
+      headshot: true,
+      submittedAt: true,
+      video1Url: true,
+      video2Url: true,
+      video3Url: true,
+      event: {
+        select: {
+          openAt: true,
+          closeAt: true,
+        },
+      },
+    },
   });
 
   if (!existing) {
@@ -916,6 +939,13 @@ export async function advanceApplicationStatusWithPermissions(input: {
   const canAdvanceWithoutCitizenship = NON_FORWARD_STATUSES.includes(input.nextStatus);
   if (!canAdvanceWithoutCitizenship && !isCitizenshipVerifiedInNotes(existing.notes)) {
     return { reason: "CITIZENSHIP_NOT_VERIFIED" as const };
+  }
+  if (
+    (input.nextStatus === "APPROVED_FOR_CHAPTER_ADJUDICATION" ||
+      input.nextStatus === "CHAPTER_ADJUDICATION") &&
+    !isEligibilityVerifiedForChapterAdvance(existing)
+  ) {
+    return { reason: "ELIGIBILITY_NOT_VERIFIED" as const };
   }
 
   const normalizedReason = input.reason?.trim() || null;
@@ -1547,7 +1577,9 @@ type ApplicationProfileUpdateInput = {
   citizenshipStatus?: string | null;
   citizenshipDocumentUrl?: string | null;
   citizenshipVerified?: boolean | null;
+  prizeWinnerCertification?: boolean | null;
   priorFirstPrizeVerified?: boolean | null;
+  languageRequirementVerified?: boolean | null;
   repertoire?: string | null;
   adminNote?: string | null;
   video1Title?: string | null;
@@ -1579,6 +1611,80 @@ function isCitizenshipVerifiedInNotes(notes: string | null) {
   const verification = notesObject.citizenshipVerification;
   if (!verification || typeof verification !== "object") return false;
   return (verification as { verified?: unknown }).verified === true;
+}
+
+function isEligibilityVerifiedForChapterAdvance(application: {
+  id: string;
+  notes: string | null;
+  dateOfBirth: Date | null;
+  submittedAt: Date;
+  headshot: string | null;
+  video1Url: string | null;
+  video2Url: string | null;
+  video3Url: string | null;
+  event: { openAt: Date | null; closeAt: Date | null };
+}) {
+  const metadata = parseApplicationMetadata(application.notes);
+
+  const isCitizenshipVerified = isCitizenshipVerifiedInNotes(application.notes);
+  const hasHeadshot = Boolean(getDisplayHeadshot(application.headshot, application.id));
+  const urls = [
+    application.video1Url ?? metadata.videoUrls[0] ?? "",
+    application.video2Url ?? metadata.videoUrls[1] ?? "",
+    application.video3Url ?? metadata.videoUrls[2] ?? "",
+  ]
+    .map((value) => (value ?? "").trim().toLowerCase())
+    .filter((value) => value.length > 0);
+  const hasThreeUniqueVideos = urls.length === 3 && new Set(urls).size === 3;
+
+  const cutoffDate = getCompetitionCutoffDate({
+    openAt: application.event.openAt,
+    closeAt: application.event.closeAt,
+    fallbackDate: application.submittedAt,
+  });
+  const age = application.dateOfBirth
+    ? cutoffDate.getFullYear() - application.dateOfBirth.getFullYear() -
+      (cutoffDate.getMonth() < application.dateOfBirth.getMonth() ||
+      (cutoffDate.getMonth() === application.dateOfBirth.getMonth() &&
+        cutoffDate.getDate() < application.dateOfBirth.getDate())
+        ? 1
+        : 0)
+    : null;
+  const ageVerified = age !== null && age >= 16 && age <= 22;
+
+  const resolvedDivision = resolveApplicationDivision({
+    dateOfBirth: application.dateOfBirth,
+    notes: application.notes,
+    competitionDate: cutoffDate,
+  });
+  const priorDivisionAllowed =
+    metadata.hasPriorFirstPrize === true
+      ? !metadata.priorFirstPrizeDivision || metadata.priorFirstPrizeDivision !== resolvedDivision
+      : true;
+  const previousWinnerQualified = metadata.prizeWinnerCertification === true && priorDivisionAllowed;
+
+  const normalizedVideoLanguages = metadata.videoLanguages
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+  const hasThreeUniqueLanguages = new Set(normalizedVideoLanguages).size === 3;
+  const includesEnglish = normalizedVideoLanguages.includes("english");
+  const languageRequirementAutoVerified = hasThreeUniqueLanguages && includesEnglish;
+  const notesObject = parseNotesObject(application.notes);
+  const languageRequirementManualVerified =
+    notesObject.languageRequirementVerification &&
+    typeof notesObject.languageRequirementVerification === "object" &&
+    (notesObject.languageRequirementVerification as { verified?: unknown }).verified === true;
+  const languageRequirementVerified =
+    languageRequirementAutoVerified || languageRequirementManualVerified;
+
+  return (
+    isCitizenshipVerified &&
+    hasHeadshot &&
+    hasThreeUniqueVideos &&
+    ageVerified &&
+    previousWinnerQualified &&
+    languageRequirementVerified
+  );
 }
 
 export async function updateApplicationProfile(input: ApplicationProfileUpdateInput) {
@@ -1654,10 +1760,24 @@ export async function updateApplicationProfile(input: ApplicationProfileUpdateIn
     };
   }
 
+  if (typeof input.prizeWinnerCertification === "boolean") {
+    notesObject.prizeWinnerCertification = input.prizeWinnerCertification;
+  }
+
   if (typeof input.priorFirstPrizeVerified === "boolean") {
     notesObject.priorFirstPrizeVerification = {
       verified: input.priorFirstPrizeVerified,
       status: input.priorFirstPrizeVerified ? "VERIFIED" : "UNVERIFIED",
+      updatedAt: new Date().toISOString(),
+      updatedBy: actor,
+      updatedByRole: input.actorRole ?? null,
+    };
+  }
+
+  if (typeof input.languageRequirementVerified === "boolean") {
+    notesObject.languageRequirementVerification = {
+      verified: input.languageRequirementVerified,
+      status: input.languageRequirementVerified ? "VERIFIED" : "UNVERIFIED",
       updatedAt: new Date().toISOString(),
       updatedBy: actor,
       updatedByRole: input.actorRole ?? null,

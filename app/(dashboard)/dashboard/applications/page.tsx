@@ -44,6 +44,12 @@ const STATUS_LABELS: Record<ApplicationStatus, string> = {
   DECIDED: "Withdrawn",
 };
 
+const STATUS_FILTER_LABELS: Record<ApplicationStatus, string> = {
+  ...STATUS_LABELS,
+  PENDING_NATIONAL_ACCEPTANCE: "Chapter Winner (Pending National)",
+  CHAPTER_APPROVED: "Chapter Winner (Pending National)",
+};
+
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", {
     month: "short",
@@ -189,13 +195,12 @@ export default async function ApplicationsPage({
     searchParams.status && statusOptions.includes(searchParams.status as ApplicationStatus)
       ? (searchParams.status as ApplicationStatus)
       : undefined;
-  const activeStatusLabel = statusFilter ? STATUS_LABELS[statusFilter] : undefined;
   // Keep the first status per label so canonical workflow states win over legacy aliases.
   const visibleStatusOptions = statusOptions.filter((status, index, all) => {
-    const label = STATUS_LABELS[status];
-    return all.findIndex((candidate) => STATUS_LABELS[candidate] === label) === index;
+    const label = STATUS_FILTER_LABELS[status];
+    return all.findIndex((candidate) => STATUS_FILTER_LABELS[candidate] === label) === index;
   });
-  const viewMode = searchParams.view === "list" ? "list" : "cards";
+  const viewMode = searchParams.view === "cards" ? "cards" : "list";
   const chapterFilter = searchParams.chapter?.trim() || undefined;
   const canFilterByChapter =
     session.user.role === "ADMIN" || session.user.role === "NATIONAL_CHAIR";
@@ -207,7 +212,7 @@ export default async function ApplicationsPage({
   ) {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
-    if (view && view !== "cards") params.set("view", view);
+    if (view && view !== "list") params.set("view", view);
     if (chapter) params.set("chapter", chapter);
     const query = params.toString();
     return query ? `/dashboard/applications?${query}` : "/dashboard/applications";
@@ -232,8 +237,18 @@ export default async function ApplicationsPage({
       selectedChapter: normalizedChapterFilter,
     }
   );
+  const excludedLikeStatuses = new Set<ApplicationStatus>([
+    "EXCLUDED",
+    "CHAPTER_REJECTED",
+    "NATIONAL_REJECTED",
+  ]);
+  const defaultVisibleApplications = statusFilter
+    ? applications
+    : applications.filter(
+        (application) => !excludedLikeStatuses.has(application.status)
+      );
 
-  const serializedApplications = applications.map((application) => {
+  const serializedApplications = defaultVisibleApplications.map((application) => {
     const age = calculateAge(application.dateOfBirth);
     return {
       age,
@@ -277,26 +292,38 @@ export default async function ApplicationsPage({
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Status:</span>
-            <div className="flex flex-wrap gap-1.5">
-              <Link
-                href={buildApplicationsHref(undefined)}
-                className={`${tabBaseClass} ${statusFilterClasses(undefined, !statusFilter)}`}
+            <form action="/dashboard/applications" className="flex items-center gap-2">
+              <input type="hidden" name="view" value={viewMode} />
+              {normalizedChapterFilter ? (
+                <input type="hidden" name="chapter" value={normalizedChapterFilter} />
+              ) : null}
+              <select
+                name="status"
+                defaultValue={statusFilter ?? ""}
+                className="h-9 rounded-md border border-[#d7cde9] bg-[#fffdf5] px-3 text-sm text-[#4a3d6b] outline-none transition focus:border-[#8eb89c]"
               >
-                All
-              </Link>
-              {visibleStatusOptions.map((status) => (
+                <option value="">All statuses</option>
+                {visibleStatusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_FILTER_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center rounded-md border border-[#8eb89c] bg-[#e9f4ec] px-3 text-sm font-medium text-[#1f5b38] transition hover:bg-[#dceddf]"
+              >
+                Apply
+              </button>
+              {statusFilter ? (
                 <Link
-                  key={status}
-                  href={buildApplicationsHref(status)}
-                  className={`${tabBaseClass} ${statusFilterClasses(
-                    status,
-                    activeStatusLabel === STATUS_LABELS[status]
-                  )}`}
+                  href={buildApplicationsHref(undefined, viewMode, normalizedChapterFilter)}
+                  className="inline-flex h-9 items-center rounded-md border border-[#d7cde9] bg-[#fffdf5] px-3 text-sm font-medium text-[#4a3d6b] transition hover:bg-[#f7f1ff]"
                 >
-                  {STATUS_LABELS[status]}
+                  Clear
                 </Link>
-              ))}
-            </div>
+              ) : null}
+            </form>
           </div>
 
           <div className="flex items-center gap-2">

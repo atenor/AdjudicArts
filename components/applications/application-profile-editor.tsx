@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import CitizenshipVerificationButton from "@/components/applications/citizenship-verification-button";
+import LanguageRequirementVerificationButton from "@/components/applications/language-requirement-verification-button";
+import PreviousWinnerCertificationButton from "@/components/applications/previous-winner-certification-button";
 
 // ─── Exported types ────────────────────────────────────────────────────────────
 
@@ -205,6 +208,11 @@ export default function ApplicationProfileEditor({
   data,
   viewUrls,
   citizenshipVerificationNote,
+  citizenshipVerified,
+  languageRequirementVerified,
+  languageRequirementAutoMet,
+  previousWinnerCertified,
+  eligibilityOverview,
   schoolStatus,
   altContact,
   altPhoneOrEmail,
@@ -218,6 +226,17 @@ export default function ApplicationProfileEditor({
   data: ProfileData;
   viewUrls: ProfileViewUrls;
   citizenshipVerificationNote?: string | null;
+  citizenshipVerified: boolean;
+  languageRequirementVerified: boolean;
+  languageRequirementAutoMet: boolean;
+  previousWinnerCertified: boolean;
+  eligibilityOverview: {
+    headshotOnFile: boolean;
+    videosCompleted: number;
+    uniqueVideosVerified: boolean;
+    ageVerified: boolean;
+    firstPrizeVerified: boolean;
+  };
   schoolStatus: string;
   altContact: string;
   altPhoneOrEmail: string;
@@ -331,6 +350,95 @@ export default function ApplicationProfileEditor({
     ...video,
     parsedTitle: parseVideoLabel(video.title),
   }));
+
+  const documentsEligibilityActions = canEdit ? (
+    <div className="mt-4 rounded-xl border border-[#ddd3ee] bg-[#faf8ff] p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#7a6ca3]">
+        Review Actions
+      </p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-lg border border-[#e2d9f2] bg-white p-2.5">
+          <p className="text-xs font-semibold text-[#5f2ec8]">Citizenship Proof</p>
+          <p className="mt-1 text-xs text-[#6f6294]">
+            Open the uploaded proof, then verify.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {viewUrls.citizenshipDocument ? (
+              <a
+                href={viewUrls.citizenshipDocument}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex rounded-lg border border-[#c7b6e5] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]"
+              >
+                Open proof
+              </a>
+            ) : (
+              <span className="text-xs text-[#8d7fb1]">No proof link on file</span>
+            )}
+            <CitizenshipVerificationButton
+              applicationId={applicationId}
+              verified={citizenshipVerified}
+            />
+          </div>
+        </div>
+        <div className="rounded-lg border border-[#e2d9f2] bg-white p-2.5">
+          <p className="text-xs font-semibold text-[#5f2ec8]">3 Languages (English Required)</p>
+          <p className="mt-1 text-xs text-[#6f6294]">
+            {languageRequirementAutoMet
+              ? "Intake language entries pass the auto-check."
+              : "Auto-check did not pass (or language data is missing). Review and verify manually if needed."}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="text-xs font-semibold text-[#1e1538]">
+              Status: {languageRequirementVerified ? "Verified" : "Unverified"}
+            </p>
+            {!languageRequirementAutoMet ? (
+              <LanguageRequirementVerificationButton
+                applicationId={applicationId}
+                verified={languageRequirementVerified}
+              />
+            ) : null}
+          </div>
+        </div>
+        <div className="rounded-lg border border-[#e2d9f2] bg-white p-2.5">
+          <p className="text-xs font-semibold text-[#5f2ec8]">Previous Winner Qual.</p>
+          <p className="mt-1 text-xs text-[#6f6294]">
+            Confirm the applicant is eligible for this division.
+          </p>
+          <div className="mt-2">
+            <PreviousWinnerCertificationButton
+              applicationId={applicationId}
+              certified={previousWinnerCertified}
+            />
+          </div>
+        </div>
+        <div className="rounded-lg border border-[#e2d9f2] bg-white p-2.5">
+          <p className="text-xs font-semibold text-[#5f2ec8]">Related Edits</p>
+          <p className="mt-1 text-xs text-[#6f6294]">
+            Update supporting data used by eligibility checks.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-[#c7b6e5] text-[#5f2ec8] hover:bg-[#f3ecff]"
+              onClick={() => startEditing("contact")}
+            >
+              Edit age details
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-[#c7b6e5] text-[#5f2ec8] hover:bg-[#f3ecff]"
+              onClick={() => startEditing("videos")}
+            >
+              Edit videos
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // ── Collapsible section wrapper ────────────────────────────────────────────
   function Accordion({
@@ -614,12 +722,21 @@ export default function ApplicationProfileEditor({
               },
               { label: "Alt Contact", value: valueOrDash(altContact) },
               { label: "Alt Phone / Email", value: formatPhoneOrEmail(altPhoneOrEmail) },
-            ].map(({ label, value }) => (
+            ].map(({ label, value }) => {
+              const isEmailValue =
+                typeof value === "string" && value.includes("@");
+              return (
               <div key={label}>
                 <dt className="text-xs font-semibold uppercase tracking-wide text-[#9284b0]">{label}</dt>
-                <dd className="mt-0.5 text-sm text-[#1e1538]">{value}</dd>
+                <dd
+                  className={`mt-0.5 break-words [overflow-wrap:anywhere] text-[#1e1538] ${
+                    isEmailValue ? "text-xs sm:text-sm" : "text-sm"
+                  }`}
+                >
+                  {value}
+                </dd>
               </div>
-            ))}
+            )})}
           </dl>
         )}
         {intakeResourceUrls.length > 0 && editingSection !== "contact" ? (
@@ -702,13 +819,23 @@ export default function ApplicationProfileEditor({
             </p>
             <div className="grid gap-3 md:grid-cols-2">
               <Field label="Headshot Reference / URL" htmlFor="headshot-url">
-                <Input id="headshot-url" value={form.headshotUrl} onChange={(e) => updateField("headshotUrl", e.target.value)} className={inputCls} />
+                <Input
+                  id="headshot-url"
+                  value={form.headshotUrl}
+                  onChange={(e) => updateField("headshotUrl", e.target.value)}
+                  className={`${inputCls} text-[11px] tracking-tight sm:text-xs`}
+                />
               </Field>
               <Field label="Citizenship / Residency Status" htmlFor="citizenship-status">
                 <Input id="citizenship-status" value={form.citizenshipStatus} onChange={(e) => updateField("citizenshipStatus", e.target.value)} className={inputCls} />
               </Field>
               <Field label="Citizenship Proof URL / Reference" htmlFor="citizenship-document-url">
-                <Input id="citizenship-document-url" value={form.citizenshipDocumentUrl} onChange={(e) => updateField("citizenshipDocumentUrl", e.target.value)} className={inputCls} />
+                <Input
+                  id="citizenship-document-url"
+                  value={form.citizenshipDocumentUrl}
+                  onChange={(e) => updateField("citizenshipDocumentUrl", e.target.value)}
+                  className={`${inputCls} text-[11px] tracking-tight sm:text-xs`}
+                />
               </Field>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -721,8 +848,9 @@ export default function ApplicationProfileEditor({
                 <a href={viewUrls.citizenshipDocument} target="_blank" rel="noreferrer" className="inline-flex rounded-md border border-[#c7b6e5] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]">
                   View citizenship document
                 </a>
-              ) : null}
+                ) : null}
             </div>
+            {documentsEligibilityActions}
             <SectionActions
               sectionKey="documents"
               editingSection={editingSection}
@@ -734,16 +862,19 @@ export default function ApplicationProfileEditor({
           </>
         ) : (
           <>
-            <dl className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-3 sm:gap-x-4">
               {[
                 { label: "Headshot", value: viewUrls.headshot ? "Photo on file" : "No headshot" },
                 { label: "Citizenship / Residency", value: valueOrDash(form.citizenshipStatus) },
                 { label: "Citizenship Proof", value: viewUrls.citizenshipDocument ? "Document on file" : "No document" },
                 { label: "Verification Status", value: citizenshipVerificationNote ?? "Not yet verified" },
+                { label: "Unique Videos", value: eligibilityOverview.uniqueVideosVerified ? "3 unique URLs" : "Needs review" },
+                { label: "Prev Winner Qual.", value: eligibilityOverview.firstPrizeVerified ? "Certified" : "Not certified" },
+                { label: "3 Languages", value: languageRequirementVerified ? "Verified" : "Unverified" },
               ].map(({ label, value }) => (
-                <div key={label}>
+                <div key={label} className="min-w-0">
                   <dt className="text-xs font-semibold uppercase tracking-wide text-[#9284b0]">{label}</dt>
-                  <dd className="mt-0.5 text-sm text-[#1e1538]">{value}</dd>
+                  <dd className="mt-0.5 text-sm text-[#1e1538] break-words">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -757,8 +888,9 @@ export default function ApplicationProfileEditor({
                 <a href={viewUrls.citizenshipDocument} target="_blank" rel="noreferrer" className="inline-flex rounded-lg border border-[#c7b6e5] bg-white px-3 py-1.5 text-xs font-semibold text-[#5f2ec8] hover:bg-[#f3ecff]">
                   View citizenship document
                 </a>
-              ) : null}
+                ) : null}
             </div>
+            {documentsEligibilityActions}
             {mediaRelease ? (
               <p className="mt-3 text-xs text-[#6d5b91]">
                 Media Release: {hasMediaConsent ? "Consented" : mediaRelease}

@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/applications";
 import { EventStatus } from "@prisma/client";
 import { sendApplicationConfirmation } from "@/lib/email";
+import { notifyApplicationSubmitted } from "@/lib/db/notifications";
 import { applicantIntakeSchema } from "@/lib/validation/apply";
 import { getCompetitionCutoffDate, resolveApplicationDivision } from "@/lib/application-division";
 
@@ -58,11 +59,20 @@ export async function POST(
     collegeName,
     major,
     voicePart,
-    video1Title,
+    video1PieceTitle,
+    video1Composer,
+    video1Poet,
+    video1Language,
     video1Url,
-    video2Title,
+    video2PieceTitle,
+    video2Composer,
+    video2Poet,
+    video2Language,
     video2Url,
-    video3Title,
+    video3PieceTitle,
+    video3Composer,
+    video3Poet,
+    video3Language,
     video3Url,
     headshotUrl,
     bio,
@@ -76,10 +86,18 @@ export async function POST(
     certifyDateOfBirth,
     hasPriorFirstPrize,
     priorFirstPrizeDivision,
+    prizeWinnerCertification,
     acceptPrivacyPolicy,
     acceptTerms,
   } =
     parsed.data;
+
+  function composeVideoLabel(title: string, composer: string, poet?: string | null) {
+    const base = `${title.trim()} - ${composer.trim()}`;
+    const cleanedPoet = poet?.trim();
+    if (!cleanedPoet) return base;
+    return `${base} (Poem by ${cleanedPoet})`;
+  }
 
   const currentDivision = resolveApplicationDivision({
     dateOfBirth: new Date(dateOfBirth),
@@ -149,11 +167,11 @@ export async function POST(
     highSchoolName: highSchoolName || null,
     collegeName: collegeName || null,
     major: major || null,
-    video1Title,
+    video1Title: composeVideoLabel(video1PieceTitle, video1Composer, video1Poet),
     video1Url,
-    video2Title,
+    video2Title: composeVideoLabel(video2PieceTitle, video2Composer, video2Poet),
     video2Url,
-    video3Title,
+    video3Title: composeVideoLabel(video3PieceTitle, video3Composer, video3Poet),
     video3Url,
     headshotUrl: headshotUrl || null,
     bio,
@@ -167,6 +185,8 @@ export async function POST(
     certifyDateOfBirth,
     hasPriorFirstPrize,
     priorFirstPrizeDivision: priorFirstPrizeDivision || null,
+    prizeWinnerCertification,
+    videoLanguages: [video1Language, video2Language, video3Language],
     acceptPrivacyPolicy,
     acceptTerms,
   });
@@ -177,6 +197,17 @@ export async function POST(
   } catch {
     // Email failure must never break the submission flow
   }
+
+  notifyApplicationSubmitted({
+    organizationId: event.organizationId,
+    applicationId: application.id,
+    applicantName: name,
+    applicantEmail: email,
+    chapter,
+    eventName: event.name,
+  }).catch(() => {
+    // Notification failure must never break the submission flow
+  });
 
   return Response.json({ success: true, applicationId: application.id }, { status: 201 });
 }
