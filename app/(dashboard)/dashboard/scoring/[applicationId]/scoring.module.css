@@ -1,12 +1,14 @@
 .page {
   display: grid;
   gap: 1rem;
+  overflow-x: clip;
 }
 
 .grid {
   display: grid;
   gap: 1rem;
   align-items: start;
+  min-width: 0;
 }
 
 .left {

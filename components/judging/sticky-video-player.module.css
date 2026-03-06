@@ -1,4 +1,6 @@
 .player {
+  width: 100%;
+  max-width: 100%;
   background: #fff;
   border: 1px solid rgba(70, 43, 124, 0.1);
   border-radius: 12px;
@@ -10,7 +12,7 @@
 
 .headerRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.65rem;
   background: #1e1538;
@@ -26,11 +28,14 @@
   color: #f3ecff;
   line-height: 1.25;
   min-width: 0;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .buttonRow {
   display: flex;
   gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 .navButton {
