@@ -380,8 +380,8 @@
 
 .actionRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 0.55rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem;
   align-items: center;
 }
 
@@ -392,7 +392,7 @@
 
 .actionSlotCenter {
   display: flex;
-  justify-content: center;
+  justify-content: stretch;
 }
 
 .actionSlotRight {
@@ -403,11 +403,16 @@
 .button {
   border: 1px solid rgba(70, 43, 124, 0.18);
   border-radius: 10px;
-  padding: 0.68rem 0.82rem;
-  font-size: 0.78rem;
+  min-height: 2.7rem;
+  padding: 0.62rem 0.58rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   cursor: pointer;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .button:disabled {
@@ -433,17 +438,19 @@
 }
 
 .saveAction {
-  font-size: 0.82rem;
-  letter-spacing: 0.05em;
-  padding-inline: 1rem;
+  width: 100%;
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
+  padding-inline: 0.72rem;
   white-space: nowrap;
 }
 
 .navAction {
+  width: 100%;
   text-decoration: none;
   white-space: nowrap;
-  font-size: 0.74rem;
-  padding-inline: 0.7rem;
+  font-size: 0.72rem;
+  padding-inline: 0.56rem;
 }
 
 .buttonDanger {

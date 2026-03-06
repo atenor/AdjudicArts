@@ -43,9 +43,10 @@
   border: 1px solid rgba(216, 204, 233, 0.45);
   background: rgba(255, 255, 255, 0.96);
   color: #3d2d72;
-  height: 1.65rem;
-  min-width: 2.3rem;
-  font-size: 0.62rem;
+  height: 1.54rem;
+  min-width: 2.08rem;
+  padding: 0 0.42rem;
+  font-size: 0.58rem;
   font-weight: 700;
   cursor: pointer;
 }

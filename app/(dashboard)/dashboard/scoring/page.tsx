@@ -34,8 +34,8 @@ function formatChapterLabel(chapter: string | null | undefined) {
 }
 
 function formatScoreDisplay(value: number | null | undefined) {
-  if (typeof value !== "number") return "Score —";
-  return `Score ${value.toFixed(1)}`;
+  if (typeof value !== "number") return "—";
+  return value.toFixed(1);
 }
 
 export default async function ScoringQueuePage({
@@ -218,9 +218,6 @@ export default async function ScoringQueuePage({
             <section key={roundQueue.round.id} className="space-y-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-medium">{roundQueue.round.name}</h2>
-                <Badge variant="outline">
-                  {roundQueue.round.type.toLowerCase()} round
-                </Badge>
                 <span className="text-sm text-muted-foreground sm:ml-1">
                   {roundQueue.event.name}
                 </span>
@@ -251,7 +248,7 @@ export default async function ScoringQueuePage({
                               availableVoiceParts={availableVoiceParts}
                             />
                           </div>
-                        ) : null}
+                          ) : null}
                         <article className="rounded-lg border">
                         <div className="flex items-center justify-between gap-2 border-b border-[#b79ddf] bg-[#ddd0f1] px-3 py-2">
                           <p className="text-sm font-semibold text-[#25174d]">Combined applicant list</p>
@@ -262,10 +259,7 @@ export default async function ScoringQueuePage({
                         </div>
                         <div className="divide-y">
                           {roundQueue.applications.map((application) => (
-                            <div
-                              key={application.id}
-                              className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30"
-                            >
+                            <div key={application.id} className="px-3 py-2 hover:bg-muted/30">
                               <div className="flex min-w-0 items-center gap-2">
                                 <HeadshotPreview
                                   src={getDisplayHeadshot(application.headshot, application.id)}
@@ -279,7 +273,7 @@ export default async function ScoringQueuePage({
                                 <div className="min-w-0">
                                   <Link
                                     href={buildDetailHref(application.id)}
-                                    className="truncate text-sm font-semibold hover:underline"
+                                    className="block truncate text-sm font-semibold hover:underline"
                                   >
                                     {application.applicant.name}
                                   </Link>
@@ -290,25 +284,25 @@ export default async function ScoringQueuePage({
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="mt-1 flex items-center justify-end gap-1.5 sm:mt-0">
                                 {application.isBookmarked ? (
                                   <Badge variant="outline">Bookmarked</Badge>
                                 ) : null}
-                                <span className="rounded-full border border-[#d8cce9] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f4d87]">
+                                <span className="rounded-full border border-[#d8cce9] bg-white px-2 py-0.5 text-xs font-semibold text-[#5f4d87]">
                                   {formatScoreDisplay(application.judgeScoreTotal)}
                                 </span>
                                 {application.hasAllCriteria ? (
-                                  <span className="rounded-full border border-[#8fdcbf] bg-[#d6f6e8] px-3 py-1 text-xs font-semibold text-[#147a58]">
+                                  <span className="rounded-full border border-[#8fdcbf] bg-[#d6f6e8] px-2 py-0.5 text-xs font-semibold text-[#147a58]">
                                     Complete
                                   </span>
                                 ) : (
-                                  <span className="rounded-full border border-[#f0cf74] bg-[#fff3cd] px-3 py-1 text-xs font-semibold text-[#856404]">
+                                  <span className="rounded-full border border-[#f0cf74] bg-[#fff3cd] px-2 py-0.5 text-xs font-semibold text-[#856404]">
                                     Queued
                                   </span>
                                 )}
                                 <Link
                                   href={buildDetailHref(application.id)}
-                                  className="rounded-md border border-[#cfc3e3] px-2 py-1 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
+                                  className="rounded-md border border-[#cfc3e3] px-2 py-0.5 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
                                 >
                                   Open
                                 </Link>
@@ -340,7 +334,7 @@ export default async function ScoringQueuePage({
                         return (
                         <div key={`${roundQueue.round.id}-${division}`} className="space-y-2">
                           {roundIndex === 0 && division === orderedDivisionKeys[0] ? (
-                            <div className="flex justify-end -mt-3 mb-0.5">
+                            <div className="mb-1 flex justify-end">
                               <ScoringFilters
                                 hasActiveFilters={hasActiveFilters}
                                 division={requestedDivision}
@@ -366,10 +360,7 @@ export default async function ScoringQueuePage({
                             </div>
                             <div className="divide-y">
                               {applications.map((application) => (
-                                <div
-                                  key={application.id}
-                                  className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/30"
-                                >
+                                <div key={application.id} className="px-3 py-2 hover:bg-muted/30">
                                   <div className="flex min-w-0 items-center gap-2">
                                     <HeadshotPreview
                                       src={getDisplayHeadshot(application.headshot, application.id)}
@@ -383,7 +374,7 @@ export default async function ScoringQueuePage({
                                     <div className="min-w-0">
                                       <Link
                                         href={buildDetailHref(application.id)}
-                                        className="truncate text-sm font-semibold hover:underline"
+                                        className="block truncate text-sm font-semibold hover:underline"
                                       >
                                         {application.applicant.name}
                                       </Link>
@@ -396,25 +387,25 @@ export default async function ScoringQueuePage({
                                       ) : null}
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="mt-1 flex items-center justify-end gap-1.5 sm:mt-0">
                                     {application.isBookmarked ? (
                                       <Badge variant="outline">Bookmarked</Badge>
                                     ) : null}
-                                    <span className="rounded-full border border-[#d8cce9] bg-white px-2.5 py-1 text-xs font-semibold text-[#5f4d87]">
+                                    <span className="rounded-full border border-[#d8cce9] bg-white px-2 py-0.5 text-xs font-semibold text-[#5f4d87]">
                                       {formatScoreDisplay(application.judgeScoreTotal)}
                                     </span>
                                     {application.hasAllCriteria ? (
-                                      <span className="rounded-full border border-[#8fdcbf] bg-[#d6f6e8] px-3 py-1 text-xs font-semibold text-[#147a58]">
+                                      <span className="rounded-full border border-[#8fdcbf] bg-[#d6f6e8] px-2 py-0.5 text-xs font-semibold text-[#147a58]">
                                         Complete
                                       </span>
                                     ) : (
-                                      <span className="rounded-full border border-[#f0cf74] bg-[#fff3cd] px-3 py-1 text-xs font-semibold text-[#856404]">
+                                      <span className="rounded-full border border-[#f0cf74] bg-[#fff3cd] px-2 py-0.5 text-xs font-semibold text-[#856404]">
                                         Queued
                                       </span>
                                     )}
                                     <Link
                                       href={buildDetailHref(application.id)}
-                                      className="rounded-md border border-[#cfc3e3] px-2 py-1 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
+                                      className="rounded-md border border-[#cfc3e3] px-2 py-0.5 text-xs font-medium text-[#5f4d87] hover:bg-[#f4effb]"
                                     >
                                       Open
                                     </Link>

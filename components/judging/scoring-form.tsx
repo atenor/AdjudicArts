@@ -662,7 +662,7 @@ export default function ScoringForm({
                   href={previousApplicantHref}
                   className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
                 >
-                  Previous Applicant
+                  Previous
                 </Link>
               ) : null}
             </div>
@@ -682,7 +682,7 @@ export default function ScoringForm({
                   href={nextApplicantHref}
                   className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
                 >
-                  Next Applicant
+                  Next
                 </Link>
               ) : null}
             </div>
