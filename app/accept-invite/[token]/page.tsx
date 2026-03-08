@@ -30,7 +30,14 @@ interface InviteInfo {
 }
 
 function getInviteMessaging(invite: InviteInfo | null) {
-  const roleLabel = invite ? ROLE_LABELS[invite.role] ?? invite.role : "Team Member";
+  if (!invite) {
+    return {
+      kicker: "You're invited",
+      heading: "Welcome!",
+      copy: "Create your password to activate your account. Once submitted, you'll be signed in and taken directly to your dashboard.",
+    };
+  }
+
   const titleMap: Record<string, string> = {
     mr: "Mr.",
     mrs: "Mrs.",
@@ -58,7 +65,7 @@ function getInviteMessaging(invite: InviteInfo | null) {
   const preferredName =
     displayTitle && lastNameToken
       ? `${displayTitle} ${lastNameToken}`
-      : firstNameToken || invite?.email?.split("@")[0] || roleLabel;
+      : firstNameToken || invite.email.split("@")[0];
   return {
     kicker: "You're invited",
     heading: `Welcome, ${preferredName}!`,
