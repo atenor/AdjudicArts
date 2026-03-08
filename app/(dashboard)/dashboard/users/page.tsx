@@ -108,7 +108,8 @@ export default async function UsersPage() {
         {users.length === 0 ? (
           <p className={styles.empty}>No users yet.</p>
         ) : (
-          <div className={styles.tableWrap}>
+          <>
+          <div className={`${styles.tableWrap} ${styles.desktopTable}`}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -157,6 +158,53 @@ export default async function UsersPage() {
               </tbody>
             </table>
           </div>
+          <div className={styles.mobileCards}>
+            {users.map((u) => (
+              <article key={u.id} className={styles.mobileCard}>
+                <div className={styles.mobileCardHeader}>
+                  <p className={styles.mobileName}>{u.name}</p>
+                  <span className={`${styles.badge} ${styles[`badge_${u.role}`]}`}>
+                    {ROLE_LABELS[u.role] ?? u.role}
+                  </span>
+                </div>
+                <div className={styles.mobileMetaGrid}>
+                  <div>
+                    <p className={styles.mobileLabel}>Email</p>
+                    <p className={styles.mobileValue}>{u.email}</p>
+                  </div>
+                  <div>
+                    <p className={styles.mobileLabel}>Chapter</p>
+                    <p className={styles.mobileValue}>{u.chapter ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className={styles.mobileLabel}>Joined</p>
+                    <p className={styles.mobileValue}>
+                      {new Date(u.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className={styles.mobileActions}>
+                  <UserRowActions
+                    user={{
+                      id: u.id,
+                      name: u.name,
+                      email: u.email,
+                      role: u.role,
+                      chapter: u.chapter,
+                    }}
+                    isChapterChair={isChapterChair}
+                    chairChapter={chairChapter}
+                    canEditRole={!isChapterChair}
+                  />
+                </div>
+              </article>
+            ))}
+          </div>
+          </>
         )}
       </section>
 
@@ -164,7 +212,7 @@ export default async function UsersPage() {
       {pendingInvites.length > 0 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Pending invites</h2>
-          <div className={styles.tableWrap}>
+          <div className={`${styles.tableWrap} ${styles.desktopTable}`}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -198,6 +246,36 @@ export default async function UsersPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className={styles.mobileCards}>
+            {pendingInvites.map((inv) => (
+              <article key={inv.id} className={styles.mobileCard}>
+                <div className={styles.mobileCardHeader}>
+                  <p className={styles.mobileName}>{inv.email}</p>
+                  <span className={`${styles.badge} ${styles[`badge_${inv.role}`]}`}>
+                    {ROLE_LABELS[inv.role] ?? inv.role}
+                  </span>
+                </div>
+                <div className={styles.mobileMetaGrid}>
+                  <div>
+                    <p className={styles.mobileLabel}>Invited by</p>
+                    <p className={styles.mobileValue}>{inv.invitedBy?.name ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className={styles.mobileLabel}>Expires</p>
+                    <p className={styles.mobileValue}>
+                      {new Date(inv.expiresAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className={styles.mobileActions}>
+                  <CancelInviteButton inviteId={inv.id} />
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       )}

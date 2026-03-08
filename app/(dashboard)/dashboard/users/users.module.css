@@ -2,6 +2,7 @@
   padding: 2rem 1.5rem;
   max-width: 1100px;
   margin: 0 auto;
+  overflow-x: clip;
 }
 
 .header {
@@ -52,6 +53,14 @@
 .tableWrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.desktopTable {
+  display: block;
+}
+
+.mobileCards {
+  display: none;
 }
 
 .table {
@@ -135,4 +144,91 @@
 .empty {
   color: #8a7fa8;
   font-size: 0.9rem;
+}
+
+.mobileCard {
+  border: 1px solid rgba(70, 43, 124, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.mobileCard + .mobileCard {
+  margin-top: 0.6rem;
+}
+
+.mobileCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.mobileName {
+  margin: 0;
+  color: #1e1538;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.mobileMetaGrid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mobileLabel {
+  margin: 0 0 0.15rem;
+  color: #8a7fa8;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.mobileValue {
+  margin: 0;
+  color: #4a3d6b;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.mobileActions {
+  padding-top: 0.3rem;
+  border-top: 1px solid rgba(70, 43, 124, 0.1);
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 1.25rem 1rem;
+  }
+
+  .header {
+    margin-bottom: 1.25rem;
+  }
+
+  .actionGroup {
+    width: 100%;
+    display: grid;
+    gap: 0.45rem;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .desktopTable {
+    display: none;
+  }
+
+  .mobileCards {
+    display: block;
+  }
 }
