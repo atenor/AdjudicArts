@@ -4,6 +4,7 @@ type ApplicationMetadata = {
   voicePart?: string;
   videoUrls?: string[];
   videoLanguages?: string[];
+  videoStyles?: string[];
   citizenshipStatus?: string | null;
   citizenshipDocumentUrl?: string | null;
   resourceUrls?: string[];
@@ -23,6 +24,7 @@ type ParsedApplicationMetadata = {
   voicePart: string | null;
   videoUrls: string[];
   videoLanguages: string[];
+  videoStyles: string[];
   citizenshipStatus: string | null;
   citizenshipDocumentUrl: string | null;
   resourceUrls: string[];
@@ -89,6 +91,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
       voicePart: null,
       videoUrls: [] as string[],
       videoLanguages: [] as string[],
+      videoStyles: [] as string[],
       citizenshipStatus: null,
       citizenshipDocumentUrl: null,
       resourceUrls: [] as string[],
@@ -117,6 +120,12 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
       const videoUrls = normalizeUrlList(parsed.videoUrls, 3);
       const videoLanguages = Array.isArray(parsed.videoLanguages)
         ? parsed.videoLanguages
+            .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
+            .filter((value): value is string => value.length > 0)
+            .slice(0, 3)
+        : [];
+      const videoStyles = Array.isArray(parsed.videoStyles)
+        ? parsed.videoStyles
             .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
             .filter((value): value is string => value.length > 0)
             .slice(0, 3)
@@ -155,6 +164,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
         voicePart,
         videoUrls,
         videoLanguages,
+        videoStyles,
         citizenshipStatus,
         citizenshipDocumentUrl,
         resourceUrls,
@@ -176,6 +186,7 @@ export function parseApplicationMetadata(notes: string | null | undefined) {
     voicePart: notes,
     videoUrls: [] as string[],
     videoLanguages: [] as string[],
+    videoStyles: [] as string[],
     citizenshipStatus: null,
     citizenshipDocumentUrl: null,
     resourceUrls: [] as string[],
@@ -195,6 +206,10 @@ export function buildApplicationMetadata(metadata: ApplicationMetadata) {
     voicePart: metadata.voicePart ?? null,
     videoUrls: (metadata.videoUrls ?? []).filter((url) => url.length > 0).slice(0, 3),
     videoLanguages: (metadata.videoLanguages ?? [])
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => value.length > 0)
+      .slice(0, 3),
+    videoStyles: (metadata.videoStyles ?? [])
       .map((value) => value.trim().toLowerCase())
       .filter((value) => value.length > 0)
       .slice(0, 3),

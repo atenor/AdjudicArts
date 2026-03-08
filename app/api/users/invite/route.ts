@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    requireRole(session, Role.ADMIN);
+    requireRole(session, Role.ADMIN, Role.NATIONAL_CHAIR, Role.CHAPTER_CHAIR);
 
     const body = await req.json();
     const parsed = inviteSchema.safeParse(body);
@@ -29,6 +29,21 @@ export async function POST(req: Request) {
 
     const { email, role, name } = parsed.data;
     const { organizationId } = session.user;
+
+    if (session.user.role === Role.CHAPTER_CHAIR) {
+      if (role !== Role.CHAPTER_JUDGE) {
+        return NextResponse.json(
+          { error: "Chapter chairs can only invite chapter judges" },
+          { status: 403 }
+        );
+      }
+      if (!session.user.chapter?.trim()) {
+        return NextResponse.json(
+          { error: "Chapter chair account is missing chapter assignment" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Check for existing user
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -72,11 +87,42 @@ export async function POST(req: Request) {
     const inviteUrl = `${process.env.NEXTAUTH_URL}/accept-invite/${rawToken}`;
     const roleLabel = ROLE_LABELS[role] ?? role;
 
-    sendInviteEmail(email, inviteUrl, roleLabel, session.user.name ?? "An administrator").catch(
-      console.error
-    );
+    let emailSent = false;
+    let deliveryId: string | null = null;
+    if (process.env.RESEND_API_KEY) {
+      try {
+        deliveryId = await sendInviteEmail(
+          email,
+          inviteUrl,
+          roleLabel,
+          session.user.name ?? "An administrator"
+        );
+        emailSent = Boolean(deliveryId);
+        console.info("Invite email queued", {
+          inviteId: invite.id,
+          to: email,
+          role,
+          deliveryId,
+        });
+      } catch (mailError) {
+        console.error("Invite email send failed", {
+          inviteId: invite.id,
+          to: email,
+          role,
+          error: mailError instanceof Error ? mailError.message : String(mailError),
+        });
+      }
+    }
 
-    return NextResponse.json({ id: invite.id }, { status: 201 });
+    return NextResponse.json(
+      {
+        id: invite.id,
+        inviteUrl,
+        emailSent,
+        deliveryId,
+      },
+      { status: 201 }
+    );
   } catch (err) {
     console.error("Invite error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

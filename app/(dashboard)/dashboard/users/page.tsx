@@ -5,23 +5,53 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { ROLE_LABELS } from "@/lib/roles";
 import InviteUserModal from "@/components/admin/invite-user-modal";
+import UserRowActions from "@/components/admin/user-row-actions";
+import ManualUserModal from "@/components/admin/manual-user-modal";
+import CancelInviteButton from "@/components/admin/cancel-invite-button";
 import styles from "./users.module.css";
 
 export default async function UsersPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== Role.ADMIN) redirect("/dashboard");
+  if (
+    !session ||
+    (session.user.role !== Role.ADMIN &&
+      session.user.role !== Role.NATIONAL_CHAIR &&
+      session.user.role !== Role.CHAPTER_CHAIR)
+  ) {
+    redirect("/dashboard");
+  }
 
   const { organizationId } = session.user;
   const now = new Date();
+  const isChapterChair = session.user.role === Role.CHAPTER_CHAIR;
+  const chairChapter = session.user.chapter?.trim() ?? null;
+
+  const userWhere = isChapterChair
+    ? {
+        organizationId,
+        role: Role.CHAPTER_JUDGE,
+        chapter: chairChapter ?? "__NO_MATCH__",
+      }
+    : { organizationId };
+
+  const inviteWhere = isChapterChair
+    ? {
+        organizationId,
+        role: Role.CHAPTER_JUDGE,
+        invitedById: session.user.id,
+        acceptedAt: null as Date | null,
+        expiresAt: { gt: now },
+      }
+    : { organizationId, acceptedAt: null as Date | null, expiresAt: { gt: now } };
 
   const [users, pendingInvites] = await Promise.all([
     prisma.user.findMany({
-      where: { organizationId },
+      where: userWhere,
       select: { id: true, name: true, email: true, role: true, chapter: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.inviteToken.findMany({
-      where: { organizationId, acceptedAt: null, expiresAt: { gt: now } },
+      where: inviteWhere,
       select: {
         id: true,
         email: true,
@@ -39,15 +69,42 @@ export default async function UsersPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.heading}>Team members</h1>
-          <p className={styles.sub}>{users.length} user{users.length !== 1 ? "s" : ""} in your organization</p>
+          <h1 className={styles.heading}>{isChapterChair ? "Chapter Judges" : "Team members"}</h1>
+          <p className={styles.sub}>
+            {users.length} user{users.length !== 1 ? "s" : ""}
+            {isChapterChair ? ` in ${chairChapter ?? "your chapter"}` : " in your organization"}
+          </p>
         </div>
-        <InviteUserModal />
+        <div className={styles.actionGroup}>
+          <InviteUserModal
+            triggerLabel={isChapterChair ? "Invite chapter judge" : "Invite user"}
+            title={isChapterChair ? "Invite a chapter judge" : "Invite a team member"}
+            allowedRoles={
+              isChapterChair ? [Role.CHAPTER_JUDGE] : undefined
+            }
+            helperText={
+              isChapterChair
+                ? `Invites created here are limited to Chapter Judge and automatically assigned to ${chairChapter ?? "your chapter"}.`
+                : undefined
+            }
+          />
+          <ManualUserModal
+            triggerLabel={isChapterChair ? "Add chapter judge manually" : "Add user manually"}
+            title={isChapterChair ? "Add a chapter judge manually" : "Add a user manually"}
+            allowedRoles={isChapterChair ? [Role.CHAPTER_JUDGE] : undefined}
+            fixedChapter={isChapterChair ? chairChapter : null}
+            helperText={
+              isChapterChair
+                ? `Use this when email invites are unavailable. New users are created directly in ${chairChapter ?? "your chapter"}.`
+                : "Use this when email invites are unavailable. This creates the account immediately."
+            }
+          />
+        </div>
       </div>
 
       {/* Active users */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Active users</h2>
+        <h2 className={styles.sectionTitle}>{isChapterChair ? "Active chapter judges" : "Active users"}</h2>
         {users.length === 0 ? (
           <p className={styles.empty}>No users yet.</p>
         ) : (
@@ -55,11 +112,12 @@ export default async function UsersPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th>Profile name</th>
                   <th>Email</th>
                   <th>Role</th>
                   <th>Chapter</th>
                   <th>Joined</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -79,6 +137,20 @@ export default async function UsersPage() {
                         day: "numeric",
                         year: "numeric",
                       })}
+                    </td>
+                    <td>
+                      <UserRowActions
+                        user={{
+                          id: u.id,
+                          name: u.name,
+                          email: u.email,
+                          role: u.role,
+                          chapter: u.chapter,
+                        }}
+                        isChapterChair={isChapterChair}
+                        chairChapter={chairChapter}
+                        canEditRole={!isChapterChair}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -100,6 +172,7 @@ export default async function UsersPage() {
                   <th>Role</th>
                   <th>Invited by</th>
                   <th>Expires</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -117,6 +190,9 @@ export default async function UsersPage() {
                         month: "short",
                         day: "numeric",
                       })}
+                    </td>
+                    <td>
+                      <CancelInviteButton inviteId={inv.id} />
                     </td>
                   </tr>
                 ))}

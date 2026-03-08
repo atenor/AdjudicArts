@@ -1,9 +1,36 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma, Role } from "@prisma/client";
+import { ApplicationStatus, Prisma, Role } from "@prisma/client";
 import {
   formatDivisionLabel,
   resolveApplicationDivision,
 } from "@/lib/application-division";
+
+type ChapterPendingApprovalRow = Prisma.ApplicationGetPayload<{
+  include: {
+    applicant: { select: { name: true } };
+    event: { select: { id: true; name: true } };
+  };
+}>;
+
+type ChapterChairDashboardStats = {
+  chapterName: string | null;
+  totalApplicantsForChapter: number;
+  pendingApprovalsForChapter: number;
+  chapterAdjudicationCount: number;
+  recentPendingApprovals: ChapterPendingApprovalRow[];
+  chapterJudgeCount: number;
+  judgesWithActivity: number;
+  invitesSent: number;
+  pendingInvites: number;
+  acceptedInvites: number;
+  expiredInvites: number;
+  chapterWinnersCount: number;
+  notAdvancingCount: number;
+  scorecardsExpected: number;
+  scorecardsFinalized: number;
+  scorecardsDraft: number;
+  scoreEntryCount: number;
+};
 
 function getLastNDays(n: number) {
   const dates: Date[] = [];
@@ -181,8 +208,9 @@ export async function getAdminDashboardStats(organizationId: string) {
 
 export async function getChapterChairDashboardStats(
   organizationId: string,
-  chapter: string | null | undefined
-) {
+  chapter: string | null | undefined,
+  chairUserId: string
+): Promise<ChapterChairDashboardStats> {
   const chapterName = chapter?.trim();
   if (!chapterName) {
     return {
@@ -191,13 +219,67 @@ export async function getChapterChairDashboardStats(
       pendingApprovalsForChapter: 0,
       chapterAdjudicationCount: 0,
       recentPendingApprovals: [],
+      chapterJudgeCount: 0,
+      judgesWithActivity: 0,
+      invitesSent: 0,
+      pendingInvites: 0,
+      acceptedInvites: 0,
+      expiredInvites: 0,
+      chapterWinnersCount: 0,
+      notAdvancingCount: 0,
+      scorecardsExpected: 0,
+      scorecardsFinalized: 0,
+      scorecardsDraft: 0,
+      scoreEntryCount: 0,
     };
   }
 
   const chapterWhere = buildChapterWhere(chapterName);
+  const pendingStatuses: ApplicationStatus[] = [
+    "PENDING_APPROVAL",
+    "CORRECTION_REQUIRED",
+    "SUBMITTED_PENDING_APPROVAL",
+    "SUBMITTED",
+  ];
+  const chapterAdjudicationStatuses: ApplicationStatus[] = [
+    "APPROVED_FOR_CHAPTER_ADJUDICATION",
+    "CHAPTER_ADJUDICATION",
+    "CHAPTER_REVIEW",
+  ];
+  const advancedStatuses: ApplicationStatus[] = [
+    "PENDING_NATIONAL_ACCEPTANCE",
+    "CHAPTER_APPROVED",
+    "APPROVED_FOR_NATIONAL_ADJUDICATION",
+    "NATIONAL_REVIEW",
+    "NATIONAL_FINALS",
+  ];
+  const notAdvancingStatuses: ApplicationStatus[] = [
+    "DID_NOT_ADVANCE",
+    "EXCLUDED",
+    "WITHDRAWN",
+    "CHAPTER_REJECTED",
+    "NATIONAL_REJECTED",
+  ];
+  const now = new Date();
 
-  const [totalApplicantsForChapter, pendingApprovalsForChapter, chapterAdjudicationCount, recentPendingApprovals] =
-    await Promise.all([
+  const [
+    totalApplicantsForChapter,
+    pendingApprovalsForChapter,
+    chapterAdjudicationCount,
+    chapterWinnersCount,
+    notAdvancingCount,
+    recentPendingApprovals,
+    chapterJudges,
+    chapterApplicationsInJudging,
+    scorecardsFinalized,
+    scorecardsDraft,
+    distinctJudgesWithActivity,
+    scoreEntryCount,
+    invitesSent,
+    pendingInvites,
+    acceptedInvites,
+    expiredInvites,
+  ] = await Promise.all([
       prisma.application.count({
         where: {
           organizationId,
@@ -208,21 +290,35 @@ export async function getChapterChairDashboardStats(
         where: {
           organizationId,
           ...chapterWhere,
-          status: { in: ["PENDING_APPROVAL", "CORRECTION_REQUIRED", "SUBMITTED_PENDING_APPROVAL", "SUBMITTED"] },
+          status: { in: pendingStatuses },
         },
       }),
       prisma.application.count({
         where: {
           organizationId,
           ...chapterWhere,
-          status: { in: ["APPROVED_FOR_CHAPTER_ADJUDICATION", "CHAPTER_ADJUDICATION", "CHAPTER_REVIEW"] },
+          status: { in: chapterAdjudicationStatuses },
+        },
+      }),
+      prisma.application.count({
+        where: {
+          organizationId,
+          ...chapterWhere,
+          status: { in: advancedStatuses },
+        },
+      }),
+      prisma.application.count({
+        where: {
+          organizationId,
+          ...chapterWhere,
+          status: { in: notAdvancingStatuses },
         },
       }),
       prisma.application.findMany({
         where: {
           organizationId,
           ...chapterWhere,
-          status: { in: ["PENDING_APPROVAL", "CORRECTION_REQUIRED", "SUBMITTED_PENDING_APPROVAL", "SUBMITTED"] },
+          status: { in: pendingStatuses },
         },
         orderBy: { submittedAt: "asc" },
         include: {
@@ -230,7 +326,107 @@ export async function getChapterChairDashboardStats(
           event: { select: { id: true, name: true } },
         },
       }),
-    ]);
+      prisma.user.findMany({
+        where: {
+          organizationId,
+          role: Role.CHAPTER_JUDGE,
+        },
+        select: {
+          id: true,
+          chapter: true,
+        },
+      }),
+      prisma.application.findMany({
+        where: {
+          organizationId,
+          ...chapterWhere,
+          status: { in: chapterAdjudicationStatuses },
+        },
+        select: { id: true },
+      }),
+      prisma.judgeSubmission.count({
+        where: {
+          organizationId,
+          round: { type: "CHAPTER" },
+          status: "FINALIZED",
+          application: {
+            organizationId,
+            ...chapterWhere,
+            status: { in: chapterAdjudicationStatuses },
+          },
+        },
+      }),
+      prisma.judgeSubmission.count({
+        where: {
+          organizationId,
+          round: { type: "CHAPTER" },
+          status: "DRAFT",
+          application: {
+            organizationId,
+            ...chapterWhere,
+            status: { in: chapterAdjudicationStatuses },
+          },
+        },
+      }),
+      prisma.judgeSubmission.findMany({
+        where: {
+          organizationId,
+          round: { type: "CHAPTER" },
+          application: {
+            organizationId,
+            ...chapterWhere,
+            status: { in: chapterAdjudicationStatuses },
+          },
+        },
+        distinct: ["judgeId"],
+        select: { judgeId: true },
+      }),
+      prisma.score.count({
+        where: {
+          organizationId,
+          round: "CHAPTER",
+          application: {
+            organizationId,
+            ...chapterWhere,
+            status: { in: chapterAdjudicationStatuses },
+          },
+        },
+      }),
+      prisma.inviteToken.count({
+        where: {
+          organizationId,
+          invitedById: chairUserId,
+        },
+      }),
+      prisma.inviteToken.count({
+        where: {
+          organizationId,
+          invitedById: chairUserId,
+          acceptedAt: null,
+          expiresAt: { gt: now },
+        },
+      }),
+      prisma.inviteToken.count({
+        where: {
+          organizationId,
+          invitedById: chairUserId,
+          acceptedAt: { not: null },
+        },
+      }),
+      prisma.inviteToken.count({
+        where: {
+          organizationId,
+          invitedById: chairUserId,
+          acceptedAt: null,
+          expiresAt: { lte: now },
+        },
+      }),
+    ] as const);
+
+  const chapterJudgeCount = chapterJudges.filter((judge) =>
+    isChapterMatch(judge.chapter, chapterName)
+  ).length;
+  const scorecardsExpected = chapterApplicationsInJudging.length * chapterJudgeCount;
 
   return {
     chapterName,
@@ -238,6 +434,18 @@ export async function getChapterChairDashboardStats(
     pendingApprovalsForChapter,
     chapterAdjudicationCount,
     recentPendingApprovals,
+    chapterJudgeCount,
+    judgesWithActivity: distinctJudgesWithActivity.length,
+    invitesSent,
+    pendingInvites,
+    acceptedInvites,
+    expiredInvites,
+    chapterWinnersCount,
+    notAdvancingCount,
+    scorecardsExpected,
+    scorecardsFinalized,
+    scorecardsDraft,
+    scoreEntryCount,
   };
 }
 

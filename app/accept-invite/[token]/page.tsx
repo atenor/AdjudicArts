@@ -29,6 +29,43 @@ interface InviteInfo {
   name: string | null;
 }
 
+function getInviteMessaging(invite: InviteInfo | null) {
+  const roleLabel = invite ? ROLE_LABELS[invite.role] ?? invite.role : "Team Member";
+  const titleMap: Record<string, string> = {
+    mr: "Mr.",
+    mrs: "Mrs.",
+    ms: "Ms.",
+    miss: "Miss",
+    mx: "Mx.",
+    dr: "Dr.",
+    prof: "Prof.",
+    sir: "Sir",
+    madam: "Madam",
+  };
+  const suffixTokens = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
+  const rawTokens = (invite?.name ?? "")
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replace(/[.,]/g, ""))
+    .filter(Boolean);
+  const firstToken = rawTokens[0]?.toLowerCase();
+  const displayTitle = firstToken ? titleMap[firstToken] : null;
+  const nonTitleTokens = rawTokens.filter((token) => !titleMap[token.toLowerCase()]);
+  const firstNameToken = nonTitleTokens[0];
+  const lastNameToken = [...nonTitleTokens]
+    .reverse()
+    .find((token) => !suffixTokens.has(token.toLowerCase()));
+  const preferredName =
+    displayTitle && lastNameToken
+      ? `${displayTitle} ${lastNameToken}`
+      : firstNameToken || invite?.email?.split("@")[0] || roleLabel;
+  return {
+    kicker: "You're invited",
+    heading: `Welcome, ${preferredName}!`,
+    copy: "Create your password to activate your account. Once submitted, you'll be signed in and taken directly to your dashboard.",
+  };
+}
+
 export default function AcceptInvitePage() {
   const { token } = useParams<{ token: string }>();
   const router = useRouter();
@@ -86,88 +123,101 @@ export default function AcceptInvitePage() {
     }
   }
 
+  const messaging = getInviteMessaging(invite);
+
   return (
     <main className={styles.page}>
       <div className={styles.bgGlow} />
-      <div className={styles.card}>
-        <header className={styles.header}>
-          <h1 className={styles.wordmark}>
-            <span className={styles.wordStrong}>Adjudic</span>
-            <span className={styles.wordLight}>arts</span>
-          </h1>
-        </header>
+      <div className={styles.bgRingOuter} />
+      <div className={styles.bgRingInner} />
+      <section className={styles.shell}>
+        <div className={styles.brandBlock}>
+          <p className={styles.kicker}>{messaging.kicker}</p>
+          <h1 className={styles.heading}>{messaging.heading}</h1>
+          <p className={styles.copy}>{messaging.copy}</p>
+        </div>
 
-        {loading && <p className={styles.state}>Loading invite…</p>}
+        <article className={styles.card}>
+          <header className={styles.header}>
+            <h1 className={styles.wordmark}>
+              <span className={styles.wordStrong}>Adjudic</span>
+              <span className={styles.wordLight}>arts</span>
+            </h1>
+            <p className={styles.subtitle}>Set up your account</p>
+          </header>
 
-        {!loading && loadError && (
-          <div className={styles.errorState}>
-            <p className={styles.errorTitle}>Invite link invalid</p>
-            <p className={styles.errorMsg}>{loadError}</p>
-          </div>
-        )}
+          {loading && <p className={styles.state}>Loading invite…</p>}
 
-        {!loading && invite && (
-          <>
-            <div className={styles.inviteInfo}>
-              <p className={styles.roleChip}>
-                {ROLE_LABELS[invite.role] ?? invite.role}
-              </p>
-              <p className={styles.inviteEmail}>{invite.email}</p>
+          {!loading && loadError && (
+            <div className={styles.errorState}>
+              <p className={styles.errorTitle}>Invite link invalid</p>
+              <p className={styles.errorMsg}>{loadError}</p>
             </div>
+          )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="name">
-                  Your name
-                </label>
-                <input
-                  id="name"
-                  className={styles.input}
-                  defaultValue={invite.name ?? ""}
-                  {...register("name")}
-                />
-                {errors.name && <p className={styles.error}>{errors.name.message}</p>}
+          {!loading && invite && (
+            <>
+              <div className={styles.inviteInfo}>
+                <p className={styles.roleChip}>
+                  {ROLE_LABELS[invite.role] ?? invite.role}
+                </p>
+                <p className={styles.inviteEmail}>{invite.email}</p>
               </div>
 
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="password">
-                  Choose a password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  className={styles.input}
-                  {...register("password")}
-                />
-                {errors.password && <p className={styles.error}>{errors.password.message}</p>}
-              </div>
+              <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="name">
+                    Your name
+                  </label>
+                  <input
+                    id="name"
+                    className={styles.input}
+                    defaultValue={invite.name ?? ""}
+                    {...register("name")}
+                  />
+                  {errors.name && <p className={styles.error}>{errors.name.message}</p>}
+                </div>
 
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="confirmPassword">
-                  Confirm password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  className={styles.input}
-                  {...register("confirmPassword")}
-                />
-                {errors.confirmPassword && (
-                  <p className={styles.error}>{errors.confirmPassword.message}</p>
-                )}
-              </div>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="password">
+                    Choose a password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    className={styles.input}
+                    {...register("password")}
+                  />
+                  {errors.password && <p className={styles.error}>{errors.password.message}</p>}
+                </div>
 
-              {submitError && <p className={styles.error}>{submitError}</p>}
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="confirmPassword">
+                    Confirm password
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    className={styles.input}
+                    {...register("confirmPassword")}
+                  />
+                  {errors.confirmPassword && (
+                    <p className={styles.error}>{errors.confirmPassword.message}</p>
+                  )}
+                </div>
 
-              <button type="submit" className={styles.submit} disabled={isSubmitting}>
-                {isSubmitting ? "Setting up account…" : "Create account"}
-              </button>
-            </form>
-          </>
-        )}
-      </div>
+                {submitError && <p className={styles.error}>{submitError}</p>}
+
+                <button type="submit" className={styles.submit} disabled={isSubmitting}>
+                  {isSubmitting ? "Setting up account…" : "Create account"}
+                </button>
+              </form>
+            </>
+          )}
+        </article>
+      </section>
     </main>
   );
 }

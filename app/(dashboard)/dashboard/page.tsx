@@ -286,12 +286,34 @@ export default async function DashboardPage() {
   if (hasRole(session, "CHAPTER_CHAIR")) {
     const stats = await getChapterChairDashboardStats(
       user.organizationId,
-      user.chapter
+      user.chapter,
+      user.id
     );
     const chapterDashboardTitle = stats.chapterName
       ? `${stats.chapterName} Dashboard`
       : "Chapter Dashboard";
-
+    const chapterScoreCompletion = percentage(
+      stats.scorecardsFinalized,
+      Math.max(1, stats.scorecardsExpected)
+    );
+    const applicantPipelineBase = Math.max(
+      1,
+      stats.pendingApprovalsForChapter +
+        stats.chapterAdjudicationCount +
+        stats.chapterWinnersCount +
+        stats.notAdvancingCount
+    );
+    const inviteBase = Math.max(
+      1,
+      Math.max(
+        stats.invitesSent,
+        stats.pendingInvites + stats.acceptedInvites + stats.expiredInvites
+      )
+    );
+    const judgeCoverage = percentage(
+      stats.judgesWithActivity,
+      Math.max(1, stats.chapterJudgeCount)
+    );
     return (
       <div className={styles.page}>
         <header className={styles.header}>
@@ -299,25 +321,153 @@ export default async function DashboardPage() {
           <span className={styles.rolePill}>{ROLE_LABELS[user.role]}</span>
         </header>
 
-        <section className={styles.grid4}>
-          <StatCard
-            title="My Chapter Applicants"
-            value={stats.totalApplicantsForChapter}
-            sub={stats.chapterName ?? "No chapter assigned"}
-            href="/dashboard/applications"
-          />
-          <StatCard
-            title="Pending Approval"
-            value={stats.pendingApprovalsForChapter}
-            sub="in your chapter"
-            href="/dashboard/applications?status=PENDING_APPROVAL"
-          />
-          <StatCard
-            title="Chapter Adjudication"
-            value={stats.chapterAdjudicationCount}
-            sub="approved for your chapter"
+        <section className={styles.chairKpiStrip}>
+          <Link href="/dashboard/applications" className={styles.chairKpiLink}>
+            <span className={styles.chairKpiLabel}>Applicants</span>
+            <span className={styles.chairKpiValue}>{stats.totalApplicantsForChapter}</span>
+            <span className={styles.chairKpiSub}>{stats.chapterName ?? "No chapter assigned"}</span>
+          </Link>
+          <Link href="/dashboard/users" className={styles.chairKpiLink}>
+            <span className={styles.chairKpiLabel}>Judges</span>
+            <span className={styles.chairKpiValue}>{stats.chapterJudgeCount}</span>
+            <span className={styles.chairKpiSub}>{stats.judgesWithActivity} active</span>
+          </Link>
+          <Link href="/dashboard/users" className={styles.chairKpiLink}>
+            <span className={styles.chairKpiLabel}>Invites</span>
+            <span className={styles.chairKpiValue}>{stats.invitesSent}</span>
+            <span className={styles.chairKpiSub}>{stats.pendingInvites} pending</span>
+          </Link>
+          <Link
             href="/dashboard/applications?status=APPROVED_FOR_CHAPTER_ADJUDICATION"
-          />
+            className={styles.chairKpiLink}
+          >
+            <span className={styles.chairKpiLabel}>Scoring</span>
+            <span className={styles.chairKpiValue}>{chapterScoreCompletion}%</span>
+            <span className={styles.chairKpiSub}>{stats.scorecardsFinalized}/{Math.max(1, stats.scorecardsExpected)} finalized</span>
+          </Link>
+        </section>
+
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionTopBar} />
+          <div className={styles.sectionBody}>
+            <h2 className={styles.sectionTitle}>Chapter Snapshot</h2>
+            <div className={styles.chairVisualGrid}>
+              <article className={`${styles.chairVisualCard} ${styles.chairVisualCardPipeline}`}>
+                <p className={styles.chairVisualTitle}>Applicant Pipeline</p>
+                <div className={styles.analyticsRows}>
+                  {[
+                    {
+                      label: "Pending",
+                      value: stats.pendingApprovalsForChapter,
+                      href: "/dashboard/applications?status=PENDING_APPROVAL",
+                    },
+                    {
+                      label: "Adjudication",
+                      value: stats.chapterAdjudicationCount,
+                      href: "/dashboard/applications?status=APPROVED_FOR_CHAPTER_ADJUDICATION",
+                    },
+                    {
+                      label: "Advanced",
+                      value: stats.chapterWinnersCount,
+                      href: "/dashboard/applications?status=PENDING_NATIONAL_ACCEPTANCE",
+                    },
+                    {
+                      label: "Not Advancing",
+                      value: stats.notAdvancingCount,
+                      href: "/dashboard/applications?status=DID_NOT_ADVANCE",
+                    },
+                  ].map((item) => (
+                    <Link key={item.label} href={item.href} className={styles.analyticsRowLink}>
+                      <div className={styles.analyticsRow}>
+                        <div className={styles.analyticsRowLabel}>{item.label}</div>
+                        <div className={styles.analyticsBarWrap}>
+                          <div
+                            className={styles.analyticsBar}
+                            style={{
+                              width: `${percentage(item.value, applicantPipelineBase)}%`,
+                            }}
+                          />
+                        </div>
+                        <div className={styles.analyticsValue}>{item.value}</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </article>
+
+              <article className={`${styles.chairVisualCard} ${styles.chairVisualCardScoring}`}>
+                <p className={styles.chairVisualTitle}>Scoring Completion</p>
+                <p className={styles.chairVisualMetric}>{chapterScoreCompletion}%</p>
+                <p className={styles.chairVisualMeta}>
+                  {stats.scorecardsFinalized}/{Math.max(1, stats.scorecardsExpected)} finalized
+                </p>
+                <div className={styles.chairTrack}>
+                  <div
+                    className={styles.chairFill}
+                    style={{ width: `${chapterScoreCompletion}%` }}
+                  />
+                </div>
+                <div className={styles.chairMiniGrid}>
+                  <div className={styles.chairMiniItem}>
+                    <span>Draft</span>
+                    <strong>{stats.scorecardsDraft}</strong>
+                  </div>
+                  <div className={styles.chairMiniItem}>
+                    <span>Scores Entered</span>
+                    <strong>{stats.scoreEntryCount}</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article className={`${styles.chairVisualCard} ${styles.chairVisualCardInvites}`}>
+                <p className={styles.chairVisualTitle}>Invitations</p>
+                <div className={styles.analyticsRows}>
+                  {[
+                    { label: "Pending", value: stats.pendingInvites },
+                    { label: "Accepted", value: stats.acceptedInvites },
+                    { label: "Expired", value: stats.expiredInvites },
+                  ].map((item) => (
+                    <Link key={item.label} href="/dashboard/users" className={styles.analyticsRowLink}>
+                      <div className={styles.analyticsRow}>
+                        <div className={styles.analyticsRowLabel}>{item.label}</div>
+                        <div className={styles.analyticsBarWrap}>
+                          <div
+                            className={styles.analyticsBar}
+                            style={{ width: `${percentage(item.value, inviteBase)}%` }}
+                          />
+                        </div>
+                        <div className={styles.analyticsValue}>{item.value}</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </article>
+
+              <article className={`${styles.chairVisualCard} ${styles.chairVisualCardJudges}`}>
+                <p className={styles.chairVisualTitle}>Judge Activity</p>
+                <p className={styles.chairVisualMetric}>{judgeCoverage}%</p>
+                <p className={styles.chairVisualMeta}>
+                  {stats.judgesWithActivity}/{Math.max(1, stats.chapterJudgeCount)} judges with scoring activity
+                </p>
+                <div className={styles.chairTrack}>
+                  <div
+                    className={styles.chairFill}
+                    style={{ width: `${judgeCoverage}%` }}
+                  />
+                </div>
+                <div className={styles.chairMiniGrid}>
+                  <div className={styles.chairMiniItem}>
+                    <span>Pending Approval</span>
+                    <strong>{stats.pendingApprovalsForChapter}</strong>
+                  </div>
+                  <div className={styles.chairMiniItem}>
+                    <span>Ready To Judge</span>
+                    <strong>{stats.chapterAdjudicationCount}</strong>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
         </section>
 
         <section className={styles.sectionCard}>

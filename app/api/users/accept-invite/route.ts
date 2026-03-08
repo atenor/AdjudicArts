@@ -21,7 +21,17 @@ export async function POST(req: Request) {
     const { token, name, password } = parsed.data;
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-    const invite = await prisma.inviteToken.findUnique({ where: { tokenHash } });
+    const invite = await prisma.inviteToken.findUnique({
+      where: { tokenHash },
+      include: {
+        invitedBy: {
+          select: {
+            role: true,
+            chapter: true,
+          },
+        },
+      },
+    });
 
     if (!invite) {
       return NextResponse.json({ error: "Invite not found" }, { status: 404 });
@@ -43,6 +53,10 @@ export async function POST(req: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const chapterFromInvite =
+      invite.role === "CHAPTER_JUDGE" && invite.invitedBy.role === "CHAPTER_CHAIR"
+        ? invite.invitedBy.chapter?.trim() || null
+        : null;
 
     const [user] = await prisma.$transaction([
       prisma.user.create({
@@ -51,6 +65,7 @@ export async function POST(req: Request) {
           email: invite.email,
           name,
           role: invite.role,
+          chapter: chapterFromInvite,
           passwordHash,
         },
       }),

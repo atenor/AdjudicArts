@@ -20,6 +20,7 @@ import {
   CITIZENSHIP_STATUS_OPTIONS,
   PRIOR_WIN_DIVISION_OPTIONS,
   VIDEO_LANGUAGE_OPTIONS,
+  VIDEO_STYLE_OPTIONS,
   VOICE_PART_OPTIONS,
 } from "@/lib/validation/apply";
 
@@ -170,8 +171,11 @@ export default function ApplyForm({
       hasPriorFirstPrize: false,
       priorFirstPrizeDivision: "",
       video1Language: "english",
+      video1Style: "",
       video2Language: "italian",
+      video2Style: "",
       video3Language: "german",
+      video3Style: "",
     },
   });
   const hasPriorFirstPrize = watch("hasPriorFirstPrize");
@@ -517,6 +521,26 @@ export default function ApplyForm({
                 </div>
 
                 <div className="space-y-1">
+                  <Label htmlFor="video1Style" className="text-[#5f4d87]">Video 1 Style *</Label>
+                  <select
+                    id="video1Style"
+                    {...register("video1Style")}
+                    className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8]"
+                  >
+                    <option value="">Select style...</option>
+                    {VIDEO_STYLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[#7b6e9d]">
+                    Choose the closest repertoire category for this selection.
+                  </p>
+                  <FieldError message={errors.video1Style?.message} />
+                </div>
+
+                <div className="space-y-1">
                   <Label htmlFor="video2PieceTitle" className="text-[#5f4d87]">Video 2 Title *</Label>
                   <Input id="video2PieceTitle" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video2PieceTitle")} />
                   <FieldError message={errors.video2PieceTitle?.message} />
@@ -556,6 +580,26 @@ export default function ApplyForm({
                 </div>
 
                 <div className="space-y-1">
+                  <Label htmlFor="video2Style" className="text-[#5f4d87]">Video 2 Style *</Label>
+                  <select
+                    id="video2Style"
+                    {...register("video2Style")}
+                    className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8]"
+                  >
+                    <option value="">Select style...</option>
+                    {VIDEO_STYLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[#7b6e9d]">
+                    Choose the closest repertoire category for this selection.
+                  </p>
+                  <FieldError message={errors.video2Style?.message} />
+                </div>
+
+                <div className="space-y-1">
                   <Label htmlFor="video3PieceTitle" className="text-[#5f4d87]">Video 3 Title *</Label>
                   <Input id="video3PieceTitle" className="border-[#d7cde9] bg-white focus-visible:ring-[#5f2ec8]" {...register("video3PieceTitle")} />
                   <FieldError message={errors.video3PieceTitle?.message} />
@@ -592,6 +636,26 @@ export default function ApplyForm({
                     ))}
                   </select>
                   <FieldError message={errors.video3Language?.message} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="video3Style" className="text-[#5f4d87]">Video 3 Style *</Label>
+                  <select
+                    id="video3Style"
+                    {...register("video3Style")}
+                    className="flex h-9 w-full rounded-md border border-[#d7cde9] bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[#5f2ec8]"
+                  >
+                    <option value="">Select style...</option>
+                    {VIDEO_STYLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[#7b6e9d]">
+                    Choose the closest repertoire category for this selection.
+                  </p>
+                  <FieldError message={errors.video3Style?.message} />
                 </div>
 
                 <div className="space-y-1 md:col-span-2">

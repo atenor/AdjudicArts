@@ -187,7 +187,6 @@ export default async function ScoreApplicationPage({
       <div className={styles.grid}>
         <div className={styles.left}>
           <section>
-            <div className={styles.sectionHeader}>Rubric Scores</div>
             <ScoringForm
               applicationId={application.id}
               applicantName={application.applicant.name}

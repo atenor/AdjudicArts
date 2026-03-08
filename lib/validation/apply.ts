@@ -40,6 +40,17 @@ export const VIDEO_LANGUAGE_OPTIONS = [
   { value: "latin", label: "Latin" },
   { value: "other", label: "Other" },
 ] as const;
+export const VIDEO_STYLE_OPTIONS = [
+  { value: "aria", label: "Aria" },
+  { value: "art-song", label: "Art Song" },
+  { value: "oratorio", label: "Oratorio" },
+  { value: "opera", label: "Opera Scene" },
+  { value: "musical-theater", label: "Musical Theater" },
+  { value: "spiritual", label: "Spiritual" },
+  { value: "folk-song", label: "Folk Song" },
+  { value: "contemporary", label: "Contemporary" },
+  { value: "other", label: "Other" },
+] as const;
 
 const CITIZENSHIP_STATUS_VALUES = CITIZENSHIP_STATUS_OPTIONS.map(
   (option) => option.value
@@ -89,6 +100,9 @@ const PRIOR_WIN_DIVISION_VALUES = PRIOR_WIN_DIVISION_OPTIONS.map(
 const VIDEO_LANGUAGE_VALUES = VIDEO_LANGUAGE_OPTIONS.map(
   (option) => option.value
 ) as [string, ...string[]];
+const VIDEO_STYLE_VALUES = VIDEO_STYLE_OPTIONS.map(
+  (option) => option.value
+) as [string, ...string[]];
 
 export const applicantIntakeSchema = z
   .object({
@@ -116,16 +130,19 @@ export const applicantIntakeSchema = z
     video1Composer: requiredTrimmedString("Video 1 composer is required"),
     video1Poet: z.string().trim().optional(),
     video1Language: z.enum(VIDEO_LANGUAGE_VALUES),
+    video1Style: z.enum(VIDEO_STYLE_VALUES),
     video1Url: optionalUrl,
     video2PieceTitle: requiredTrimmedString("Video 2 title is required"),
     video2Composer: requiredTrimmedString("Video 2 composer is required"),
     video2Poet: z.string().trim().optional(),
     video2Language: z.enum(VIDEO_LANGUAGE_VALUES),
+    video2Style: z.enum(VIDEO_STYLE_VALUES),
     video2Url: optionalUrl,
     video3PieceTitle: requiredTrimmedString("Video 3 title is required"),
     video3Composer: requiredTrimmedString("Video 3 composer is required"),
     video3Poet: z.string().trim().optional(),
     video3Language: z.enum(VIDEO_LANGUAGE_VALUES),
+    video3Style: z.enum(VIDEO_STYLE_VALUES),
     video3Url: optionalUrl,
     headshotUrl: optionalStoredAssetRef,
     bio: requiredTrimmedString("Bio is required"),

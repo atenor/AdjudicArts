@@ -575,6 +575,7 @@ export async function createPublicApplication(data: {
   priorFirstPrizeDivision?: string | null;
   prizeWinnerCertification: boolean;
   videoLanguages: string[];
+  videoStyles: string[];
   acceptPrivacyPolicy: boolean;
   acceptTerms: boolean;
 }) {
@@ -652,6 +653,7 @@ export async function createPublicApplication(data: {
         priorFirstPrizeDivision: data.priorFirstPrizeDivision ?? null,
         prizeWinnerCertification: data.prizeWinnerCertification,
         videoLanguages: data.videoLanguages,
+        videoStyles: data.videoStyles,
         privacyPolicyAccepted: data.acceptPrivacyPolicy,
         submissionTermsAccepted: data.acceptTerms,
       }),

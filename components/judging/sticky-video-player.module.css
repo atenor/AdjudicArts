@@ -34,7 +34,7 @@
 
 .buttonRow {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.42rem;
   flex-shrink: 0;
 }
 
@@ -43,10 +43,10 @@
   border: 1px solid rgba(216, 204, 233, 0.45);
   background: rgba(255, 255, 255, 0.96);
   color: #3d2d72;
-  height: 1.54rem;
-  min-width: 2.08rem;
-  padding: 0 0.42rem;
-  font-size: 0.58rem;
+  height: 2rem;
+  min-width: 2.45rem;
+  padding: 0 0.55rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
 }

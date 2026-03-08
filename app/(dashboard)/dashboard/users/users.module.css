@@ -13,6 +13,12 @@
   flex-wrap: wrap;
 }
 
+.actionGroup {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .heading {
   font-size: 1.5rem;
   font-weight: 700;

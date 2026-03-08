@@ -299,6 +299,291 @@
   background: rgba(70, 43, 124, 0.09);
 }
 
+.chairHeroCard {
+  border-radius: 12px;
+  border: 1px solid rgba(70, 43, 124, 0.18);
+  background:
+    radial-gradient(circle at 90% -10%, rgba(201, 168, 76, 0.24), transparent 42%),
+    radial-gradient(circle at -8% 120%, rgba(95, 46, 200, 0.2), transparent 48%),
+    linear-gradient(160deg, #ffffff 0%, #f3eef8 100%);
+  box-shadow: 0 10px 26px rgba(70, 43, 124, 0.12);
+  padding: 0.85rem 0.9rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.chairHeroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chairHeroKicker {
+  margin: 0;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #6e5e93;
+  font-weight: 800;
+}
+
+.chairHeroPill {
+  border-radius: 999px;
+  border: 1px solid rgba(20, 122, 88, 0.32);
+  background: #d6f6e8;
+  color: #147a58;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.58rem;
+}
+
+.chairHeroCopy {
+  margin: 0;
+  color: #4d3d74;
+  font-size: 0.82rem;
+}
+
+.chairPipelineRail {
+  display: flex;
+  width: 100%;
+  height: 11px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(70, 43, 124, 0.1);
+}
+
+.chairPipelineRail span {
+  min-width: 6%;
+}
+
+.chairPipelinePending {
+  background: #c9a84c;
+}
+
+.chairPipelineActive {
+  background: #5f2ec8;
+}
+
+.chairPipelineAdvanced {
+  background: #147a58;
+}
+
+.chairPipelineClosed {
+  background: #8b7ab5;
+}
+
+.chairHeroLegend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 0.5rem;
+}
+
+.chairLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  color: #2e1f5d;
+  font-size: 0.71rem;
+  font-weight: 600;
+}
+
+.chairLegendItem:hover,
+.chairLegendItem:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  outline: none;
+}
+
+.chairDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.chairDotPending {
+  background: #c9a84c;
+}
+
+.chairDotActive {
+  background: #5f2ec8;
+}
+
+.chairDotAdvanced {
+  background: #147a58;
+}
+
+.chairDotClosed {
+  background: #8b7ab5;
+}
+
+.chairKpiStrip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.chairKpiLink {
+  display: grid;
+  gap: 0.08rem;
+  text-decoration: none;
+  border-radius: 10px;
+  border: 1px solid rgba(70, 43, 124, 0.14);
+  background: linear-gradient(180deg, rgba(243, 238, 248, 0.92), #ffffff);
+  padding: 0.62rem 0.7rem;
+  box-shadow: 0 2px 10px rgba(70, 43, 124, 0.07);
+}
+
+.chairKpiLink:hover,
+.chairKpiLink:focus-visible {
+  background: linear-gradient(180deg, rgba(237, 229, 250, 0.98), #ffffff);
+  border-color: rgba(70, 43, 124, 0.3);
+  outline: none;
+}
+
+.chairKpiLabel {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #8a7fa8;
+  font-weight: 700;
+}
+
+.chairKpiValue {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #2f1e60;
+}
+
+.chairKpiSub {
+  font-size: 0.7rem;
+  color: #7d6ca4;
+}
+
+.chairVisualGrid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.chairVisualCard {
+  border-radius: 10px;
+  border: 1px solid rgba(70, 43, 124, 0.12);
+  background: linear-gradient(180deg, rgba(244, 239, 250, 0.8), #ffffff);
+  padding: 0.65rem 0.7rem;
+  display: grid;
+  gap: 0.42rem;
+  border-left-width: 4px;
+  box-shadow: 0 4px 14px rgba(70, 43, 124, 0.08);
+}
+
+.chairVisualTitle {
+  margin: 0;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #7d6ca4;
+  font-weight: 800;
+}
+
+.chairVisualCardPipeline {
+  border-color: rgba(201, 168, 76, 0.35);
+  border-left-color: #c9a84c;
+  background: linear-gradient(180deg, #fff9eb 0%, #ffffff 70%);
+}
+
+.chairVisualCardPipeline .chairVisualTitle {
+  color: #856404;
+}
+
+.chairVisualCardScoring {
+  border-color: rgba(20, 122, 88, 0.35);
+  border-left-color: #147a58;
+  background: linear-gradient(180deg, #ecfaf3 0%, #ffffff 70%);
+}
+
+.chairVisualCardScoring .chairVisualTitle {
+  color: #0d7b5f;
+}
+
+.chairVisualCardInvites {
+  border-color: rgba(95, 46, 200, 0.28);
+  border-left-color: #5f2ec8;
+  background: linear-gradient(180deg, #f3ecff 0%, #ffffff 70%);
+}
+
+.chairVisualCardInvites .chairVisualTitle {
+  color: #4f26a8;
+}
+
+.chairVisualCardJudges {
+  border-color: rgba(139, 122, 181, 0.36);
+  border-left-color: #8b7ab5;
+  background: linear-gradient(180deg, #f5f1fb 0%, #ffffff 70%);
+}
+
+.chairVisualCardJudges .chairVisualTitle {
+  color: #6f5a9d;
+}
+
+.chairVisualMetric {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #2f1e60;
+  letter-spacing: -0.01em;
+}
+
+.chairVisualMeta {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #7d6ca4;
+}
+
+.chairTrack {
+  height: 9px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(70, 43, 124, 0.12);
+}
+
+.chairFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5f2ec8 0%, #147a58 100%);
+}
+
+.chairMiniGrid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chairMiniItem {
+  border-radius: 8px;
+  border: 1px solid rgba(70, 43, 124, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.45rem 0.5rem;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.chairMiniItem span {
+  font-size: 0.63rem;
+  color: #8a7fa8;
+}
+
+.chairMiniItem strong {
+  font-size: 0.95rem;
+  color: #2f1e60;
+}
+
 .centerCard {
   margin: 2rem auto 0;
   max-width: 28rem;
@@ -558,6 +843,18 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  .chairKpiStrip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chairVisualGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chairHeroCard {
+    padding: 0.95rem 1rem;
+  }
+
   .sectionBody {
     padding: 1rem;
   }
@@ -578,5 +875,11 @@
 
   .grid3 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .chairHeroLegend {
+    grid-template-columns: 1fr;
   }
 }

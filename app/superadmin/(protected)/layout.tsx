@@ -17,10 +17,10 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     <div className={styles.shell}>
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
-          <div className={styles.brand}>
+          <Link href="/superadmin" className={styles.brand} aria-label="Go to superadmin home">
             <span className={styles.brandStrong}>AdjudicArts</span>
             <span className={styles.brandTag}>Platform Admin</span>
-          </div>
+          </Link>
           <nav className={styles.nav}>
             <Link href="/superadmin" className={styles.navLink}>
               Dashboard

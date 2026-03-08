@@ -219,7 +219,7 @@ export default async function ApplicationsPage({
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Status:</span>
+            <span className="text-sm text-muted-foreground">Filter:</span>
             <form action="/dashboard/applications" className="flex items-center gap-2">
               <input type="hidden" name="view" value={viewMode} />
               {normalizedChapterFilter ? (
@@ -230,7 +230,7 @@ export default async function ApplicationsPage({
                 defaultValue={statusFilter ?? ""}
                 className="h-9 rounded-md border border-[#d7cde9] bg-[#fffdf5] px-3 text-sm text-[#4a3d6b] outline-none transition focus:border-[#8eb89c]"
               >
-                <option value="">All statuses</option>
+                <option value="">All filters</option>
                 {visibleStatusOptions.map((status) => (
                   <option key={status} value={status}>
                     {STATUS_FILTER_LABELS[status]}

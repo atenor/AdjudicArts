@@ -6,7 +6,40 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
-const FROM_ADDRESS = "AdjudicArts <noreply@adjudicarts.dev>";
+const FROM_ADDRESS = "AdjudicArts <invites@mail.adjudicarts.com>";
+
+type ResendSendResponse = {
+  data?: { id?: string | null } | null;
+  error?: { message?: string | null } | null;
+};
+
+async function sendEmailOrThrow(payload: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  replyTo?: string;
+}): Promise<string> {
+  const response = (await getResend().emails.send({
+    from: FROM_ADDRESS,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+    replyTo: payload.replyTo,
+  })) as ResendSendResponse;
+
+  if (response?.error) {
+    throw new Error(response.error.message ?? "Resend rejected the email request");
+  }
+
+  const deliveryId = response?.data?.id;
+  if (!deliveryId) {
+    throw new Error("Resend did not return a delivery id");
+  }
+
+  return deliveryId;
+}
 
 const STATUS_MESSAGES: Record<ApplicationStatus, string> = {
   PENDING_APPROVAL: "Your application has been received and is awaiting review.",
@@ -79,8 +112,7 @@ export async function sendApplicationConfirmation(
     <a class="button" href="${statusUrl}">Check application status</a>
   `);
 
-  await getResend().emails.send({
-    from: FROM_ADDRESS,
+  await sendEmailOrThrow({
     to,
     subject: `Application Received — ${eventName}`,
     html,
@@ -103,8 +135,7 @@ export async function sendStatusUpdate(
     <a class="button" href="${statusUrl}">View application status</a>
   `);
 
-  await getResend().emails.send({
-    from: FROM_ADDRESS,
+  await sendEmailOrThrow({
     to,
     subject: `Application Update — ${eventName}`,
     html,
@@ -123,8 +154,7 @@ export async function sendWelcomeEmail(
     <a class="button" href="${process.env.NEXTAUTH_URL}/dashboard">Go to your dashboard &rarr;</a>
   `);
 
-  await getResend().emails.send({
-    from: FROM_ADDRESS,
+  await sendEmailOrThrow({
     to,
     subject: `Welcome to AdjudicArts — ${orgName}`,
     html,
@@ -136,7 +166,7 @@ export async function sendInviteEmail(
   inviteUrl: string,
   roleLabel: string,
   invitedByName: string
-) {
+): Promise<string> {
   const html = baseLayout(`
     <p>You've been invited to join AdjudicArts as a <strong>${roleLabel}</strong>.</p>
     <p>Invited by: ${invitedByName}</p>
@@ -145,11 +175,21 @@ export async function sendInviteEmail(
     <p style="margin-top:16px;font-size:13px;color:#71717a;">If you weren't expecting this invitation, you can safely ignore this email.</p>
   `);
 
-  await getResend().emails.send({
-    from: FROM_ADDRESS,
+  const text = [
+    `You have been invited to AdjudicArts as a ${roleLabel}.`,
+    `Invited by: ${invitedByName}`,
+    "This invite link expires in 48 hours:",
+    inviteUrl,
+    "",
+    "If you were not expecting this invitation, you can ignore this email.",
+  ].join("\n");
+
+  return sendEmailOrThrow({
     to,
     subject: "You're invited to AdjudicArts",
     html,
+    text,
+    replyTo: "support@adjudicarts.com",
   });
 }
 
@@ -168,8 +208,7 @@ export async function sendSupportNotification(
     <a class="button" href="${ticketUrl}">View ticket &rarr;</a>
   `);
 
-  await getResend().emails.send({
-    from: FROM_ADDRESS,
+  await sendEmailOrThrow({
     to,
     subject: `[Support] ${subject} — ${orgName}`,
     html,
@@ -192,8 +231,7 @@ export async function sendContactInquiry(
     <p style="background:#f4f4f5;padding:12px;border-radius:6px;">${message.replace(/\n/g, "<br>")}</p>
   `);
 
-  await getResend().emails.send({
-    from: FROM_ADDRESS,
+  await sendEmailOrThrow({
     to,
     subject: `[Contact] ${name}${organization ? ` — ${organization}` : ""}`,
     html,
@@ -213,8 +251,7 @@ export async function sendTicketReply(
     <a class="button" href="${ticketUrl}">View your ticket &rarr;</a>
   `);
 
-  await getResend().emails.send({
-    from: FROM_ADDRESS,
+  await sendEmailOrThrow({
     to,
     subject: "AdjudicArts support replied to your ticket",
     html,

@@ -445,6 +445,7 @@ export default function ScoringForm({
 
   return (
     <div className={styles.form}>
+      <h2 className={styles.scorecardTitle}>Scorecard</h2>
       {certification ? (
         <section className={`${styles.banner} ${styles.bannerSuccess}`}>
           <p className={styles.bannerTitle}>Certified Round Lock</p>
@@ -456,15 +457,7 @@ export default function ScoringForm({
             {certification.certifiedBy.name ?? certification.certifiedBy.email}
           </p>
         </section>
-      ) : (
-        <section className={`${styles.banner} ${styles.bannerNeutral}`}>
-          <p className={styles.bannerTitle}>Working Scorecard</p>
-          <p className={styles.bannerText}>
-            Save your work as you go. Individual applicants remain editable until the full round is
-            certified.
-          </p>
-        </section>
-      )}
+      ) : null}
 
       {submission?.events.length ? (
         <section className={`${styles.banner} ${styles.bannerNeutral}`}>
@@ -662,7 +655,8 @@ export default function ScoringForm({
                   href={previousApplicantHref}
                   className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
                 >
-                  Previous
+                  <span className={styles.navActionLabel}>Previous</span>
+                  <span className={styles.navActionArrow}>←</span>
                 </Link>
               ) : null}
             </div>
@@ -682,7 +676,8 @@ export default function ScoringForm({
                   href={nextApplicantHref}
                   className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
                 >
-                  Next
+                  <span className={styles.navActionLabel}>Next</span>
+                  <span className={styles.navActionArrow}>→</span>
                 </Link>
               ) : null}
             </div>

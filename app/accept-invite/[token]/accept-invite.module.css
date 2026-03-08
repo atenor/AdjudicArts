@@ -1,11 +1,17 @@
 .page {
-  min-height: 100dvh;
-  display: flex;
+  min-height: 100vh;
+  display: grid;
   align-items: center;
-  justify-content: center;
-  background: #f5f0fc;
+  background: radial-gradient(
+      ellipse 88% 70% at 50% -8%,
+      rgba(40, 26, 74, 0.7) 0%,
+      rgba(88, 61, 146, 0.25) 36%,
+      transparent 62%
+    ),
+    #ede6f7;
   padding: 2rem 1rem;
   position: relative;
+  overflow: hidden;
 }
 
 .bgGlow {
@@ -15,37 +21,115 @@
   pointer-events: none;
 }
 
+.bgRingOuter,
+.bgRingInner {
+  position: absolute;
+  border-radius: 999px;
+  border: 1px solid rgba(70, 43, 124, 0.08);
+  pointer-events: none;
+}
+
+.bgRingOuter {
+  width: min(1200px, 96vw);
+  height: min(1200px, 96vw);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.bgRingInner {
+  width: min(820px, 74vw);
+  height: min(820px, 74vw);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
 .card {
   position: relative;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(70, 43, 124, 0.14);
   border-radius: 16px;
   padding: 2.5rem 2rem;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 4px 32px rgba(70, 43, 124, 0.08);
+  box-shadow: 0 16px 44px rgba(28, 17, 54, 0.18);
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.brandBlock {
+  color: #1e1538;
+  max-width: 34rem;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6b4baa;
+}
+
+.heading {
+  margin: 0.55rem 0 0;
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+}
+
+.heading span {
+  display: block;
+  color: #462b7c;
+}
+
+.copy {
+  margin: 1rem 0 0;
+  color: #4a3d6b;
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 29rem;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.15rem;
 }
 
 .wordmark {
-  font-size: 1.75rem;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-size: 2rem;
+  line-height: 1;
+  font-family: var(--font-cormorant), "Cormorant Garamond", serif;
   margin: 0;
 }
 
 .wordStrong {
+  color: #1e1538;
   font-weight: 700;
-  color: #462b7c;
 }
 
 .wordLight {
+  color: #c9a84c;
   font-weight: 300;
-  color: #8a7fa8;
+  font-style: italic;
+}
+
+.subtitle {
+  margin: 0.45rem 0 0;
+  color: #6f6491;
+  font-size: 0.88rem;
 }
 
 .state {
@@ -74,15 +158,16 @@
 .inviteInfo {
   text-align: center;
   margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #f5f0fc;
+  padding: 1rem 1.1rem;
+  background: #f2edf9;
+  border: 1px solid #dfd6ef;
   border-radius: 10px;
 }
 
 .roleChip {
   display: inline-block;
-  background: #462b7c;
-  color: #fff;
+  background: linear-gradient(180deg, #5f2ec8 0%, #4f26a8 100%);
+  color: #f8f4ff;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.2rem 0.6rem;
@@ -140,13 +225,13 @@
 }
 
 .submit {
-  background: #462b7c;
-  color: #fff;
-  border: none;
+  background: linear-gradient(180deg, #d8b662 0%, #c9a84c 100%);
+  color: #1e1538;
+  border: 1px solid #e1c677;
   border-radius: 8px;
   padding: 0.7rem 1rem;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
   transition: background 0.15s;
   width: 100%;
@@ -154,10 +239,25 @@
 }
 
 .submit:hover:not(:disabled) {
-  background: #5a3a9a;
+  background: linear-gradient(180deg, #e0c070 0%, #cfad58 100%);
 }
 
 .submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 920px) {
+  .shell {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
+
+  .brandBlock {
+    text-align: center;
+  }
+
+  .copy {
+    max-width: none;
+  }
 }

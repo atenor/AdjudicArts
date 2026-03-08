@@ -27,11 +27,23 @@ type FormValues = z.infer<typeof inviteSchema>;
 
 interface Props {
   onSuccess?: () => void;
+  triggerLabel?: string;
+  title?: string;
+  allowedRoles?: readonly Role[];
+  helperText?: string;
 }
 
-export default function InviteUserModal({ onSuccess }: Props) {
+export default function InviteUserModal({
+  onSuccess,
+  triggerLabel = "Invite user",
+  title = "Invite a team member",
+  allowedRoles = INVITABLE_ROLES,
+  helperText,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -40,8 +52,13 @@ export default function InviteUserModal({ onSuccess }: Props) {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(inviteSchema),
-    defaultValues: { role: Role.CHAPTER_JUDGE },
+    resolver: zodResolver(
+      inviteSchema.refine((value) => allowedRoles.includes(value.role), {
+        message: "That role is not available for this account",
+        path: ["role"],
+      })
+    ),
+    defaultValues: { role: allowedRoles[0] ?? Role.CHAPTER_JUDGE },
   });
 
   async function onSubmit(data: FormValues) {
@@ -57,12 +74,16 @@ export default function InviteUserModal({ onSuccess }: Props) {
       return;
     }
     setSent(data.email);
+    setInviteUrl(typeof json.inviteUrl === "string" ? json.inviteUrl : null);
+    setEmailSent(Boolean(json.emailSent));
     onSuccess?.();
   }
 
   function handleClose() {
     setOpen(false);
     setSent(null);
+    setInviteUrl(null);
+    setEmailSent(false);
     setServerError(null);
     reset();
   }
@@ -70,18 +91,38 @@ export default function InviteUserModal({ onSuccess }: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <button className={styles.trigger}>Invite user</button>
+        <button className={styles.trigger}>{triggerLabel}</button>
       </Dialog.Trigger>
 
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content className={styles.content}>
-          <Dialog.Title className={styles.title}>Invite a team member</Dialog.Title>
+          <Dialog.Title className={styles.title}>{title}</Dialog.Title>
 
           {sent ? (
             <div className={styles.successState}>
-              <p className={styles.successMsg}>Invite sent to <strong>{sent}</strong></p>
-              <p className={styles.successSub}>They&apos;ll receive an email with a link to set up their account.</p>
+              <p className={styles.successMsg}>
+                Invite created for <strong>{sent}</strong>
+              </p>
+              <p className={styles.successSub}>
+                {emailSent
+                  ? "Email delivered with setup link."
+                  : "Email delivery is unavailable. Use the invite link below."}
+              </p>
+              {inviteUrl ? (
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="invite-url">
+                    Invite link
+                  </label>
+                  <input
+                    id="invite-url"
+                    className={styles.input}
+                    value={inviteUrl}
+                    readOnly
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                </div>
+              ) : null}
               <button className={styles.closeBtn} onClick={handleClose}>
                 Done
               </button>
@@ -107,7 +148,7 @@ export default function InviteUserModal({ onSuccess }: Props) {
                   Role
                 </label>
                 <select id="inv-role" className={styles.select} {...register("role")}>
-                  {INVITABLE_ROLES.map((r) => (
+                  {allowedRoles.map((r) => (
                     <option key={r} value={r}>
                       {ROLE_LABELS[r] ?? r}
                     </option>
@@ -115,6 +156,8 @@ export default function InviteUserModal({ onSuccess }: Props) {
                 </select>
                 {errors.role && <p className={styles.error}>{errors.role.message}</p>}
               </div>
+
+              {helperText ? <p className={styles.optional}>{helperText}</p> : null}
 
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="inv-name">

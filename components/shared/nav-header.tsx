@@ -6,6 +6,7 @@ import { Role } from "@prisma/client";
 import { ROLE_LABELS } from "@/lib/roles";
 import { countUnreadInAppNotificationsForUser } from "@/lib/db/notifications";
 import SignOutButton from "@/components/shared/sign-out-button";
+import NavMobileMenu from "@/components/shared/nav-mobile-menu";
 import styles from "./nav-header.module.css";
 
 const cormorant = Cormorant_Garamond({
@@ -34,9 +35,7 @@ export default async function NavHeader() {
     role === "CHAPTER_CHAIR";
   const canImportApplications = role === "ADMIN";
   const canViewScoring = isJudge;
-  const canViewNotifications = Boolean(session?.user);
   const canViewSettings = Boolean(session?.user);
-  const canManageUsers = role === "ADMIN";
   const canViewSupport = Boolean(session?.user);
   const navLinks: Array<{ href: string; label: string; showNotif?: boolean }> = [];
   if (canViewDashboard) navLinks.push({ href: "/dashboard", label: "Dashboard Home" });
@@ -44,11 +43,13 @@ export default async function NavHeader() {
   if (canViewApplications) navLinks.push({ href: "/dashboard/applications", label: "Applications" });
   if (canImportApplications) navLinks.push({ href: "/dashboard/import", label: "Import Applications" });
   if (canViewScoring) navLinks.push({ href: "/dashboard/scoring", label: "Judging List" });
-  if (canViewNotifications) {
-    navLinks.push({ href: "/dashboard/notifications", label: "Notifications", showNotif: true });
-  }
-  if (canManageUsers) navLinks.push({ href: "/dashboard/users", label: "Users" });
+  if (canViewSettings) navLinks.push({ href: "/dashboard/notifications", label: "Settings", showNotif: true });
   if (canViewSupport) navLinks.push({ href: "/dashboard/support", label: "Support" });
+
+  const mobileLinks: Array<{ href: string; label: string }> = [];
+  if (canViewDashboard) mobileLinks.push({ href: "/dashboard", label: "Dashboard Home" });
+  if (canViewApplications) mobileLinks.push({ href: "/dashboard/applications", label: "Applications" });
+  if (canViewSettings) mobileLinks.push({ href: "/dashboard/notifications", label: "Settings" });
 
   return (
     <header className={styles.header}>
@@ -86,29 +87,9 @@ export default async function NavHeader() {
                 ⚙
               </Link>
             ) : null}
-            <details className={styles.mobileMenu}>
-              <summary className={styles.mobileMenuButton} aria-label="Open menu">
-                ☰
-              </summary>
-              <nav className={styles.mobileMenuPanel} aria-label="Mobile dashboard navigation">
-                {navLinks.map((link) => (
-                  <Link key={link.href} href={link.href} className={styles.mobileMenuLink}>
-                    <span>{link.label}</span>
-                    {link.showNotif && unreadNotificationCount > 0 ? (
-                      <span className={styles.notifBadge}>
-                        {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                      </span>
-                    ) : null}
-                  </Link>
-                ))}
-                {canViewSettings ? (
-                  <Link href="/dashboard/notifications" className={styles.mobileMenuLink}>
-                    <span>Settings</span>
-                  </Link>
-                ) : null}
-                <SignOutButton className={styles.mobileMenuSignOut} />
-              </nav>
-            </details>
+            <NavMobileMenu
+              mobileLinks={mobileLinks}
+            />
           </div>
         )}
       </div>

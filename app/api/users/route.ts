@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    requireRole(session, Role.ADMIN);
+    requireRole(session, Role.ADMIN, Role.NATIONAL_CHAIR);
 
     const { organizationId } = session.user;
     const now = new Date();
@@ -57,7 +57,7 @@ export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    requireRole(session, Role.ADMIN);
+    requireRole(session, Role.ADMIN, Role.NATIONAL_CHAIR, Role.CHAPTER_CHAIR);
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
@@ -73,11 +73,39 @@ export async function DELETE(req: Request) {
         where: { id: userId, organizationId: session.user.organizationId },
       });
       if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+      if (session.user.role === Role.CHAPTER_CHAIR) {
+        const chairChapter = session.user.chapter?.trim() ?? "";
+        const userChapter = user.chapter?.trim() ?? "";
+        if (
+          user.role !== Role.CHAPTER_JUDGE ||
+          !chairChapter ||
+          !userChapter ||
+          chairChapter !== userChapter
+        ) {
+          return NextResponse.json(
+            { error: "Chapter chairs can only remove chapter judges in their chapter" },
+            { status: 403 }
+          );
+        }
+      }
+
       await prisma.user.delete({ where: { id: userId } });
     } else if (inviteId) {
-      const invite = await prisma.inviteToken.findFirst({
-        where: { id: inviteId, organizationId: session.user.organizationId },
-      });
+      const invite =
+        session.user.role === Role.CHAPTER_CHAIR
+          ? await prisma.inviteToken.findFirst({
+              where: {
+                id: inviteId,
+                organizationId: session.user.organizationId,
+                role: Role.CHAPTER_JUDGE,
+                invitedById: session.user.id,
+                acceptedAt: null,
+              },
+            })
+          : await prisma.inviteToken.findFirst({
+              where: { id: inviteId, organizationId: session.user.organizationId },
+            });
       if (!invite) return NextResponse.json({ error: "Invite not found" }, { status: 404 });
       await prisma.inviteToken.delete({ where: { id: inviteId } });
     } else {
