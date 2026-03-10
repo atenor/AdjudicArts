@@ -219,6 +219,22 @@ export default function ScoringForm({
     );
   }, [criteria.length, scoreSummary.average, scoreSummary.filled, scoreSummary.normalizedTotal]);
 
+  // Prevent iOS Safari from scrolling the body when the keyboard opens.
+  // On mobile, the scoring page uses an inner scroll container (.left) so
+  // body-level scroll must be locked to keep the video panel anchored.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 979px)").matches) return;
+    const html = document.documentElement;
+    const body = document.body;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = "";
+      body.style.overflow = "";
+    };
+  }, []);
+
   const aggregatedNotes = useMemo(
     () =>
       criteria
