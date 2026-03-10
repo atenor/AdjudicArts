@@ -219,33 +219,6 @@ export default function ScoringForm({
     );
   }, [criteria.length, scoreSummary.average, scoreSummary.filled, scoreSummary.normalizedTotal]);
 
-  // Measure the fixed video panel and NavHeader heights so the form starts
-  // below them. The video panel is position:fixed on mobile — it floats
-  // independently of the body scroll, so iOS cannot push it off-screen
-  // when the keyboard opens (the panel contains no inputs).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!window.matchMedia("(max-width: 979px)").matches) return;
-    const page = document.querySelector("[data-scoring-page]") as HTMLElement | null;
-    const videoPanel = page?.querySelector("aside") as HTMLElement | null;
-    const header = document.querySelector("header") as HTMLElement | null;
-    if (!page || !videoPanel) return;
-
-    function measure() {
-      const headerH = header ? header.getBoundingClientRect().height : 44;
-      page!.style.setProperty("--header-height", `${headerH}px`);
-      // Wait a frame for the video panel to reflow with the header offset
-      requestAnimationFrame(() => {
-        const panelH = videoPanel!.getBoundingClientRect().height;
-        page!.style.setProperty("--video-panel-height", `${headerH + panelH}px`);
-      });
-    }
-
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
   const aggregatedNotes = useMemo(
     () =>
       criteria

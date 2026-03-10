@@ -265,7 +265,9 @@
   }
 
   .applicantHeader {
-    display: none;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .bookmarkBlock {
@@ -273,21 +275,21 @@
   }
 
   .grid {
-    display: block;
+    display: flex;
+    flex-direction: column;
   }
 
   .right {
-    position: fixed;
-    top: var(--header-height, 2.75rem);
-    left: 0;
-    right: 0;
+    order: -1;
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
     z-index: 100;
     background: #f5f0fc;
-    padding: 0.25rem 1rem 0;
   }
 
   .left {
-    padding-top: var(--video-panel-height, 24rem);
+    order: 1;
   }
 
   .stickyPanel {
