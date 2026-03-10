@@ -219,37 +219,31 @@ export default function ScoringForm({
     );
   }, [criteria.length, scoreSummary.average, scoreSummary.filled, scoreSummary.normalizedTotal]);
 
-  // Keep the scoring page anchored to the visual viewport on iOS Safari.
-  // When the keyboard opens, iOS shifts the visual viewport (not the layout
-  // viewport), so position:fixed elements appear to scroll away. We
-  // compensate by translating the page to follow the visual viewport and
-  // constraining its height to the visible area above the keyboard.
+  // Measure the fixed video panel and NavHeader heights so the form starts
+  // below them. The video panel is position:fixed on mobile — it floats
+  // independently of the body scroll, so iOS cannot push it off-screen
+  // when the keyboard opens (the panel contains no inputs).
   useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
+    if (typeof window === "undefined") return;
     if (!window.matchMedia("(max-width: 979px)").matches) return;
     const page = document.querySelector("[data-scoring-page]") as HTMLElement | null;
-    if (!page) return;
+    const videoPanel = page?.querySelector("aside") as HTMLElement | null;
+    const header = document.querySelector("header") as HTMLElement | null;
+    if (!page || !videoPanel) return;
 
-    const vv = window.visualViewport;
-    function update() {
+    function measure() {
+      const headerH = header ? header.getBoundingClientRect().height : 44;
+      page!.style.setProperty("--header-height", `${headerH}px`);
+      // Wait a frame for the video panel to reflow with the header offset
       requestAnimationFrame(() => {
-        page!.style.transform = `translateY(${vv!.offsetTop}px)`;
-        page!.style.height = `${vv!.height}px`;
-        // Collapse the applicant header when keyboard is open to free space
-        const keyboardOpen = vv!.height < window.innerHeight * 0.85;
-        page!.classList.toggle("keyboard-open", keyboardOpen);
+        const panelH = videoPanel!.getBoundingClientRect().height;
+        page!.style.setProperty("--video-panel-height", `${headerH + panelH}px`);
       });
     }
 
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-      page.style.transform = "";
-      page.style.height = "";
-    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, []);
 
   const aggregatedNotes = useMemo(

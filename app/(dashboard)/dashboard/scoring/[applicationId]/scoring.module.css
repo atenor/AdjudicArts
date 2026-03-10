@@ -261,32 +261,11 @@
 
 @media (max-width: 979px) {
   .page {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
     background: #f5f0fc;
-    z-index: 50;
-    padding: 0.5rem 1rem 0;
-    will-change: transform, height;
   }
 
   .applicantHeader {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-    transition: max-height 0.15s ease, opacity 0.15s ease, padding 0.15s ease;
-    max-height: 6rem;
-    overflow: hidden;
-  }
-
-  :global(.keyboard-open) .applicantHeader {
-    max-height: 0;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+    display: none;
   }
 
   .bookmarkBlock {
@@ -294,31 +273,21 @@
   }
 
   .grid {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    gap: 0;
+    display: block;
   }
 
   .right {
-    display: grid;
-    order: -1;
-    position: static;
-    flex-shrink: 0;
-    z-index: 72;
-    margin-bottom: 0.25rem;
+    position: fixed;
+    top: var(--header-height, 2.75rem);
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #f5f0fc;
+    padding: 0.25rem 1rem 0;
   }
 
   .left {
-    order: 1;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    padding-top: var(--video-panel-height, 24rem);
   }
 
   .stickyPanel {
