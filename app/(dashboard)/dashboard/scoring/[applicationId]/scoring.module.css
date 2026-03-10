@@ -274,15 +274,17 @@
   .right {
     display: grid;
     order: -1;
-    position: sticky;
-    top: env(safe-area-inset-top, 0px);
+    position: relative;
     z-index: 40;
   }
 
   .stickyPanel {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
     max-height: none;
     overflow: visible;
     padding-right: 0;
+    z-index: 45;
   }
 
   .desktopOnly {
