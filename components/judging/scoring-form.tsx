@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./scoring-form.module.css";
@@ -146,6 +146,7 @@ export default function ScoringForm({
 }) {
   const SCORE_OPTIONS = Array.from({ length: 11 }, (_, value) => value);
   const router = useRouter();
+  const formRef = useRef<HTMLDivElement | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -443,8 +444,65 @@ export default function ScoringForm({
     }
   }
 
+  function isInputLike(node: EventTarget | null) {
+    return node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement;
+  }
+
+  function broadcastScoringInputFocus(active: boolean) {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("adjudicarts:scoring-input-focus", {
+        detail: { active },
+      })
+    );
+  }
+
+  function handleFormFocusCapture(event: React.FocusEvent<HTMLDivElement>) {
+    if (!isInputLike(event.target)) return;
+    broadcastScoringInputFocus(true);
+  }
+
+  function handleFormBlurCapture() {
+    if (typeof window === "undefined") return;
+    window.setTimeout(() => {
+      const activeElement = document.activeElement;
+      const insideForm = Boolean(
+        formRef.current &&
+          activeElement instanceof HTMLElement &&
+          formRef.current.contains(activeElement)
+      );
+      const stillInput = isInputLike(activeElement);
+      if (insideForm && stillInput) {
+        broadcastScoringInputFocus(true);
+        return;
+      }
+
+      const viewport = window.visualViewport;
+      const keyboardLikelyOpen = Boolean(
+        viewport && viewport.height < window.innerHeight * 0.86
+      );
+      if (!keyboardLikelyOpen) {
+        broadcastScoringInputFocus(false);
+      }
+    }, 80);
+  }
+
+  function handleScoringFieldFocus() {
+    broadcastScoringInputFocus(true);
+  }
+
+  function handleScoringFieldBlur() {
+    handleFormBlurCapture();
+  }
+
   return (
-    <div className={styles.form}>
+    <div
+      ref={formRef}
+      className={styles.form}
+      data-scoring-form="true"
+      onFocusCapture={handleFormFocusCapture}
+      onBlurCapture={handleFormBlurCapture}
+    >
       <h2 className={styles.scorecardTitle}>Scorecard</h2>
       {certification ? (
         <section className={`${styles.banner} ${styles.bannerSuccess}`}>
@@ -535,6 +593,8 @@ export default function ScoringForm({
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
+                onFocus={handleScoringFieldFocus}
+                onBlur={handleScoringFieldBlur}
               />
             </div>
           </section>
@@ -554,6 +614,8 @@ export default function ScoringForm({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
+          onFocus={handleScoringFieldFocus}
+          onBlur={handleScoringFieldBlur}
         />
       </section>
 
@@ -574,6 +636,8 @@ export default function ScoringForm({
                 value={suggestion.label}
                 disabled={isLocked}
                 onChange={(event) => updateSuggestion(index, { label: event.target.value })}
+                onFocus={handleScoringFieldFocus}
+                onBlur={handleScoringFieldBlur}
               />
               <input
                 className={styles.smallInput}
@@ -582,6 +646,8 @@ export default function ScoringForm({
                 value={suggestion.amount}
                 disabled={isLocked}
                 onChange={(event) => updateSuggestion(index, { amount: event.target.value })}
+                onFocus={handleScoringFieldFocus}
+                onBlur={handleScoringFieldBlur}
               />
             </div>
             <textarea
@@ -591,6 +657,8 @@ export default function ScoringForm({
               value={suggestion.comment}
               disabled={isLocked}
               onChange={(event) => updateSuggestion(index, { comment: event.target.value })}
+              onFocus={handleScoringFieldFocus}
+              onBlur={handleScoringFieldBlur}
             />
             {!isLocked ? (
               <div className={styles.inlineActions}>
@@ -655,7 +723,7 @@ export default function ScoringForm({
                   href={previousApplicantHref}
                   className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
                 >
-                  <span className={styles.navActionLabel}>Previous</span>
+                  <span className={styles.navActionLabel}>Previous Singer</span>
                   <span className={styles.navActionArrow}>←</span>
                 </Link>
               ) : null}
@@ -676,7 +744,7 @@ export default function ScoringForm({
                   href={nextApplicantHref}
                   className={`${styles.button} ${styles.buttonSecondary} ${styles.navAction}`}
                 >
-                  <span className={styles.navActionLabel}>Next</span>
+                  <span className={styles.navActionLabel}>Next Singer</span>
                   <span className={styles.navActionArrow}>→</span>
                 </Link>
               ) : null}

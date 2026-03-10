@@ -195,7 +195,7 @@
 
 @media (max-width: 979px) {
   .frameWrap {
-    max-height: clamp(8.5rem, 22vh, 11rem);
+    max-height: 10.5rem;
   }
 
   .totalCard {

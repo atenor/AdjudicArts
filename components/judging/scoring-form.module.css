@@ -530,3 +530,11 @@
     grid-template-columns: minmax(0, 1fr) 10rem;
   }
 }
+
+@media (max-width: 979px) {
+  .quickNote,
+  .noteBox,
+  .smallInput {
+    font-size: 16px;
+  }
+}
