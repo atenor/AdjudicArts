@@ -219,6 +219,36 @@ export default function ScoringForm({
     );
   }, [criteria.length, scoreSummary.average, scoreSummary.filled, scoreSummary.normalizedTotal]);
 
+  // Keep the scoring page anchored to the visual viewport on iOS Safari.
+  // When the keyboard opens, iOS shifts the visual viewport (not the layout
+  // viewport), so position:fixed elements appear to scroll away. We
+  // compensate by translating the page to follow the visual viewport and
+  // constraining its height to the visible area above the keyboard.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    if (!window.matchMedia("(max-width: 979px)").matches) return;
+    const page = document.querySelector("[data-scoring-page]") as HTMLElement | null;
+    if (!page) return;
+
+    const vv = window.visualViewport;
+    function update() {
+      requestAnimationFrame(() => {
+        page!.style.transform = `translateY(${vv!.offsetTop}px)`;
+        page!.style.height = `${vv!.height}px`;
+      });
+    }
+
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      page.style.transform = "";
+      page.style.height = "";
+    };
+  }, []);
+
   const aggregatedNotes = useMemo(
     () =>
       criteria

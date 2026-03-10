@@ -160,7 +160,7 @@ export default async function ScoreApplicationPage({
     : null;
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-scoring-page>
       <section className={styles.applicantHeader}>
         <HeadshotPreview
           src={getDisplayHeadshot(application.headshot, application.id)}

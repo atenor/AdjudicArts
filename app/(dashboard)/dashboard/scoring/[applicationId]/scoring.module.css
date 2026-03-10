@@ -269,6 +269,7 @@
     background: #f5f0fc;
     z-index: 50;
     padding: 0.5rem 1rem 0;
+    will-change: transform, height;
   }
 
   .applicantHeader {
