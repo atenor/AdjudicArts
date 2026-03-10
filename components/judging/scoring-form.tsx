@@ -235,6 +235,9 @@ export default function ScoringForm({
       requestAnimationFrame(() => {
         page!.style.transform = `translateY(${vv!.offsetTop}px)`;
         page!.style.height = `${vv!.height}px`;
+        // Collapse the applicant header when keyboard is open to free space
+        const keyboardOpen = vv!.height < window.innerHeight * 0.85;
+        page!.classList.toggle("keyboard-open", keyboardOpen);
       });
     }
 
